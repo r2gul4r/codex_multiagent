@@ -50,6 +50,14 @@ function Copy-DirectoryContents {
         [string]$Destination
     )
 
+    if ((Test-Path -LiteralPath $Source) -and (Test-Path -LiteralPath $Destination)) {
+        $sourcePath = (Get-Item -LiteralPath $Source).FullName.TrimEnd('\')
+        $destinationPath = (Get-Item -LiteralPath $Destination).FullName.TrimEnd('\')
+        if ($sourcePath -eq $destinationPath) {
+            return
+        }
+    }
+
     Ensure-Directory -Path $Destination
 
     Get-ChildItem -LiteralPath $Source -Force | ForEach-Object {
@@ -254,7 +262,7 @@ function Should-OverwriteFile {
 function Install-GlobalKit {
     Write-Section -Text 'Installing global defaults'
 
-    $sourceKitRoot = Get-SourceKitRoot
+    $sourceKitRoot = $LocalKitRoot
 
     Ensure-Directory -Path $RuntimeHome
     Ensure-Directory -Path $GlobalKitRoot
@@ -281,8 +289,19 @@ function Install-GlobalKit {
             Copy-DirectoryContents -Source $source -Destination $destination
         }
         else {
-            Ensure-Directory -Path (Split-Path -Parent $destination)
-            Copy-Item -LiteralPath $source -Destination $destination -Force
+            $shouldSkipFileCopy = $false
+            if ((Test-Path -LiteralPath $source) -and (Test-Path -LiteralPath $destination)) {
+                $sourcePath = (Get-Item -LiteralPath $source).FullName
+                $destinationPath = (Get-Item -LiteralPath $destination).FullName
+                if ($sourcePath -eq $destinationPath) {
+                    $shouldSkipFileCopy = $true
+                }
+            }
+
+            if (-not $shouldSkipFileCopy) {
+                Ensure-Directory -Path (Split-Path -Parent $destination)
+                Copy-Item -LiteralPath $source -Destination $destination -Force
+            }
         }
     }
 
