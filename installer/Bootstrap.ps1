@@ -1,6 +1,10 @@
-function Install-CodexMultiAgent {
+function Invoke-MultiAgentBootstrap {
     [CmdletBinding()]
     param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Codex', 'Antigravity')]
+        [string]$Variant,
+
         [Parameter(Mandatory = $true)]
         [ValidateSet('InstallGlobal', 'ApplyWorkspace')]
         [string]$Mode,
@@ -24,9 +28,21 @@ function Install-CodexMultiAgent {
         New-Item -ItemType Directory -Path $TargetWorkspace -Force | Out-Null
     }
 
+    $installerScript = switch ($Variant) {
+        'Codex' { 'CodexMultiAgent.ps1' }
+        'Antigravity' { 'AntigravityMultiAgent.ps1' }
+        default { throw "Unsupported variant: $Variant" }
+    }
+
+    $tempPrefix = switch ($Variant) {
+        'Codex' { 'codex-multiagent-' }
+        'Antigravity' { 'antigravity-multiagent-' }
+        default { throw "Unsupported variant: $Variant" }
+    }
+
     # 깃허브에서 최신 킷 압축본을 받아 임시 폴더에서 실행
     $zipUrl = 'https://github.com/r2gul4r/codex_multiagent/archive/refs/heads/main.zip'
-    $tempRoot = Join-Path $env:TEMP ('codex-multiagent-' + [guid]::NewGuid().ToString('N'))
+    $tempRoot = Join-Path $env:TEMP ($tempPrefix + [guid]::NewGuid().ToString('N'))
     $zipPath = Join-Path $tempRoot 'kit.zip'
     $extractPath = Join-Path $tempRoot 'extract'
 
@@ -38,10 +54,10 @@ function Install-CodexMultiAgent {
         Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
 
         $kitRoot = Join-Path $extractPath 'codex_multiagent-main'
-        $installerPath = Join-Path $kitRoot 'installer\CodexMultiAgent.ps1'
+        $installerPath = Join-Path $kitRoot ("installer\" + $installerScript)
 
         if (-not (Test-Path -LiteralPath $installerPath)) {
-            throw 'Failed to locate CodexMultiAgent.ps1 in downloaded archive'
+            throw "Failed to locate $installerScript in downloaded archive"
         }
 
         $invokeArgs = @(
@@ -78,4 +94,40 @@ function Install-CodexMultiAgent {
             }
         }
     }
+}
+
+function Install-CodexMultiAgent {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('InstallGlobal', 'ApplyWorkspace')]
+        [string]$Mode,
+
+        [string]$TargetWorkspace,
+
+        [ValidateSet('standard', 'minimal')]
+        [string]$Template = 'standard',
+
+        [switch]$IncludeDocs
+    )
+
+    Invoke-MultiAgentBootstrap -Variant 'Codex' -Mode $Mode -TargetWorkspace $TargetWorkspace -Template $Template -IncludeDocs:$IncludeDocs
+}
+
+function Install-AntigravityMultiAgent {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('InstallGlobal', 'ApplyWorkspace')]
+        [string]$Mode,
+
+        [string]$TargetWorkspace,
+
+        [ValidateSet('standard', 'minimal')]
+        [string]$Template = 'standard',
+
+        [switch]$IncludeDocs
+    )
+
+    Invoke-MultiAgentBootstrap -Variant 'Antigravity' -Mode $Mode -TargetWorkspace $TargetWorkspace -Template $Template -IncludeDocs:$IncludeDocs
 }

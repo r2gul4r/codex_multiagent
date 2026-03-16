@@ -61,9 +61,9 @@ AI 에이전트 여러 개 돌린다고 무조건 좋아지는 거 아님
 ## 빠른 시작
 
 Windows PowerShell 을 관리자 권한으로 열고
-아래 둘 중 하나만 그대로 복붙하면 끝
+아래 필요한 항목만 그대로 복붙하면 끝
 
-### 1. 전역 설치
+### 1. Codex 전역 설치
 
 ```powershell
 Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode InstallGlobal
@@ -76,12 +76,41 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 
 까지 처리
 
-### 2. 특정 작업공간 설치
+### 2. Codex 특정 작업공간 설치
 
 여기서는 작업공간 경로만 바꾸면 됨
 
 ```powershell
 $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
+```
+
+이 명령 하나로
+
+- 최신 킷 다운로드
+- 지정 작업공간에 `AGENTS.md` 설치
+- `docs/codex-multiagent/` 참고 문서 복사
+
+까지 처리
+
+### 3. Antigravity 전역 설치
+
+```powershell
+Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-AntigravityMultiAgent -Mode InstallGlobal
+```
+
+이 명령 하나로
+
+- 최신 킷 다운로드
+- `%USERPROFILE%\.antigravity\multiagent-kit` 전역 설치
+
+까지 처리
+
+### 4. Antigravity 특정 작업공간 설치
+
+여기서는 작업공간 경로만 바꾸면 됨
+
+```powershell
+$workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-AntigravityMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
 ```
 
 이 명령 하나로
@@ -154,6 +183,8 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
   작은 저장소 예시
 - [installer/CodexMultiAgent.ps1](./installer/CodexMultiAgent.ps1)
   실제 설치 스크립트
+- [installer/AntigravityMultiAgent.ps1](./installer/AntigravityMultiAgent.ps1)
+  Antigravity 전용 설치 스크립트
 - [installer/Bootstrap.ps1](./installer/Bootstrap.ps1)
   GitHub에서 최신 킷을 내려받아 설치까지 연결하는 부트스트랩 스크립트
 - [installer/POWERSHELL_INSTALL.md](./installer/POWERSHELL_INSTALL.md)
