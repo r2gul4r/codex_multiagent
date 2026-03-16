@@ -8,6 +8,8 @@ param(
     [ValidateSet('standard', 'minimal')]
     [string]$Template = 'standard',
 
+    [switch]$CleanLegacy,
+
     [switch]$IncludeDocs,
 
     [switch]$Force,
@@ -129,6 +131,68 @@ function Install-RuntimeAssets {
     Copy-RuntimeAssetFile -SourceRoot $SourceKitRoot -RelativePath 'antigravity_runtime\skills\multiagent-roles.md' -DestinationRoot $GlobalSkillsRoot
 }
 
+function Get-LegacyRuntimeFiles {
+    param(
+        [string]$DirectoryPath,
+        [string[]]$ManagedFileNames
+    )
+
+    if (-not (Test-Path -LiteralPath $DirectoryPath)) {
+        return @()
+    }
+
+    return @(Get-ChildItem -LiteralPath $DirectoryPath -File | Where-Object {
+        $ManagedFileNames -notcontains $_.Name
+    })
+}
+
+function Move-LegacyRuntimeFiles {
+    param(
+        [string]$SourceDirectory,
+        [string]$BackupDirectory,
+        [string[]]$ManagedFileNames
+    )
+
+    $legacyFiles = @(Get-LegacyRuntimeFiles -DirectoryPath $SourceDirectory -ManagedFileNames $ManagedFileNames)
+    if ($legacyFiles.Count -eq 0) {
+        return 0
+    }
+
+    Ensure-Directory -Path $BackupDirectory
+
+    foreach ($legacyFile in $legacyFiles) {
+        Move-Item -LiteralPath $legacyFile.FullName -Destination (Join-Path $BackupDirectory $legacyFile.Name) -Force
+    }
+
+    return $legacyFiles.Count
+}
+
+function Quarantine-LegacyRuntimeAssets {
+    $workflowManagedFiles = @('multiagent-defaults.md')
+    $skillManagedFiles = @('multiagent-roles.md')
+    $legacyFiles = @(@(
+        (Get-LegacyRuntimeFiles -DirectoryPath $GlobalWorkflowsRoot -ManagedFileNames $workflowManagedFiles)
+        (Get-LegacyRuntimeFiles -DirectoryPath $GlobalSkillsRoot -ManagedFileNames $skillManagedFiles)
+    ) | Where-Object { $_ })
+
+    if ($legacyFiles.Count -eq 0) {
+        Write-Host 'No legacy runtime files found to quarantine'
+        return
+    }
+
+    $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $backupRoot = Join-Path $RuntimeHome (Join-Path '_legacy_disabled' $timestamp)
+    $workflowBackup = Join-Path $backupRoot 'global_workflows'
+    $skillBackup = Join-Path $backupRoot 'skills'
+
+    $workflowMoved = Move-LegacyRuntimeFiles -SourceDirectory $GlobalWorkflowsRoot -BackupDirectory $workflowBackup -ManagedFileNames $workflowManagedFiles
+    $skillMoved = Move-LegacyRuntimeFiles -SourceDirectory $GlobalSkillsRoot -BackupDirectory $skillBackup -ManagedFileNames $skillManagedFiles
+
+    Write-Host "Legacy runtime files quarantined to $backupRoot"
+    Write-Host "Moved workflows: $workflowMoved"
+    Write-Host "Moved skills: $skillMoved"
+}
+
 function Show-InfoBanner {
     $sourceRoot = Get-SourceKitRoot
     $sourceLabel = if ($sourceRoot -eq $GlobalKitRoot) { 'global kit' } else { 'local repository copy' }
@@ -237,6 +301,27 @@ function Read-IncludeDocsChoice {
     }
 }
 
+function Read-CleanLegacyChoice {
+    if ($NoPrompt) {
+        return [bool]$CleanLegacy
+    }
+
+    Write-Host ''
+    Write-Host 'Quarantine legacy runtime files from global_workflows and skills'
+    Write-Host '[Y] Yes'
+    Write-Host '[N] No'
+
+    while ($true) {
+        $choice = (Read-Host 'Selection').Trim().ToUpperInvariant()
+
+        switch ($choice) {
+            'Y' { return $true }
+            'N' { return $false }
+            default { Write-Host 'Please choose Y or N' -ForegroundColor Yellow }
+        }
+    }
+}
+
 function Should-OverwriteFile {
     param([string]$Path)
 
@@ -313,6 +398,10 @@ function Install-GlobalKit {
         Copy-Item -LiteralPath $globalTemplate -Destination $GlobalAgentsPath -Force
     }
 
+    if ($CleanLegacy) {
+        Quarantine-LegacyRuntimeAssets
+    }
+
     Install-RuntimeAssets -SourceKitRoot $sourceKitRoot
 
     Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
@@ -379,6 +468,10 @@ try {
 
     switch ($effectiveMode) {
         'InstallGlobal' {
+            $cleanLegacy = Read-CleanLegacyChoice
+            if ($cleanLegacy) {
+                $CleanLegacy = $true
+            }
             Install-GlobalKit
         }
         'ApplyWorkspace' {

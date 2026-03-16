@@ -10,6 +10,8 @@ function Install-AntigravityMultiAgent {
         [ValidateSet('standard', 'minimal')]
         [string]$Template = 'standard',
 
+        [switch]$CleanLegacy,
+
         [switch]$IncludeDocs
     )
 
@@ -57,6 +59,10 @@ function Install-AntigravityMultiAgent {
 
         if ($IncludeDocs) {
             $invokeArgs += '-IncludeDocs'
+        }
+
+        if ($CleanLegacy) {
+            $invokeArgs += '-CleanLegacy'
         }
 
         if ($Mode -eq 'ApplyWorkspace') {

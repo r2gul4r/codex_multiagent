@@ -19,6 +19,12 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 - `%USERPROFILE%\.gemini\antigravity\skills\multiagent-roles.md` 설치
 - 참고용 킷을 `%USERPROFILE%\.gemini\antigravity\multiagent-kit` 에 복사
 
+레거시 워크플로우와 스킬을 같이 격리하려면 끝에 `-CleanLegacy` 추가
+
+```powershell
+Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/AntigravityBootstrap.ps1' | Invoke-Expression; Install-AntigravityMultiAgent -Mode InstallGlobal -CleanLegacy
+```
+
 ## 2. 특정 작업공간 오버라이드 설치
 
 ```powershell
