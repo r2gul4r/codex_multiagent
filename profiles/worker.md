@@ -8,6 +8,7 @@
 ## Should Do
 
 - Stay inside the assigned scope
+- Claim the `writer_slot` before write work starts and release it after write work ends
 - Preserve pinned shared contracts unless `main` re-opens them
 - Run the required verification or leave a concrete reason why it was not run
 - Escalate blockers back to `main` in the smallest possible form
@@ -24,6 +25,7 @@
 - One-line goal
 - Edit scope
 - Contracts that must not change
+- Current `writer_slot` value
 - Verification commands
 
 ## Output Contract
@@ -31,6 +33,7 @@
 - What changed
 - Verification result
 - Remaining risk or blocker
+- Updated `writer_slot` result
 - What reviewer should pay attention to
 
 ## When Blocked

@@ -234,6 +234,7 @@ function Install-GlobalKit {
         'README.md',
         'AGENTS_TEMPLATE.md',
         'GLOBAL_AGENTS_TEMPLATE.md',
+        'STATE_TEMPLATE.md',
         'WORKSPACE_OVERRIDE_TEMPLATE.md',
         'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md',
         'MULTI_AGENT_GUIDE.md',
@@ -280,6 +281,8 @@ function Apply-ToWorkspace {
     $sourceKitRoot = Get-SourceKitRoot
     $templateSource = Get-WorkspaceTemplateSource -SourceKitRoot $sourceKitRoot -TemplateName $TemplateName
     $agentsTarget = Join-Path $resolvedWorkspace 'AGENTS.md'
+    $stateTemplate = Join-Path $sourceKitRoot 'STATE_TEMPLATE.md'
+    $stateTarget = Join-Path $resolvedWorkspace 'STATE.md'
 
     Write-Section -Text 'Applying workspace override'
     Write-Host "Workspace: $resolvedWorkspace"
@@ -293,6 +296,10 @@ function Apply-ToWorkspace {
 
     Copy-Item -LiteralPath $templateSource -Destination $agentsTarget -Force
 
+    if (-not (Test-Path -LiteralPath $stateTarget)) {
+        Copy-Item -LiteralPath $stateTemplate -Destination $stateTarget -Force
+    }
+
     if ($CopyDocs) {
         $docsRoot = Join-Path $resolvedWorkspace 'docs\codex-multiagent'
         Ensure-Directory -Path $docsRoot
@@ -300,6 +307,7 @@ function Apply-ToWorkspace {
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'README.md') -Destination (Join-Path $docsRoot 'README.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'MULTI_AGENT_GUIDE.md') -Destination (Join-Path $docsRoot 'MULTI_AGENT_GUIDE.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'GLOBAL_AGENTS_TEMPLATE.md') -Destination (Join-Path $docsRoot 'GLOBAL_AGENTS_TEMPLATE.md') -Force
+        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'STATE_TEMPLATE.md') -Destination (Join-Path $docsRoot 'STATE_TEMPLATE.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Force
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'profiles') -Destination (Join-Path $docsRoot 'profiles')

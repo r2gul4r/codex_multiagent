@@ -53,8 +53,19 @@ Only the bracketed items need repository-specific edits
 ## Shared Contract Rules
 
 - Shared contracts such as APIs, payloads, schemas, routes, event names, and env keys must be pinned before workers start
+- `main` owns contract freeze before the writer slot is handed off
 - If implementation reveals a contract change, the worker escalates back to `main`
 - `reviewer` checks contract integrity before style or formatting
+
+## Task Board
+
+For multi-step work, keep a lightweight `STATE.md`
+
+- `current_task`
+- `next_tasks`
+- `blocked_tasks`
+- `writer_slot`
+- `contract_freeze`
 
 ## Parallelization Rules
 
@@ -65,6 +76,7 @@ Only the bracketed items need repository-specific edits
 - The single `writer` slot may be held by `main` or by one delegated `worker`
 - Do not open a second write-capable lane under any circumstance
 - Do not let `main` and a `worker` write at the same time
+- Record `writer_slot` as `free`, `main`, or the delegated writer name in `STATE.md`
 - Parallel work is limited to combinations that keep the single writer rule intact
 - Do not send follow-up status prompts to a running worker or reviewer
 - Do not respawn the same interrupted worker with the same approach
@@ -73,8 +85,10 @@ Only the bracketed items need repository-specific edits
 ## Parallelization Checklist
 
 - Can the acceptance criteria be explained in one line
+- Is `current_task` clearly pinned in `STATE.md`
 - Do the changed file ranges stay separate
 - Are the shared contracts already pinned
+- Is `contract_freeze` marked before the writer slot is used
 - Can verification stay valid while keeping only one write-capable lane
 - Is it clear what the reviewer must confirm at the end
 
@@ -123,6 +137,7 @@ Rename them to fit the repository
 - Start with one domain worker for implementation
 - Max concurrent role caps: `explorer 3`, `reviewer 2`, `writer 1`
 - The `writer` slot includes `main` when `main` edits directly
+- Keep `STATE.md` updated with `current_task`, `writer_slot`, and `contract_freeze`
 - Never open a second write-capable lane
 - Pin shared contracts before workers start
 - No follow-up status prompts to running workers or reviewers

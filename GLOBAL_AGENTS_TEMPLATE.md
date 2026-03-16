@@ -13,6 +13,7 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 - Close every write slice with a reviewer pass
 - Do not send follow-up status prompts to running workers
 - Do not respawn interrupted workers with the same prompt
+- For multi-step work, maintain a lightweight `STATE.md` task board
 
 ## Base Roles
 
@@ -30,8 +31,19 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 ## Global Contract Rules
 
 - Shared contracts such as APIs, schemas, routes, event names, payloads, and env keys must be pinned before implementation fans out
+- `main` owns contract freeze before the writer slot is handed off
 - If the contract is not pinned, stay in `main` or reduce the slice
 - `reviewer` checks contract integrity before style or formatting
+
+## Task Board
+
+Use a lightweight `STATE.md` instead of a heavy queue system
+
+- `current_task`
+- `next_tasks`
+- `blocked_tasks`
+- `writer_slot`
+- `contract_freeze`
 
 ## Parallelization Rules
 
@@ -42,6 +54,7 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 - The single `writer` slot may be held by `main` or by one delegated `worker`
 - Do not open a second write-capable lane under any circumstance
 - Do not let `main` and a `worker` write at the same time
+- Record `writer_slot` as `free`, `main`, or the delegated writer name in `STATE.md`
 - Parallel work is limited to combinations that keep the single writer rule intact
 - If the split is unclear, do not parallelize
 

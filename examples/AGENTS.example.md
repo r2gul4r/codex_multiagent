@@ -30,6 +30,7 @@ Adjust the paths and commands to match the real repository
 
 - `explorer` and `reviewer` are read-only
 - Only worker roles make write changes
+- Keep `STATE.md` updated with `current_task`, `writer_slot`, and `contract_freeze`
 - If both `apps/web` and `apps/api` are touched, request payload contracts must be pinned first
 - If a migration file is involved, do not parallelize
 - Do not edit `generated/` or `dist/` directly

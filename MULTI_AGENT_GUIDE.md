@@ -91,7 +91,53 @@ Done means
 - What the reviewer should be able to confirm at the end
 ```
 
-## 6. What `reviewer` Should Actually Look For
+## 6. Lightweight Task Board Beats A Heavy Queue
+
+For this kit, a full runtime queue is overkill
+But a lightweight task board is worth it
+
+Use `STATE.md` to track
+
+- `current_task`
+- `next_tasks`
+- `blocked_tasks`
+- `writer_slot`
+- `contract_freeze`
+
+That gives `main` enough structure to sequence work without pretending this repo is a full scheduler
+
+## 7. Why Explicit Writer Slot Helps
+
+The single writer rule is stronger when it is visible
+
+Recommended values
+
+- `free`
+- `main`
+- `[worker_name]`
+
+Before write starts
+
+- claim `writer_slot`
+
+After write ends
+
+- release `writer_slot`
+
+That makes accidental `main + worker` writes much harder to hide
+
+## 8. Why Contract Freeze Should Be Explicit
+
+The most common multi-agent breakage is contract drift
+
+- API shapes change
+- props change
+- schema changes
+- env keys change
+
+So `main` should mark `contract_freeze` before handing off the writer slot
+
+## 9. What `reviewer` Should Actually Look For
 
 `reviewer` is not there to finish the implementation
 It is the last risk filter
@@ -107,7 +153,7 @@ Recommended priority order
 Style comes last
 If the structure is broken, formatting comments are noise
 
-## 7. What To Do When A Worker Gets Stuck
+## 10. What To Do When A Worker Gets Stuck
 
 - Do not respawn the same worker with the same prompt
 - Check whether the problem is an unclear contract or an oversized slice
@@ -115,7 +161,7 @@ If the structure is broken, formatting comments are noise
 - If the slice is too large, cut it in half
 - If discovery was too thin, add a short `explorer` pass
 
-## 8. What To Customize Per Repository
+## 11. What To Customize Per Repository
 
 - Real verification commands
 - Generated folders or risky paths that should not be edited
@@ -123,14 +169,15 @@ If the structure is broken, formatting comments are noise
 - Manual approval zones such as deploys, migrations, or external writes
 - Domain worker names
 
-## 9. Recommended Adoption Order
+## 12. Recommended Adoption Order
 
 1. Start with `main`, then decide whether the single writer slot stays in `main` or moves to one `worker`
-2. Add `explorer` only when discovery cost is consistently high
-3. Allow parallel work only in cases with clearly separate file ranges
-4. When real collisions appear, add repository-specific forbidden patterns
+2. Add `STATE.md` once tasks stop fitting in your head
+3. Add `explorer` only when discovery cost is consistently high
+4. Allow parallel work only in cases with clearly separate file ranges
+5. When real collisions appear, add repository-specific forbidden patterns
 
-## 10. One-Line Summary
+## 13. One-Line Summary
 
 Multi-agent work is not a free productivity buff
 It is distributed coordination with extra failure modes

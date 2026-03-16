@@ -9,6 +9,7 @@
 
 - Check whether the result matches the goal
 - Check whether shared contracts stayed intact
+- Check that `contract_freeze` and `writer_slot` history still make sense
 - Look for scope pollution and side effects
 - Confirm that verification was actually performed or explicitly waived
 

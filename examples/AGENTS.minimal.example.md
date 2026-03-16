@@ -9,6 +9,7 @@ This is the fast-start version for small repositories or personal projects
 - If there is write work, start with one `worker`
 - Before closing, let `reviewer` do one read-only pass
 - Max concurrent role caps are `explorer 3`, `reviewer 2`, `writer 1`
+- Keep a small `STATE.md` with `current_task`, `writer_slot`, and `contract_freeze`
 
 ## Roles
 

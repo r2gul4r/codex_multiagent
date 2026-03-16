@@ -34,6 +34,7 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 이 명령은
 
 - 지정한 작업공간 루트에 `AGENTS.md` 생성 또는 덮어쓰기
+- `STATE.md` 가 없으면 같이 생성
 - 전역 기본 규칙 위에 저장소 전용 규칙 오버라이드 추가
 - `docs/antigravity-multiagent/` 참고 문서 복사
 

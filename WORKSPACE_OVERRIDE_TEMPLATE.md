@@ -14,11 +14,14 @@ This file adds repository-specific rules on top of the global multi-agent defaul
   Example: `[generated/, dist/, vendor/]`
 - Manual approval zones
   Example: `[deploy, migrations, writes to external systems]`
+- Task board path
+  Example: `[STATE.md]`
 
 ## Repository Overrides
 
 - Role caps inherited from global defaults stay fixed
   `explorer 3`, `reviewer 2`, `writer 1`
+- Keep `STATE.md` updated with `current_task`, `next_tasks`, `blocked_tasks`, `writer_slot`, and `contract_freeze`
 - Add repository-specific worker mapping here
 - Add forbidden patterns that are unique to this repository
 - Add rules for migrations, deployments, or risky directories
