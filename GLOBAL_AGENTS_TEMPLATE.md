@@ -18,11 +18,12 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 
 - `main`
   Orchestration, contract pinning, result integration, final decisions
+  If `main` writes code directly, it consumes the single `writer` slot
 - `explorer`
   Read-only scouting for files, contracts, and tests
 - `worker`
   Implementation
-  This is the single write-capable lane, also referred to as the `writer` slot
+  When implementation is delegated, that worker consumes the single `writer` slot
 - `reviewer`
   Final read-only review
 
@@ -37,8 +38,10 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 - Default to `main` alone
 - Maximum concurrent `explorer` agents is `3`
 - Maximum concurrent `reviewer` agents is `2`
-- Maximum concurrent write-capable `worker` agents is `1`
+- Maximum concurrent code-writing agents is `1`
+- The single `writer` slot may be held by `main` or by one delegated `worker`
 - Do not open a second write-capable lane under any circumstance
+- Do not let `main` and a `worker` write at the same time
 - Parallel work is limited to combinations that keep the single writer rule intact
 - If the split is unclear, do not parallelize
 

@@ -48,18 +48,23 @@ Hard role caps in this kit
 
 - `explorer` up to `3`
 - `reviewer` up to `2`
-- write-capable `worker` up to `1`
+- code-writing agents up to `1`
+
+That single writer slot can be used by
+
+- `main`, when `main` edits directly
+- one delegated `worker`, when implementation is handed off
 
 Good example
 
 - Explorer A maps the files
 - Explorer B narrows the test scope
-- One writer edits `/ui/profile/*`
+- `main` edits `/ui/profile/*` while all other agents stay read-only
 - Reviewer checks the result after the write slice closes
 
 Bad example
 
-- Worker A edits a form UI
+- `main` edits a form UI
 - Worker B edits the same form payload and validation
 - This breaks the single writer rule before the code overlap problem even starts
 
@@ -120,7 +125,7 @@ If the structure is broken, formatting comments are noise
 
 ## 9. Recommended Adoption Order
 
-1. Start with `main`, one write-capable `worker`, and `reviewer`
+1. Start with `main`, then decide whether the single writer slot stays in `main` or moves to one `worker`
 2. Add `explorer` only when discovery cost is consistently high
 3. Allow parallel work only in cases with clearly separate file ranges
 4. When real collisions appear, add repository-specific forbidden patterns

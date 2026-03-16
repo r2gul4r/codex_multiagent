@@ -23,12 +23,13 @@ Only the bracketed items need repository-specific edits
 
 - `main`
   Orchestration, contract pinning, result integration, final decisions
+  If `main` writes code directly, it consumes the single `writer` slot
 - `explorer`
   Read-only scouting
   Finds files, existing contracts, test coverage, and likely impact
 - `worker`
   Implementation
-  This is the single write-capable lane, also referred to as the `writer` slot
+  When implementation is delegated, that worker consumes the single `writer` slot
 - `reviewer`
   Final read-only review
 
@@ -60,8 +61,10 @@ Only the bracketed items need repository-specific edits
 - Default to `main` alone
 - Maximum concurrent `explorer` agents is `3`
 - Maximum concurrent `reviewer` agents is `2`
-- Maximum concurrent write-capable `worker` agents is `1`
+- Maximum concurrent code-writing agents is `1`
+- The single `writer` slot may be held by `main` or by one delegated `worker`
 - Do not open a second write-capable lane under any circumstance
+- Do not let `main` and a `worker` write at the same time
 - Parallel work is limited to combinations that keep the single writer rule intact
 - Do not send follow-up status prompts to a running worker or reviewer
 - Do not respawn the same interrupted worker with the same approach
@@ -119,6 +122,7 @@ Rename them to fit the repository
 - `explorer` and `reviewer` are read-only
 - Start with one domain worker for implementation
 - Max concurrent role caps: `explorer 3`, `reviewer 2`, `writer 1`
+- The `writer` slot includes `main` when `main` edits directly
 - Never open a second write-capable lane
 - Pin shared contracts before workers start
 - No follow-up status prompts to running workers or reviewers
