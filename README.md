@@ -1,180 +1,216 @@
-# Codex Multi-Agent Kit
+# Codex Multi-Agent Kit ✅
 
-여러 저장소에 Codex 멀티에이전트 워크플로를 적용하기 위한 재사용 문서와 PowerShell 기반 설치 도구 모음
+Codex 멀티에이전트 운영 규칙을 여러 저장소에 빠르게 깔아 넣는 킷
 
-Reusable docs and a PowerShell-based installer for setting up a Codex multi-agent workflow across repositories
+> Reusable multi-agent bootstrap kit for Codex repositories
 
-에이전트를 많이 돌리는 게 목적이 아님
-안전하고 명확하고 쓸만한 분리일 때만 나눠 쓰는 게 목적
+---
 
-The goal is not to run more agents
-The goal is to split work only when the split is safe, clear, and worth it
+## 뭐하는 킷임
 
-## 해결하려는 문제 / What This Repository Solves
+이거 하나로 두 가지를 처리함
 
-- 저장소마다 `AGENTS.md` 를 처음부터 다시 쓰는 비용
-- Rewriting `AGENTS.md` from scratch in every repository
-- 오케스트레이터, 구현자, 탐색자, 리뷰어 역할 경계가 흐려지는 문제
-- Vague role boundaries between orchestrator, implementer, explorer, and reviewer
-- `write scope` 나 공유 계약이 겹쳐서 병렬 작업이 충돌하는 문제
-- Parallel work that collides on `write scope` or shared contracts
-- 리뷰어가 마지막 리스크 필터가 아니라 뒤늦은 수리 기사처럼 쓰이는 문제
-- Reviewers being used as late repair crews instead of final risk filters
+1. 전역 기본 킷 설치
+2. 원하는 작업공간에만 `AGENTS.md` 적용
 
-## 저장소 구성 / Repository Layout
+즉, 공용 규칙은 한 군데 모아두고
+실제 멀티에이전트 설정은 필요한 저장소에만 박는 흐름
 
-- `AGENTS_TEMPLATE.md`
-  저장소용 `AGENTS.md` 에 바로 복붙하는 표준 템플릿
-- `AGENTS_TEMPLATE.md`
-  Standard copy-paste template for a repository-level `AGENTS.md`
-- `MULTI_AGENT_GUIDE.md`
-  언제 나누고 언제 단독으로 가는지 설명하는 운영 가이드
-- `MULTI_AGENT_GUIDE.md`
-  The operating guide for when to split work and when to stay single-agent
-- `profiles/main.md`
-  오케스트레이션 역할 계약
-- `profiles/main.md`
-  Contract for the orchestration role
-- `profiles/explorer.md`
-  read-only 정찰 역할 계약
-- `profiles/explorer.md`
-  Contract for the read-only scouting role
-- `profiles/worker.md`
-  구현 역할 계약
-- `profiles/worker.md`
-  Contract for the implementation role
-- `profiles/reviewer.md`
-  마지막 read-only 검수 역할 계약
-- `profiles/reviewer.md`
-  Contract for the final read-only review role
-- `examples/AGENTS.example.md`
-  큰 웹 서비스나 일반 서비스 저장소용 예시
-- `examples/AGENTS.example.md`
-  Example for a larger web or service repository
-- `examples/AGENTS.minimal.example.md`
-  작은 저장소나 개인 프로젝트용 예시
-- `examples/AGENTS.minimal.example.md`
-  Example for a small or personal repository
-- `installer/CodexMultiAgent.ps1`
-  전역 설치와 작업공간 적용을 처리하는 스크립트
-- `installer/CodexMultiAgent.ps1`
-  Script for global install and workspace apply
-- `installer/POWERSHELL_INSTALL.md`
-  관리자 PowerShell 복붙용 설치 스니펫
-- `installer/POWERSHELL_INSTALL.md`
-  Copy-paste snippets for Administrator PowerShell
+AI 에이전트 여러 개 돌린다고 무조건 좋아지는 거 아님
+대충 병렬화하면 오히려 더 꼬임
 
-## 설치 모드 두 가지 / Two Installation Modes
-
-- 전역 킷 설치
-  이 저장소를 `%USERPROFILE%\.codex\multiagent-kit` 로 복사
-- Global kit install
-  Copies this kit to `%USERPROFILE%\.codex\multiagent-kit`
-- 작업공간 적용
-  원하는 작업공간을 골라 `AGENTS.md` 를 써 넣음
-- Workspace apply
-  Lets you choose a target workspace and writes `AGENTS.md` there
-
-공용 기본값은 한 곳에 두고
-실제 멀티에이전트 설정은 필요한 작업공간에만 적용하는 방식
-
-This split keeps the shared defaults in one place while still letting you decide which workspaces actually get the multi-agent setup
-
-## PowerShell 설치 흐름 / PowerShell Install Flow
-
-1. Windows PowerShell 을 관리자 권한으로 실행
-2. `installer/POWERSHELL_INSTALL.md` 열기
-3. 원하는 블록 하나를 그대로 붙여 넣기
-4. 인터랙티브 스니펫을 썼다면 아래 모드 중 하나 선택
-5. 템플릿 선택
-6. `docs/codex-multiagent/` 로 보조 문서를 복사할지 결정
-7. 작업공간 폴더 선택
-
-1. Open Windows PowerShell as Administrator
-2. Open `installer/POWERSHELL_INSTALL.md`
-3. Paste one of the provided blocks
-4. Choose one of these modes if you used the interactive snippet
-5. Pick a template
-6. Decide whether to also copy supporting docs into `docs/codex-multiagent/`
-7. Select the workspace folder
-
-### 모드 선택 / Mode Options
-
-- 전역 킷 설치 또는 업데이트
-- Install or update the global kit
-- 선택한 작업공간에만 적용
-- Apply the kit to a selected workspace
-- 전역 설치 후 바로 작업공간에도 적용
-- Install globally and then apply to a workspace
-
-### 템플릿 선택 / Template Options
-
-- `standard`
-- `standard`
-- `minimal`
-- `minimal`
-
-## 핵심 규칙 / Core Rules
+그래서 이 킷은 이런 기준을 강제로 잡아주는 쪽
 
 - 기본은 `main` 단독 진행
-- Default to a single `main` agent
-- 분리가 단독 진행보다 명확하게 안전할 때만 멀티에이전트 사용
-- Use multiple agents only when the split is clearly safer than staying single-agent
-- 분해 기준은 `write scope`, 공유 계약 경계, 검증 범위
-- Split by `write scope`, shared contract boundaries, and verification scope
-- `explorer` 와 `reviewer` 는 read-only 유지
-- Keep `explorer` and `reviewer` read-only
-- 쓰기 변경 슬라이스는 reviewer 패스로 닫기
-- Close every write slice with a reviewer pass
-- 진행 확인만 하려고 실행 중인 worker 를 다시 찌르지 않기
-- Do not send follow-up status pings to a running worker just to check progress
-- 끊긴 worker 를 같은 프롬프트로 재스폰하지 않기
-- Do not respawn the same interrupted worker with the same prompt
+- `write scope` 겹치면 병렬화 금지
+- `explorer`, `reviewer` 는 read-only
+- 쓰기 변경은 reviewer 검수로 닫기
 
-## 잘 맞는 경우 / When This Kit Is a Good Fit
+---
 
-- 여러 저장소에서 같은 운영 모델을 반복 사용
-- Multiple repositories use the same operating model
-- 역할 경계와 병렬화 기준을 공용 규칙으로 관리하고 싶음
-- The team wants a shared standard for role boundaries and parallelization
-- 계약을 먼저 고정하지 않으면 API, UI, 데이터 작업이 자주 충돌함
-- API, UI, and data work often collide unless contracts are pinned early
-- 새 작업공간에 `AGENTS.md` 를 빠르게 넣고 싶음
-- You want a quick way to bootstrap `AGENTS.md` in new workspaces
+## 왜 쓰는 거냐
 
-## 굳이 필요 없는 경우 / When You Probably Do Not Need It
+이런 귀찮은 일 줄이려고 만든 거
+
+- 저장소마다 `AGENTS.md` 처음부터 다시 쓰기
+- 역할 이름만 많고 책임이 흐려지는 문서 만들기
+- worker 여러 개 던졌다가 파일 범위 겹쳐서 다시 합치기
+- reviewer 한테 뒤늦게 구조 수리 맡기기
+
+한마디로
+
+멀티에이전트를 많이 쓰는 게 목적이 아니라
+덜 꼬이게 쓰는 게 목적
+
+> The goal is not more agents, but fewer collisions
+
+---
+
+## 설치 방식
+
+### 1. 전역 킷 설치
+
+`%USERPROFILE%\.codex\multiagent-kit` 에 이 킷을 복사
+
+이걸 해두면 나중에 다른 저장소에도 같은 기준을 재사용 가능
+
+### 2. 작업공간 적용
+
+원하는 폴더 하나 골라서
+
+- `AGENTS.md` 생성 또는 덮어쓰기
+- 필요하면 `docs/codex-multiagent/` 아래 참고 문서 복사
+
+### 3. 둘 다 한 번에
+
+전역 킷 먼저 깔고
+바로 특정 작업공간에도 적용하는 방식
+
+---
+
+## 빠른 시작
+
+Windows 기준 설명
+관리자 PowerShell 기준으로 보면 덜 헷갈림
+
+### 인터랙티브 메뉴 열기
+
+```powershell
+$kitRoot = "\\wsl$\Ubuntu\home\lefelx\code\jejugroup\codex_multiagent"
+& "$kitRoot\installer\CodexMultiAgent.ps1"
+```
+
+실행하면 메뉴가 뜸
+
+- `1` 전역 킷 설치 또는 업데이트
+- `2` 원하는 작업공간만 적용
+- `3` 전역 설치 후 작업공간에도 적용
+
+### 전역 설치만 하고 싶으면
+
+```powershell
+$kitRoot = "\\wsl$\Ubuntu\home\lefelx\code\jejugroup\codex_multiagent"
+& "$kitRoot\installer\CodexMultiAgent.ps1" -Mode InstallGlobal
+```
+
+### 특정 작업공간에만 적용하고 싶으면
+
+```powershell
+$kitRoot = "\\wsl$\Ubuntu\home\lefelx\code\jejugroup\codex_multiagent"
+$workspace = "C:\path\to\your\workspace"
+& "$kitRoot\installer\CodexMultiAgent.ps1" -Mode ApplyWorkspace -TargetWorkspace $workspace -Template standard -IncludeDocs
+```
+
+### 전역 설치 후 바로 적용까지 하고 싶으면
+
+```powershell
+$kitRoot = "\\wsl$\Ubuntu\home\lefelx\code\jejugroup\codex_multiagent"
+$workspace = "C:\path\to\your\workspace"
+& "$kitRoot\installer\CodexMultiAgent.ps1" -Mode InstallAndApply -TargetWorkspace $workspace -Template standard -IncludeDocs
+```
+
+더 짧게 보려면 [POWERSHELL_INSTALL.md](./installer/POWERSHELL_INSTALL.md) 보면 됨
+
+---
+
+## 템플릿 종류
+
+### `standard`
+
+일반적인 팀 저장소용
+
+- `main`, `explorer`, `worker`, `reviewer` 기준 포함
+- 병렬화 체크리스트 포함
+- 공유 계약 규칙 포함
+
+### `minimal`
+
+작은 저장소나 개인 프로젝트용
+
+- 최대한 짧게 감
+- 기본 흐름만 남김
+- 병렬화는 거의 안 하는 전제
+
+---
+
+## 적용하면 뭐 생김
+
+기본적으로는
+
+- 작업공간 루트에 `AGENTS.md`
+
+`-IncludeDocs` 옵션까지 켜면 추가로
+
+- `docs/codex-multiagent/README.md`
+- `docs/codex-multiagent/MULTI_AGENT_GUIDE.md`
+- `docs/codex-multiagent/profiles/*`
+- `docs/codex-multiagent/examples/*`
+
+---
+
+## 포함 파일
+
+- [AGENTS_TEMPLATE.md](./AGENTS_TEMPLATE.md)
+  표준 `AGENTS.md` 템플릿
+- [MULTI_AGENT_GUIDE.md](./MULTI_AGENT_GUIDE.md)
+  왜 이런 규칙을 쓰는지 설명하는 운영 가이드
+- [profiles/main.md](./profiles/main.md)
+  `main` 역할 계약
+- [profiles/explorer.md](./profiles/explorer.md)
+  `explorer` 역할 계약
+- [profiles/worker.md](./profiles/worker.md)
+  `worker` 역할 계약
+- [profiles/reviewer.md](./profiles/reviewer.md)
+  `reviewer` 역할 계약
+- [examples/AGENTS.example.md](./examples/AGENTS.example.md)
+  큰 저장소 예시
+- [examples/AGENTS.minimal.example.md](./examples/AGENTS.minimal.example.md)
+  작은 저장소 예시
+- [installer/CodexMultiAgent.ps1](./installer/CodexMultiAgent.ps1)
+  실제 설치 스크립트
+- [installer/POWERSHELL_INSTALL.md](./installer/POWERSHELL_INSTALL.md)
+  복붙용 요약본
+
+---
+
+## 언제 잘 맞냐
+
+- 여러 저장소에 같은 멀티에이전트 규칙을 반복 적용할 때
+- 역할 분리와 병렬화 기준을 문서로 고정하고 싶을 때
+- UI, API, 데이터 계약이 자주 엮여서 먼저 가드가 필요할 때
+- 새 저장소에 `AGENTS.md` 빨리 넣고 싶은데 매번 새로 쓰기 싫을 때
+
+## 언제 굳이 필요 없냐
 
 - 혼자 쓰는 작은 실험 저장소
-- Small experimental repositories used by one person
-- 단일 파일 수정이 대부분인 워크플로
-- Workflows dominated by single-file edits
-- 질문 답변, 조사, 메모 비중이 큰 작업
-- Tasks that are mostly Q and A, investigation, or note-taking
-- 공유 계약이 아직 계속 흔들리는 초기 프로토타입
-- Early prototypes where shared contracts are still changing every hour
+- 단일 파일 수정 위주
+- 질문 답변, 조사, 메모가 대부분인 작업
+- 공유 계약이 아직 계속 흔들리는 초반 프로토타입
 
-## 커스터마이징 체크리스트 / Customization Checklist
+---
 
-- 실제로 필요한 worker 역할만 남겼는가
-- Keep only the worker roles your repository actually needs
-- 공유 계약 목록을 명시했는가
-- Make the shared contracts explicit
-- 검증 명령을 저장소 실정에 맞게 바꿨는가
-- Replace the verification commands with repository-specific ones
-- 생성물 폴더나 위험 경로를 적어뒀는가
-- List any generated folders or risky paths that should not be edited
-- reviewer 가 반드시 볼 항목을 정했는가
-- Define what the reviewer must always check
-- 병렬 상한이 팀 운영 방식과 맞는가
-- Tune the concurrency limit to how your team actually works
+## 커스터마이징 포인트
 
-## 비고 / Notes
+적용한 뒤 최소한 이것만 손보면 됨
 
-- 전역 킷이 있으면 설치 스크립트는 그걸 우선 사용
-- The installer prefers the global kit when it is available
-- 전역 킷이 없으면 로컬 저장소 복사본을 사용
-- If the global kit is not installed, the installer falls back to the local repository copy
-- 바이너리 안에 묻는 대신 스크립트 중심으로 둬서 흐름을 직접 수정 가능하게 유지
-- The installer is intentionally script-first so the workflow stays editable instead of being buried in a binary blob
-- 나중에 인터랙티브 메뉴를 다시 열고 싶으면 `installer/POWERSHELL_INSTALL.md` 의 명령을 다시 붙여 넣으면 됨
-- If you want to re-open the interactive menu later, paste the command shown in `installer/POWERSHELL_INSTALL.md`
+- worker 이름을 저장소 구조에 맞게 바꾸기
+- 검증 명령을 실제 저장소 명령으로 바꾸기
+- 공유 계약 목록 적기
+- 수정 금지 경로나 위험 경로 적기
+- reviewer 가 반드시 볼 항목 적기
+
+---
+
+## 참고 메모
+
+- 전역 킷이 이미 있으면 설치 스크립트는 그걸 우선 사용
+- 전역 킷이 없으면 현재 저장소 복사본 기준으로 동작
+- 예전 `exe` 방식 흔적이 전역 폴더에 남아 있으면 설치 시 자동 정리
+- 바이너리 대신 스크립트 중심이라 나중에 직접 뜯어고치기 쉬움
+
+---
+
+## 한 줄 요약
+
+`AGENTS.md` 템플릿 복붙 도구가 아니라
+멀티에이전트 운영 기준을 덜 멍청하게 재사용하려는 킷
