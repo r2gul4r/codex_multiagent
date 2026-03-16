@@ -48,68 +48,54 @@ AI 에이전트 여러 개 돌린다고 무조건 좋아지는 거 아님
 
 ## 설치 방식
 
-### 1. 전역 킷 설치
+문서 기준 빠른 시작은 두 개만 생각하면 됨
 
-`%USERPROFILE%\.codex\multiagent-kit` 에 이 킷을 복사
+1. 전역 설치
+2. 특정 작업공간 설치
 
-이걸 해두면 나중에 다른 저장소에도 같은 기준을 재사용 가능
-
-### 2. 작업공간 적용
-
-원하는 폴더 하나 골라서
-
-- `AGENTS.md` 생성 또는 덮어쓰기
-- 필요하면 `docs/codex-multiagent/` 아래 참고 문서 복사
-
-### 3. 둘 다 한 번에
-
-전역 킷 먼저 깔고
-바로 특정 작업공간에도 적용하는 방식
+괜히 모드 많아 보이게 늘어놓지 않고
+처음 보는 사람이 바로 따라치게 만드는 쪽
 
 ---
 
 ## 빠른 시작
 
-Windows 기준 설명
-관리자 PowerShell 기준으로 보면 덜 헷갈림
+Windows PowerShell 을 관리자 권한으로 열고
+아래 둘 중 하나만 그대로 복붙하면 끝
 
-### 인터랙티브 메뉴 열기
-
-```powershell
-$kitRoot = "\\wsl$\Ubuntu\home\lefelx\code\jejugroup\codex_multiagent"
-& "$kitRoot\installer\CodexMultiAgent.ps1"
-```
-
-실행하면 메뉴가 뜸
-
-- `1` 전역 킷 설치 또는 업데이트
-- `2` 원하는 작업공간만 적용
-- `3` 전역 설치 후 작업공간에도 적용
-
-### 전역 설치만 하고 싶으면
+### 1. 전역 설치
 
 ```powershell
-$kitRoot = "\\wsl$\Ubuntu\home\lefelx\code\jejugroup\codex_multiagent"
-& "$kitRoot\installer\CodexMultiAgent.ps1" -Mode InstallGlobal
+Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode InstallGlobal
 ```
 
-### 특정 작업공간에만 적용하고 싶으면
+이 명령 하나로
+
+- 최신 킷 다운로드
+- `%USERPROFILE%\.codex\multiagent-kit` 전역 설치
+
+까지 처리
+
+### 2. 특정 작업공간 설치
+
+여기서는 작업공간 경로만 바꾸면 됨
 
 ```powershell
-$kitRoot = "\\wsl$\Ubuntu\home\lefelx\code\jejugroup\codex_multiagent"
-$workspace = "C:\path\to\your\workspace"
-& "$kitRoot\installer\CodexMultiAgent.ps1" -Mode ApplyWorkspace -TargetWorkspace $workspace -Template standard -IncludeDocs
+$workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
 ```
 
-### 전역 설치 후 바로 적용까지 하고 싶으면
+이 명령 하나로
 
-```powershell
-$kitRoot = "\\wsl$\Ubuntu\home\lefelx\code\jejugroup\codex_multiagent"
-$workspace = "C:\path\to\your\workspace"
-& "$kitRoot\installer\CodexMultiAgent.ps1" -Mode InstallAndApply -TargetWorkspace $workspace -Template standard -IncludeDocs
-```
+- 최신 킷 다운로드
+- 지정 작업공간에 `AGENTS.md` 설치
+- `docs/codex-multiagent/` 참고 문서 복사
+
+까지 처리
 
 더 짧게 보려면 [POWERSHELL_INSTALL.md](./installer/POWERSHELL_INSTALL.md) 보면 됨
+
+기본 템플릿은 `standard`
+더 짧은 걸 원하면 끝에 `-Template minimal` 추가하면 됨
 
 ---
 
@@ -168,6 +154,8 @@ $workspace = "C:\path\to\your\workspace"
   작은 저장소 예시
 - [installer/CodexMultiAgent.ps1](./installer/CodexMultiAgent.ps1)
   실제 설치 스크립트
+- [installer/Bootstrap.ps1](./installer/Bootstrap.ps1)
+  GitHub에서 최신 킷을 내려받아 설치까지 연결하는 부트스트랩 스크립트
 - [installer/POWERSHELL_INSTALL.md](./installer/POWERSHELL_INSTALL.md)
   복붙용 요약본
 
