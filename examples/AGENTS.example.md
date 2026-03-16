@@ -7,8 +7,9 @@ Adjust the paths and commands to match the real repository
 ## Operating Goal
 
 - Default to `main` alone
-- Allow parallel work only when `write scope` is fully separate
+- Allow parallel work only when the single writer rule stays intact
 - Pin API, schema, and route contracts before workers start
+- Max concurrent role caps are `explorer 3`, `reviewer 2`, `writer 1`
 
 ## Roles
 
@@ -41,14 +42,16 @@ Adjust the paths and commands to match the real repository
 
 ## Parallel Work That Is Safe
 
-- `ui_worker` changes presentation-only code
-- `backend_worker` updates docs or an unrelated route
-- The workers do not touch the same schema, payload, or test files
+- Up to three `explorer` agents narrow scope in read-only mode
+- One writer changes presentation-only code
+- Up to two `reviewer` agents split final checking by concern if needed
+- Only one write-capable role runs at a time
 
 ## Parallel Work That Is Not Safe
 
 - Splitting a form UI, validator, and submit payload across different workers
 - Splitting one migration and the code that depends on it
+- Opening a second write-capable lane just because the file ranges look separate
 - Any flow where reviewer would need to implement fixes just to make the task finish
 
 ## Done Means

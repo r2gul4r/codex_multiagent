@@ -22,6 +22,7 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
   Read-only scouting for files, contracts, and tests
 - `worker`
   Implementation
+  This is the single write-capable lane, also referred to as the `writer` slot
 - `reviewer`
   Final read-only review
 
@@ -34,10 +35,11 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 ## Parallelization Rules
 
 - Default to `main` alone
-- Normal operating count is `1~3`
-- Hard cap for concurrent sub-agents is `5`
-- Do not run `6` or more at once
-- A second worker is allowed only when `write scope` is fully separate
+- Maximum concurrent `explorer` agents is `3`
+- Maximum concurrent `reviewer` agents is `2`
+- Maximum concurrent write-capable `worker` agents is `1`
+- Do not open a second write-capable lane under any circumstance
+- Parallel work is limited to combinations that keep the single writer rule intact
 - If the split is unclear, do not parallelize
 
 ## Repository Overrides

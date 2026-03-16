@@ -28,6 +28,7 @@ Only the bracketed items need repository-specific edits
   Finds files, existing contracts, test coverage, and likely impact
 - `worker`
   Implementation
+  This is the single write-capable lane, also referred to as the `writer` slot
 - `reviewer`
   Final read-only review
 
@@ -57,10 +58,11 @@ Only the bracketed items need repository-specific edits
 ## Parallelization Rules
 
 - Default to `main` alone
-- Normal operating count is `1~3`
-- Hard cap for concurrent sub-agents is `5`
-- Do not run `6` or more at the same time
-- `worker 2` is allowed only when the `write scope` is fully separate
+- Maximum concurrent `explorer` agents is `3`
+- Maximum concurrent `reviewer` agents is `2`
+- Maximum concurrent write-capable `worker` agents is `1`
+- Do not open a second write-capable lane under any circumstance
+- Parallel work is limited to combinations that keep the single writer rule intact
 - Do not send follow-up status prompts to a running worker or reviewer
 - Do not respawn the same interrupted worker with the same approach
 - If interruption repeats, `main` should shrink the slice or handle it directly
@@ -70,7 +72,7 @@ Only the bracketed items need repository-specific edits
 - Can the acceptance criteria be explained in one line
 - Do the changed file ranges stay separate
 - Are the shared contracts already pinned
-- Can verification be split by worker
+- Can verification stay valid while keeping only one write-capable lane
 - Is it clear what the reviewer must confirm at the end
 
 If any answer is unclear, do not parallelize
@@ -116,9 +118,9 @@ Rename them to fit the repository
 - Default to `main` alone
 - `explorer` and `reviewer` are read-only
 - Start with one domain worker for implementation
-- Parallelize only when `write scope` does not overlap
+- Max concurrent role caps: `explorer 3`, `reviewer 2`, `writer 1`
+- Never open a second write-capable lane
 - Pin shared contracts before workers start
-- Hard cap for concurrent sub-agents is `5`
 - No follow-up status prompts to running workers or reviewers
 - Do not respawn interrupted workers with the same prompt
 - Close write slices only after reviewer confirmation

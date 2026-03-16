@@ -17,6 +17,8 @@ This file adds repository-specific rules on top of the global multi-agent defaul
 
 ## Repository Overrides
 
+- Role caps inherited from global defaults stay fixed
+  `explorer 3`, `reviewer 2`, `writer 1`
 - Add repository-specific worker mapping here
 - Add forbidden patterns that are unique to this repository
 - Add rules for migrations, deployments, or risky directories

@@ -35,26 +35,33 @@ If any part is blurry, shrink the slice or keep it in `main`
 
 If the file and the edit are obvious, splitting out an explorer is just ceremony
 
-## 4. When Two Workers Are Actually Safe
+## 4. When Multiple Agents Are Actually Safe
 
 Parallel work is reasonable only when all of these are true
 
-- `write scope` does not overlap
+- The single writer rule stays intact
 - Shared contracts such as API, schema, or payload are already pinned
 - Verification can also stay separate
 - `main` already knows the integration point
 
+Hard role caps in this kit
+
+- `explorer` up to `3`
+- `reviewer` up to `2`
+- write-capable `worker` up to `1`
+
 Good example
 
-- Worker A edits `/ui/profile/*`
-- Worker B updates `/docs/profile-editing.md`
-- The contract is shared conceptually, but the files do not collide
+- Explorer A maps the files
+- Explorer B narrows the test scope
+- One writer edits `/ui/profile/*`
+- Reviewer checks the result after the write slice closes
 
 Bad example
 
 - Worker A edits a form UI
 - Worker B edits the same form payload and validation
-- The files, behavior, and contract are all tangled together
+- This breaks the single writer rule before the code overlap problem even starts
 
 ## 5. What Every Handoff Should Include
 
@@ -113,7 +120,7 @@ If the structure is broken, formatting comments are noise
 
 ## 9. Recommended Adoption Order
 
-1. Start with `main`, `worker`, and `reviewer`
+1. Start with `main`, one write-capable `worker`, and `reviewer`
 2. Add `explorer` only when discovery cost is consistently high
 3. Allow parallel work only in cases with clearly separate file ranges
 4. When real collisions appear, add repository-specific forbidden patterns

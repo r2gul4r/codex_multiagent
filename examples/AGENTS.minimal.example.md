@@ -8,6 +8,7 @@ This is the fast-start version for small repositories or personal projects
 - Do not use multiple agents for simple investigation or short edits
 - If there is write work, start with one `worker`
 - Before closing, let `reviewer` do one read-only pass
+- Max concurrent role caps are `explorer 3`, `reviewer 2`, `writer 1`
 
 ## Roles
 
