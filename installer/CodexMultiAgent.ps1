@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Menu', 'InstallGlobal', 'ApplyWorkspace', 'InstallAndApply')]
+    [ValidateSet('Menu', 'InstallGlobal', 'ApplyWorkspace')]
     [string]$Mode = 'Menu',
 
     [string]$TargetWorkspace,
@@ -18,10 +18,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# 경로와 기본 값 초기화
+# 경로 기본 값
 $InstallerRoot = $PSScriptRoot
 $LocalKitRoot = Split-Path -Parent $PSScriptRoot
-$GlobalKitRoot = Join-Path $env:USERPROFILE '.codex\multiagent-kit'
+$GlobalHome = Join-Path $env:USERPROFILE '.codex'
+$GlobalKitRoot = Join-Path $GlobalHome 'multiagent-kit'
+$GlobalAgentsPath = Join-Path $GlobalHome 'AGENTS.md'
 $LocalReadme = Join-Path $LocalKitRoot 'README.md'
 
 function Write-Section {
@@ -56,7 +58,7 @@ function Copy-DirectoryContents {
 function Remove-StaleInstallerArtifacts {
     param([string]$InstallerPath)
 
-    # 예전 exe 방식 흔적만 지정해서 제거
+    # 예전 exe 방식 잔해만 지정 제거
     $stalePaths = @(
         (Join-Path $InstallerPath 'CodexMultiAgentLauncher.exe'),
         (Join-Path $InstallerPath 'Launch-CodexMultiAgent.cmd'),
@@ -72,22 +74,22 @@ function Remove-StaleInstallerArtifacts {
 }
 
 function Get-SourceKitRoot {
-    if (Test-Path -LiteralPath (Join-Path $GlobalKitRoot 'AGENTS_TEMPLATE.md')) {
+    if (Test-Path -LiteralPath (Join-Path $GlobalKitRoot 'GLOBAL_AGENTS_TEMPLATE.md')) {
         return $GlobalKitRoot
     }
 
     return $LocalKitRoot
 }
 
-function Get-TemplateSource {
+function Get-WorkspaceTemplateSource {
     param(
         [string]$SourceKitRoot,
         [string]$TemplateName
     )
 
     switch ($TemplateName) {
-        'standard' { return (Join-Path $SourceKitRoot 'AGENTS_TEMPLATE.md') }
-        'minimal' { return (Join-Path $SourceKitRoot 'examples\AGENTS.minimal.example.md') }
+        'standard' { return (Join-Path $SourceKitRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') }
+        'minimal' { return (Join-Path $SourceKitRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') }
         default { throw "Unsupported template: $TemplateName" }
     }
 }
@@ -99,13 +101,14 @@ function Show-InfoBanner {
     Write-Section -Text 'Codex Multi-Agent Kit'
     Write-Host "Source: $sourceLabel"
     Write-Host "Local path: $LocalKitRoot"
-    Write-Host "Global path: $GlobalKitRoot"
+    Write-Host "Global home: $GlobalHome"
+    Write-Host "Global defaults: $GlobalAgentsPath"
 }
 
 function Select-Folder {
     param([string]$Description)
 
-    # GUI 선택기가 되면 그걸 우선 사용
+    # 폴더 선택 GUI 우선 시도
     try {
         Add-Type -AssemblyName System.Windows.Forms | Out-Null
         $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
@@ -118,7 +121,7 @@ function Select-Folder {
         }
     }
     catch {
-        # 폴백은 아래 콘솔 입력
+        # 실패하면 콘솔 입력 사용
     }
 
     if ($NoPrompt) {
@@ -140,9 +143,8 @@ function Read-MenuChoice {
 
     Write-Host ''
     Write-Host 'Choose a mode'
-    Write-Host '[1] Install or update the global kit'
-    Write-Host '[2] Apply the kit to a workspace'
-    Write-Host '[3] Install globally and then apply to a workspace'
+    Write-Host '[1] Install global defaults for all Codex workspaces'
+    Write-Host '[2] Apply a workspace override'
     Write-Host '[Q] Quit'
 
     while ($true) {
@@ -151,9 +153,8 @@ function Read-MenuChoice {
         switch ($choice) {
             '1' { return 'InstallGlobal' }
             '2' { return 'ApplyWorkspace' }
-            '3' { return 'InstallAndApply' }
             'Q' { return 'Quit' }
-            default { Write-Host 'Please choose 1, 2, 3, or Q' -ForegroundColor Yellow }
+            default { Write-Host 'Please choose 1, 2, or Q' -ForegroundColor Yellow }
         }
     }
 }
@@ -164,7 +165,7 @@ function Read-TemplateChoice {
     }
 
     Write-Host ''
-    Write-Host 'Choose a template'
+    Write-Host 'Choose a workspace override template'
     Write-Host '[1] Standard'
     Write-Host '[2] Minimal'
 
@@ -223,14 +224,18 @@ function Should-OverwriteFile {
 }
 
 function Install-GlobalKit {
-    Write-Section -Text 'Installing global kit'
+    Write-Section -Text 'Installing global defaults'
 
+    Ensure-Directory -Path $GlobalHome
     Ensure-Directory -Path $GlobalKitRoot
     Remove-StaleInstallerArtifacts -InstallerPath (Join-Path $GlobalKitRoot 'installer')
 
     $items = @(
         'README.md',
         'AGENTS_TEMPLATE.md',
+        'GLOBAL_AGENTS_TEMPLATE.md',
+        'WORKSPACE_OVERRIDE_TEMPLATE.md',
+        'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md',
         'MULTI_AGENT_GUIDE.md',
         'examples',
         'profiles',
@@ -250,9 +255,16 @@ function Install-GlobalKit {
         }
     }
 
-    Write-Host "Installed or updated the global kit at $GlobalKitRoot" -ForegroundColor Green
-    Write-Host 'Paste this into PowerShell next time if you want the interactive menu'
-    Write-Host "& '$GlobalKitRoot\installer\CodexMultiAgent.ps1'"
+    $globalTemplate = Join-Path $LocalKitRoot 'GLOBAL_AGENTS_TEMPLATE.md'
+    if (-not (Should-OverwriteFile -Path $GlobalAgentsPath)) {
+        Write-Host 'Skipped global AGENTS.md overwrite' -ForegroundColor Yellow
+        return
+    }
+
+    Copy-Item -LiteralPath $globalTemplate -Destination $GlobalAgentsPath -Force
+
+    Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
+    Write-Host "Reference kit copied to $GlobalKitRoot"
 }
 
 function Apply-ToWorkspace {
@@ -262,12 +274,14 @@ function Apply-ToWorkspace {
         [bool]$CopyDocs
     )
 
-    $resolvedWorkspace = Resolve-Path -LiteralPath $WorkspacePath
+    Ensure-Directory -Path $WorkspacePath
+
+    $resolvedWorkspace = (Resolve-Path -LiteralPath $WorkspacePath).Path
     $sourceKitRoot = Get-SourceKitRoot
-    $templateSource = Get-TemplateSource -SourceKitRoot $sourceKitRoot -TemplateName $TemplateName
+    $templateSource = Get-WorkspaceTemplateSource -SourceKitRoot $sourceKitRoot -TemplateName $TemplateName
     $agentsTarget = Join-Path $resolvedWorkspace 'AGENTS.md'
 
-    Write-Section -Text 'Applying to workspace'
+    Write-Section -Text 'Applying workspace override'
     Write-Host "Workspace: $resolvedWorkspace"
     Write-Host "Template: $TemplateName"
     Write-Host "Supporting docs: $CopyDocs"
@@ -285,11 +299,14 @@ function Apply-ToWorkspace {
 
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'README.md') -Destination (Join-Path $docsRoot 'README.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'MULTI_AGENT_GUIDE.md') -Destination (Join-Path $docsRoot 'MULTI_AGENT_GUIDE.md') -Force
+        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'GLOBAL_AGENTS_TEMPLATE.md') -Destination (Join-Path $docsRoot 'GLOBAL_AGENTS_TEMPLATE.md') -Force
+        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') -Force
+        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Force
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'profiles') -Destination (Join-Path $docsRoot 'profiles')
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'examples') -Destination (Join-Path $docsRoot 'examples')
     }
 
-    Write-Host "Applied the kit to $resolvedWorkspace" -ForegroundColor Green
+    Write-Host "Applied workspace override to $resolvedWorkspace" -ForegroundColor Green
 }
 
 try {
@@ -312,14 +329,7 @@ try {
         'ApplyWorkspace' {
             $effectiveTemplate = Read-TemplateChoice
             $copyDocs = Read-IncludeDocsChoice
-            $workspace = if ($TargetWorkspace) { $TargetWorkspace } else { Select-Folder -Description 'Select the workspace folder to apply the multi-agent kit' }
-            Apply-ToWorkspace -WorkspacePath $workspace -TemplateName $effectiveTemplate -CopyDocs $copyDocs
-        }
-        'InstallAndApply' {
-            Install-GlobalKit
-            $effectiveTemplate = Read-TemplateChoice
-            $copyDocs = Read-IncludeDocsChoice
-            $workspace = if ($TargetWorkspace) { $TargetWorkspace } else { Select-Folder -Description 'Select the workspace folder to apply the multi-agent kit' }
+            $workspace = if ($TargetWorkspace) { $TargetWorkspace } else { Select-Folder -Description 'Select the workspace folder for the override' }
             Apply-ToWorkspace -WorkspacePath $workspace -TemplateName $effectiveTemplate -CopyDocs $copyDocs
         }
         default {
