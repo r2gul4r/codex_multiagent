@@ -1,7 +1,10 @@
 # Antigravity PowerShell Install
 
 Windows PowerShell 을 관리자 권한으로 열고
-아래 둘 중 하나만 그대로 복붙하면 끝
+아래 필요한 항목만 그대로 복붙하면 끝
+
+이 설치기는 새 모델이나 별도 봇을 깔지 않음
+Antigravity 런타임이 읽을 수 있는 전역 규칙 파일과 역할 정의 파일을 넣는 구조임
 
 ## 1. 전역 설치
 
@@ -11,9 +14,10 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 
 이 명령은
 
-- `%USERPROFILE%\.antigravity\AGENTS.md` 생성 또는 덮어쓰기
-- Antigravity 공통 기본 규칙 전역 설치
-- 참고용 킷은 `%USERPROFILE%\.antigravity\multiagent-kit` 에 같이 복사
+- `%USERPROFILE%\.gemini\antigravity\AGENTS.md` 생성 또는 덮어쓰기
+- `%USERPROFILE%\.gemini\antigravity\global_workflows\multiagent-defaults.md` 설치
+- `%USERPROFILE%\.gemini\antigravity\skills\multiagent-roles.md` 설치
+- 참고용 킷을 `%USERPROFILE%\.gemini\antigravity\multiagent-kit` 에 복사
 
 ## 2. 특정 작업공간 오버라이드 설치
 
@@ -29,5 +33,5 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 
 ## 참고
 
-- 이 스크립트는 Antigravity 쪽도 Codex와 같은 `AGENTS.md` 레이어를 읽는다는 가정으로 작성
+- 현재 Antigravity 런타임 경로는 `%USERPROFILE%\.gemini\antigravity` 기준
 - 더 짧은 템플릿을 원하면 끝에 `-Template minimal` 추가

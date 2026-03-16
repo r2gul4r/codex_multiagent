@@ -94,16 +94,17 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 
 ## Antigravity도 있음
 
-Antigravity 쪽도 같은 구조로 맞춰둠
+Antigravity 쪽은 Codex처럼 새 모델을 까는 방식 아님
+런타임이 읽는 전역 규칙 파일과 역할 정의 파일을 깔아두는 방식
 
-- 전역 기본값은 `%USERPROFILE%\.antigravity\AGENTS.md`
+- 전역 기본값은 `%USERPROFILE%\.gemini\antigravity\AGENTS.md`
+- 역할 정의는 `%USERPROFILE%\.gemini\antigravity\global_workflows\multiagent-defaults.md`
+- 역할 스킬은 `%USERPROFILE%\.gemini\antigravity\skills\multiagent-roles.md`
 - 프로젝트별 예외는 작업공간 `AGENTS.md`
 
 명령어는 [ANTIGRAVITY_INSTALL.md](./installer/ANTIGRAVITY_INSTALL.md) 참고
 
-주의할 점 하나
-
-이쪽은 Antigravity도 Codex처럼 전역 `AGENTS.md` 레이어를 읽는다는 가정 위에 맞춘 구조
+즉 설치 결과는 멀티에이전트 역할과 분할 규칙을 런타임에 주입하는 축
 
 ---
 

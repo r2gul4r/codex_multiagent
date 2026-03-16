@@ -21,10 +21,13 @@ $ErrorActionPreference = 'Stop'
 # 경로 기본 값
 $InstallerRoot = $PSScriptRoot
 $LocalKitRoot = Split-Path -Parent $PSScriptRoot
-$GlobalHome = Join-Path $env:USERPROFILE '.antigravity'
-$GlobalKitRoot = Join-Path $GlobalHome 'multiagent-kit'
-$GlobalAgentsPath = Join-Path $GlobalHome 'AGENTS.md'
-$LocalReadme = Join-Path $LocalKitRoot 'README.md'
+$RuntimeHome = Join-Path $env:USERPROFILE '.gemini\antigravity'
+$GlobalKitRoot = Join-Path $RuntimeHome 'multiagent-kit'
+$GlobalAgentsPath = Join-Path $RuntimeHome 'AGENTS.md'
+$GlobalWorkflowsRoot = Join-Path $RuntimeHome 'global_workflows'
+$GlobalSkillsRoot = Join-Path $RuntimeHome 'skills'
+$LegacyHome = Join-Path $env:USERPROFILE '.antigravity'
+$LocalReadme = Join-Path $LocalKitRoot 'installer\ANTIGRAVITY_INSTALL.md'
 
 function Write-Section {
     param([string]$Text)
@@ -58,7 +61,7 @@ function Copy-DirectoryContents {
 function Remove-StaleInstallerArtifacts {
     param([string]$InstallerPath)
 
-    # 예전 exe 방식 잔해만 지정 제거
+    # 예전 실행기 흔적만 정리
     $stalePaths = @(
         (Join-Path $InstallerPath 'AntigravityMultiAgentLauncher.exe'),
         (Join-Path $InstallerPath 'Launch-AntigravityMultiAgent.cmd'),
@@ -94,6 +97,30 @@ function Get-WorkspaceTemplateSource {
     }
 }
 
+function Copy-RuntimeAssetFile {
+    param(
+        [string]$SourceRoot,
+        [string]$RelativePath,
+        [string]$DestinationRoot
+    )
+
+    $source = Join-Path $SourceRoot $RelativePath
+    $destination = Join-Path $DestinationRoot (Split-Path $RelativePath -Leaf)
+
+    Ensure-Directory -Path $DestinationRoot
+    Copy-Item -LiteralPath $source -Destination $destination -Force
+}
+
+function Install-RuntimeAssets {
+    param([string]$SourceKitRoot)
+
+    Ensure-Directory -Path $GlobalWorkflowsRoot
+    Ensure-Directory -Path $GlobalSkillsRoot
+
+    Copy-RuntimeAssetFile -SourceRoot $SourceKitRoot -RelativePath 'antigravity_runtime\global_workflows\multiagent-defaults.md' -DestinationRoot $GlobalWorkflowsRoot
+    Copy-RuntimeAssetFile -SourceRoot $SourceKitRoot -RelativePath 'antigravity_runtime\skills\multiagent-roles.md' -DestinationRoot $GlobalSkillsRoot
+}
+
 function Show-InfoBanner {
     $sourceRoot = Get-SourceKitRoot
     $sourceLabel = if ($sourceRoot -eq $GlobalKitRoot) { 'global kit' } else { 'local repository copy' }
@@ -101,8 +128,9 @@ function Show-InfoBanner {
     Write-Section -Text 'Antigravity Multi-Agent Kit'
     Write-Host "Source: $sourceLabel"
     Write-Host "Local path: $LocalKitRoot"
-    Write-Host "Global home: $GlobalHome"
+    Write-Host "Runtime home: $RuntimeHome"
     Write-Host "Global defaults: $GlobalAgentsPath"
+    Write-Host "Legacy path: $LegacyHome"
 }
 
 function Select-Folder {
@@ -143,7 +171,7 @@ function Read-MenuChoice {
 
     Write-Host ''
     Write-Host 'Choose a mode'
-    Write-Host '[1] Install global defaults for all Antigravity workspaces'
+    Write-Host '[1] Install global defaults for Antigravity'
     Write-Host '[2] Apply a workspace override'
     Write-Host '[Q] Quit'
 
@@ -226,7 +254,9 @@ function Should-OverwriteFile {
 function Install-GlobalKit {
     Write-Section -Text 'Installing global defaults'
 
-    Ensure-Directory -Path $GlobalHome
+    $sourceKitRoot = Get-SourceKitRoot
+
+    Ensure-Directory -Path $RuntimeHome
     Ensure-Directory -Path $GlobalKitRoot
     Remove-StaleInstallerArtifacts -InstallerPath (Join-Path $GlobalKitRoot 'installer')
 
@@ -239,11 +269,12 @@ function Install-GlobalKit {
         'MULTI_AGENT_GUIDE.md',
         'examples',
         'profiles',
-        'installer'
+        'installer',
+        'antigravity_runtime'
     )
 
     foreach ($item in $items) {
-        $source = Join-Path $LocalKitRoot $item
+        $source = Join-Path $sourceKitRoot $item
         $destination = Join-Path $GlobalKitRoot $item
 
         if (Test-Path -LiteralPath $source -PathType Container) {
@@ -255,15 +286,19 @@ function Install-GlobalKit {
         }
     }
 
-    $globalTemplate = Join-Path $LocalKitRoot 'GLOBAL_AGENTS_TEMPLATE.md'
+    $globalTemplate = Join-Path $sourceKitRoot 'GLOBAL_AGENTS_TEMPLATE.md'
     if (-not (Should-OverwriteFile -Path $GlobalAgentsPath)) {
         Write-Host 'Skipped global AGENTS.md overwrite' -ForegroundColor Yellow
-        return
+    }
+    else {
+        Copy-Item -LiteralPath $globalTemplate -Destination $GlobalAgentsPath -Force
     }
 
-    Copy-Item -LiteralPath $globalTemplate -Destination $GlobalAgentsPath -Force
+    Install-RuntimeAssets -SourceKitRoot $sourceKitRoot
 
     Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
+    Write-Host "Runtime workflow: $(Join-Path $GlobalWorkflowsRoot 'multiagent-defaults.md')"
+    Write-Host "Runtime skill: $(Join-Path $GlobalSkillsRoot 'multiagent-roles.md')"
     Write-Host "Reference kit copied to $GlobalKitRoot"
 }
 
@@ -304,6 +339,7 @@ function Apply-ToWorkspace {
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Force
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'profiles') -Destination (Join-Path $docsRoot 'profiles')
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'examples') -Destination (Join-Path $docsRoot 'examples')
+        Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'antigravity_runtime') -Destination (Join-Path $docsRoot 'antigravity_runtime')
     }
 
     Write-Host "Applied workspace override to $resolvedWorkspace" -ForegroundColor Green
