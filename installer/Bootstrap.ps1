@@ -20,6 +20,10 @@ function Install-CodexMultiAgent {
         throw 'TargetWorkspace is required when Mode is ApplyWorkspace'
     }
 
+    if ($Mode -eq 'ApplyWorkspace' -and -not (Test-Path -LiteralPath $TargetWorkspace)) {
+        New-Item -ItemType Directory -Path $TargetWorkspace -Force | Out-Null
+    }
+
     # 깃허브에서 최신 킷 압축본을 받아 임시 폴더에서 실행
     $zipUrl = 'https://github.com/r2gul4r/codex_multiagent/archive/refs/heads/main.zip'
     $tempRoot = Join-Path $env:TEMP ('codex-multiagent-' + [guid]::NewGuid().ToString('N'))
