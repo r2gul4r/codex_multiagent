@@ -25,6 +25,7 @@ $GlobalHome = Join-Path $env:USERPROFILE '.codex'
 $GlobalKitRoot = Join-Path $GlobalHome 'multiagent-kit'
 $GlobalAgentsPath = Join-Path $GlobalHome 'AGENTS.md'
 $GlobalCustomAgentsRoot = Join-Path $GlobalHome 'agents'
+$GlobalRulesRoot = Join-Path $GlobalHome 'rules'
 $LocalReadme = Join-Path $LocalKitRoot 'README.md'
 
 function Write-Section {
@@ -113,6 +114,28 @@ function Install-CodexCustomAgents {
         }
         else {
             Write-Host "Skipped subagent config overwrite: $target" -ForegroundColor Yellow
+        }
+    }
+}
+
+function Install-CodexRules {
+    param([string]$SourceKitRoot)
+
+    $sourceRulesRoot = Join-Path $SourceKitRoot 'codex_rules'
+    if (-not (Test-Path -LiteralPath $sourceRulesRoot -PathType Container)) {
+        return
+    }
+
+    Ensure-Directory -Path $GlobalRulesRoot
+
+    Get-ChildItem -LiteralPath $sourceRulesRoot -File | ForEach-Object {
+        $target = Join-Path $GlobalRulesRoot $_.Name
+
+        if (Should-OverwriteFile -Path $target) {
+            Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+        }
+        else {
+            Write-Host "Skipped rules overwrite: $target" -ForegroundColor Yellow
         }
     }
 }
@@ -262,6 +285,7 @@ function Install-GlobalKit {
         'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md',
         'MULTI_AGENT_GUIDE.md',
         'codex_agents',
+        'codex_rules',
         'examples',
         'profiles',
         'installer'
@@ -288,9 +312,11 @@ function Install-GlobalKit {
 
     Copy-Item -LiteralPath $globalTemplate -Destination $GlobalAgentsPath -Force
     Install-CodexCustomAgents -SourceKitRoot $LocalKitRoot
+    Install-CodexRules -SourceKitRoot $LocalKitRoot
 
     Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
     Write-Host "Installed Codex subagent configs at $GlobalCustomAgentsRoot" -ForegroundColor Green
+    Write-Host "Installed Codex command rules at $GlobalRulesRoot" -ForegroundColor Green
     Write-Host "Reference kit copied to $GlobalKitRoot"
 }
 
@@ -338,6 +364,9 @@ function Apply-ToWorkspace {
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Force
         if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_agents')) {
             Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_agents') -Destination (Join-Path $docsRoot 'codex_agents')
+        }
+        if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_rules')) {
+            Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_rules') -Destination (Join-Path $docsRoot 'codex_rules')
         }
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'profiles') -Destination (Join-Path $docsRoot 'profiles')
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'examples') -Destination (Join-Path $docsRoot 'examples')

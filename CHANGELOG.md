@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.1 - 2026-03-18
+
+### Added
+
+- Codex 전역 설치 시 `%USERPROFILE%\.codex\rules\default.rules` 기본 command rules도 함께 배포
+- `git reset --hard`, `git checkout --`, `git restore`, `git clean`, `rm -rf`, `del /s /q`, `Remove-Item -Recurse -Force` 같은 파괴적 명령 기본 차단 규칙 추가
+
+### Changed
+
+- 에이전트가 스스로 디스크 삭제나 강제 되돌리기 명령을 치는 기본 흐름을 rules 레이어에서 차단
+
 ## v0.1.0 - 2026-03-18
 
 ### Added

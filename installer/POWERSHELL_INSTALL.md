@@ -13,6 +13,7 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 
 - `%USERPROFILE%\.codex\AGENTS.md` 생성 또는 덮어쓰기
 - `%USERPROFILE%\.codex\agents\*.toml` 서브에이전트 설정 설치
+- `%USERPROFILE%\.codex\rules\*.rules` 기본 command rules 설치
 - 그래서 기존 작업공간이든 새 작업공간이든 공통 기본 규칙 자동 적용
 - 참고용 킷은 `%USERPROFILE%\.codex\multiagent-kit` 에 같이 복사
 
