@@ -1,0 +1,17 @@
+# Changelog
+
+## v0.1.0 - 2026-03-18
+
+### Added
+
+- Codex 전역 설치 시 `%USERPROFILE%\.codex\agents\*.toml` 서브에이전트 오버라이드도 함께 배포
+- Codex built-in 서브에이전트 `default`, `worker`, `explorer`, `reviewer` 용 `gpt-5.4-mini` 모델 패치 템플릿 추가
+- 전역 Codex 워크스페이스 기본 페르소나로 `gogi` 적용
+- 이 워크스페이스 기본 페르소나로 `gogi` 적용
+
+### Changed
+
+- Codex 메인 세션 모델은 기존 사용자 `config.toml` 설정을 그대로 유지
+- 서브에이전트만 더 가벼운 `gpt-5.4-mini` 모델을 사용하도록 분리
+- 저장소/전역 AGENTS 문서의 기본 응답 언어를 한국어 중심으로 정리
+- 저장소/전역 AGENTS 문서의 기본 톤을 간결한 banmal 기반 시니어 엔지니어 톤으로 정리

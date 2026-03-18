@@ -199,6 +199,8 @@ Antigravity 쪽은 Codex처럼 새 모델을 까는 방식 아님
   `STATE.md` 경량 task board 템플릿
 - [MULTI_AGENT_GUIDE.md](./MULTI_AGENT_GUIDE.md)
   운영 가이드
+- [CHANGELOG.md](./CHANGELOG.md)
+  날짜/버전 기준 패치노트
 - [codex_agents/default.toml](./codex_agents/default.toml)
   Codex 기본 서브에이전트 모델 오버라이드
 - [codex_agents/worker.toml](./codex_agents/worker.toml)
