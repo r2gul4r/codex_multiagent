@@ -69,6 +69,14 @@ Use a lightweight `STATE.md` instead of a heavy queue system
 - Parallel work is limited to combinations that keep the single writer rule intact
 - If the split is unclear, do not parallelize
 
+## Forbidden Commands
+
+- Never run `git reset --hard` unless the user explicitly requests it
+- Never run `git checkout -- <path>` or `git restore --source=<tree> -- <path>` to discard changes unless the user explicitly requests it
+- Never run `git clean -fd` or `git clean -fdx` unless the user explicitly requests it
+- Never use destructive delete commands such as `rm -rf`, `del /s /q`, or `Remove-Item -Recurse -Force` against repository files or user data just to "start fresh"
+- Never revert, overwrite, or wipe user changes in a dirty worktree unless the user explicitly requests it
+
 ## Repository Overrides
 
 When a repository has its own `AGENTS.md`, treat it as the local override layer

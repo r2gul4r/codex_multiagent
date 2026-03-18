@@ -34,3 +34,11 @@ Global multi-agent orchestration rules remain in effect unless this file adds a 
 - For non-trivial changes, pin the implementation plan and main risks before editing
 - Before finishing, run the relevant verification commands available in the repository when feasible and report any gaps
 - Prefer small, reviewable changes over large monolithic edits
+
+## Forbidden Commands
+
+- Never run `git reset --hard` unless the user explicitly requests it
+- Never run `git checkout -- <path>` or `git restore --source=<tree> -- <path>` to discard changes unless the user explicitly requests it
+- Never run `git clean -fd` or `git clean -fdx` unless the user explicitly requests it
+- Never use destructive delete commands such as `rm -rf`, `del /s /q`, or `Remove-Item -Recurse -Force` against repository files or user data just to "start fresh"
+- Never revert, overwrite, or wipe user changes in a dirty worktree unless the user explicitly requests it

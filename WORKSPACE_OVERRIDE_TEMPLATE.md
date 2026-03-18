@@ -27,6 +27,14 @@ This file adds repository-specific rules on top of the global multi-agent defaul
 - Add rules for migrations, deployments, or risky directories
 - Add verification expectations for reviewer
 
+## Forbidden Commands
+
+- Never run `git reset --hard` unless the user explicitly requests it
+- Never run `git checkout -- <path>` or `git restore --source=<tree> -- <path>` to discard changes unless the user explicitly requests it
+- Never run `git clean -fd` or `git clean -fdx` unless the user explicitly requests it
+- Never use destructive delete commands such as `rm -rf`, `del /s /q`, or `Remove-Item -Recurse -Force` against repository files or user data just to "start fresh"
+- Never revert, overwrite, or wipe user changes in a dirty worktree unless the user explicitly requests it
+
 ## Example Worker Mapping
 
 - `[ui_worker]`
