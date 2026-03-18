@@ -77,7 +77,15 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 이 명령이 하는 일
 
 - `%USERPROFILE%\.codex\AGENTS.md` 생성 또는 덮어쓰기
+- `%USERPROFILE%\.codex\agents\*.toml` 서브에이전트 설정 설치
 - `%USERPROFILE%\.codex\multiagent-kit` 에 참고용 킷 복사
+
+#### 기본 서브에이전트 모델 패치
+
+- Codex 전역 설치 시 built-in 서브에이전트 `default`, `worker`, `explorer`, `reviewer` 오버라이드 같이 설치
+- 이 오버라이드는 서브에이전트 모델만 `gpt-5.4-mini` 로 고정
+- 메인 세션 모델은 안 건드림
+- 즉 `main` 은 기존 `config.toml` 설정을 그대로 쓰고, delegated subagent 만 더 가벼운 모델로 내려감
 
 ### 2. 특정 작업공간 오버라이드 설치
 
@@ -191,6 +199,14 @@ Antigravity 쪽은 Codex처럼 새 모델을 까는 방식 아님
   `STATE.md` 경량 task board 템플릿
 - [MULTI_AGENT_GUIDE.md](./MULTI_AGENT_GUIDE.md)
   운영 가이드
+- [codex_agents/default.toml](./codex_agents/default.toml)
+  Codex 기본 서브에이전트 모델 오버라이드
+- [codex_agents/worker.toml](./codex_agents/worker.toml)
+  Codex `worker` 서브에이전트 모델 오버라이드
+- [codex_agents/explorer.toml](./codex_agents/explorer.toml)
+  Codex `explorer` 서브에이전트 모델 오버라이드
+- [codex_agents/reviewer.toml](./codex_agents/reviewer.toml)
+  Codex `reviewer` 서브에이전트 모델 오버라이드
 - [profiles/main.md](./profiles/main.md)
   `main` 역할 계약
 - [profiles/explorer.md](./profiles/explorer.md)

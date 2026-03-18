@@ -24,6 +24,7 @@ $LocalKitRoot = Split-Path -Parent $PSScriptRoot
 $GlobalHome = Join-Path $env:USERPROFILE '.codex'
 $GlobalKitRoot = Join-Path $GlobalHome 'multiagent-kit'
 $GlobalAgentsPath = Join-Path $GlobalHome 'AGENTS.md'
+$GlobalCustomAgentsRoot = Join-Path $GlobalHome 'agents'
 $LocalReadme = Join-Path $LocalKitRoot 'README.md'
 
 function Write-Section {
@@ -91,6 +92,28 @@ function Get-WorkspaceTemplateSource {
         'standard' { return (Join-Path $SourceKitRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') }
         'minimal' { return (Join-Path $SourceKitRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') }
         default { throw "Unsupported template: $TemplateName" }
+    }
+}
+
+function Install-CodexCustomAgents {
+    param([string]$SourceKitRoot)
+
+    $sourceAgentsRoot = Join-Path $SourceKitRoot 'codex_agents'
+    if (-not (Test-Path -LiteralPath $sourceAgentsRoot -PathType Container)) {
+        return
+    }
+
+    Ensure-Directory -Path $GlobalCustomAgentsRoot
+
+    Get-ChildItem -LiteralPath $sourceAgentsRoot -File | ForEach-Object {
+        $target = Join-Path $GlobalCustomAgentsRoot $_.Name
+
+        if (Should-OverwriteFile -Path $target) {
+            Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+        }
+        else {
+            Write-Host "Skipped subagent config overwrite: $target" -ForegroundColor Yellow
+        }
     }
 }
 
@@ -238,6 +261,7 @@ function Install-GlobalKit {
         'WORKSPACE_OVERRIDE_TEMPLATE.md',
         'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md',
         'MULTI_AGENT_GUIDE.md',
+        'codex_agents',
         'examples',
         'profiles',
         'installer'
@@ -263,8 +287,10 @@ function Install-GlobalKit {
     }
 
     Copy-Item -LiteralPath $globalTemplate -Destination $GlobalAgentsPath -Force
+    Install-CodexCustomAgents -SourceKitRoot $LocalKitRoot
 
     Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
+    Write-Host "Installed Codex subagent configs at $GlobalCustomAgentsRoot" -ForegroundColor Green
     Write-Host "Reference kit copied to $GlobalKitRoot"
 }
 
@@ -310,6 +336,9 @@ function Apply-ToWorkspace {
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'STATE_TEMPLATE.md') -Destination (Join-Path $docsRoot 'STATE_TEMPLATE.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Force
+        if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_agents')) {
+            Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_agents') -Destination (Join-Path $docsRoot 'codex_agents')
+        }
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'profiles') -Destination (Join-Path $docsRoot 'profiles')
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'examples') -Destination (Join-Path $docsRoot 'examples')
     }
