@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.2 - 2026-03-19
+
+### Added
+
+- Codex macOS/Linux용 shell 설치기 `installer/CodexMultiAgent.sh` 추가
+- `curl | bash` 원클릭 설치용 `installer/Bootstrap.sh` 추가
+- GitHub Actions `macos-latest` 기반 설치 검증 워크플로우 추가
+
+### Changed
+
+- macOS 설치 경로를 README 중심으로 정리하고 GitHub Actions `macos-latest` 기준 전역 설치, workspace 오버라이드, bootstrap 경로 실검증 완료
+
 ## v0.1.1 - 2026-03-18
 
 ### Added

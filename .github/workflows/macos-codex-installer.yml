@@ -1,0 +1,81 @@
+name: macos-codex-installer
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/macos-codex-installer.yml"
+      - "installer/**"
+      - "codex_agents/**"
+      - "codex_rules/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "AGENTS_TEMPLATE.md"
+      - "GLOBAL_AGENTS_TEMPLATE.md"
+      - "WORKSPACE_OVERRIDE_TEMPLATE.md"
+      - "WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md"
+      - "STATE_TEMPLATE.md"
+  pull_request:
+    paths:
+      - ".github/workflows/macos-codex-installer.yml"
+      - "installer/**"
+      - "codex_agents/**"
+      - "codex_rules/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "AGENTS_TEMPLATE.md"
+      - "GLOBAL_AGENTS_TEMPLATE.md"
+      - "WORKSPACE_OVERRIDE_TEMPLATE.md"
+      - "WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md"
+      - "STATE_TEMPLATE.md"
+
+jobs:
+  macos-install:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate shell syntax
+        run: |
+          bash -n installer/CodexMultiAgent.sh
+          bash -n installer/Bootstrap.sh
+
+      - name: Test local installer global
+        env:
+          CODEX_HOME: ${{ runner.temp }}/home-local/.codex
+        run: |
+          mkdir -p "$(dirname "$CODEX_HOME")"
+          bash installer/CodexMultiAgent.sh install-global --force --no-prompt
+          test -f "$CODEX_HOME/AGENTS.md"
+          test -f "$CODEX_HOME/agents/default.toml"
+          test -f "$CODEX_HOME/rules/default.rules"
+          test -f "$CODEX_HOME/multiagent-kit/README.md"
+
+      - name: Test local installer workspace
+        env:
+          CODEX_HOME: ${{ runner.temp }}/home-local/.codex
+          WORKSPACE: ${{ runner.temp }}/workspace-local
+        run: |
+          mkdir -p "$WORKSPACE"
+          bash installer/CodexMultiAgent.sh apply-workspace --workspace "$WORKSPACE" --include-docs --template standard --force --no-prompt
+          test -f "$WORKSPACE/AGENTS.md"
+          test -f "$WORKSPACE/STATE.md"
+          test -f "$WORKSPACE/docs/codex-multiagent/README.md"
+          test -f "$WORKSPACE/docs/codex-multiagent/codex_rules/default.rules"
+
+      - name: Test bootstrap installer
+        env:
+          CODEX_HOME: ${{ runner.temp }}/home-bootstrap/.codex
+          WORKSPACE: ${{ runner.temp }}/workspace-bootstrap
+          SCRIPT_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/installer/Bootstrap.sh
+          CODEX_MULTIAGENT_ZIP_URL: https://github.com/${{ github.repository }}/archive/${{ github.sha }}.zip
+        run: |
+          mkdir -p "$(dirname "$CODEX_HOME")" "$WORKSPACE"
+          curl -fsSL "$SCRIPT_URL" | bash -s -- install-global
+          test -f "$CODEX_HOME/AGENTS.md"
+          test -f "$CODEX_HOME/agents/default.toml"
+          test -f "$CODEX_HOME/rules/default.rules"
+          curl -fsSL "$SCRIPT_URL" | bash -s -- apply-workspace --workspace "$WORKSPACE" --include-docs
+          test -f "$WORKSPACE/AGENTS.md"
+          test -f "$WORKSPACE/docs/codex-multiagent/README.md"
