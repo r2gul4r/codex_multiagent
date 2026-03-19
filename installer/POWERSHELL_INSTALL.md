@@ -39,4 +39,3 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 - 작업공간 설치는 예외 규칙이나 저장소 전용 계약이 필요할 때만
 - 더 짧은 템플릿을 원하면 끝에 `-Template minimal` 추가
 - macOS용 설치 명령은 `README.md` 의 macOS 설치 섹션 참고
-- Antigravity용 명령은 `installer/ANTIGRAVITY_INSTALL.md` 참고

@@ -2,10 +2,6 @@ function Invoke-MultiAgentBootstrap {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Codex', 'Antigravity')]
-        [string]$Variant,
-
-        [Parameter(Mandatory = $true)]
         [ValidateSet('InstallGlobal', 'ApplyWorkspace')]
         [string]$Mode,
 
@@ -28,17 +24,8 @@ function Invoke-MultiAgentBootstrap {
         New-Item -ItemType Directory -Path $TargetWorkspace -Force | Out-Null
     }
 
-    $installerScript = switch ($Variant) {
-        'Codex' { 'CodexMultiAgent.ps1' }
-        'Antigravity' { 'AntigravityMultiAgent.ps1' }
-        default { throw "Unsupported variant: $Variant" }
-    }
-
-    $tempPrefix = switch ($Variant) {
-        'Codex' { 'codex-multiagent-' }
-        'Antigravity' { 'antigravity-multiagent-' }
-        default { throw "Unsupported variant: $Variant" }
-    }
+    $installerScript = 'CodexMultiAgent.ps1'
+    $tempPrefix = 'codex-multiagent-'
 
     # 깃허브에서 최신 킷 압축본을 받아 임시 폴더에서 실행
     $zipUrl = 'https://github.com/r2gul4r/codex_multiagent/archive/refs/heads/main.zip'
@@ -111,23 +98,5 @@ function Install-CodexMultiAgent {
         [switch]$IncludeDocs
     )
 
-    Invoke-MultiAgentBootstrap -Variant 'Codex' -Mode $Mode -TargetWorkspace $TargetWorkspace -Template $Template -IncludeDocs:$IncludeDocs
-}
-
-function Install-AntigravityMultiAgent {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('InstallGlobal', 'ApplyWorkspace')]
-        [string]$Mode,
-
-        [string]$TargetWorkspace,
-
-        [ValidateSet('standard', 'minimal')]
-        [string]$Template = 'standard',
-
-        [switch]$IncludeDocs
-    )
-
-    Invoke-MultiAgentBootstrap -Variant 'Antigravity' -Mode $Mode -TargetWorkspace $TargetWorkspace -Template $Template -IncludeDocs:$IncludeDocs
+    Invoke-MultiAgentBootstrap -Mode $Mode -TargetWorkspace $TargetWorkspace -Template $Template -IncludeDocs:$IncludeDocs
 }
