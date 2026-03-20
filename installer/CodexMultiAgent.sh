@@ -193,6 +193,18 @@ load_context_array() {
     done < <(toml_get_array "$file" "$section" "$key")
 }
 
+load_array_from_command() {
+    target_name="$1"
+    shift
+
+    eval "$target_name=()"
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            eval "$target_name+=(\"\$line\")"
+        fi
+    done < <("$@")
+}
+
 write_markdown_section() {
     title="$1"
     shift
@@ -386,17 +398,17 @@ generate_workspace_agents_from_context() {
     [ -n "$task_board_path" ] || task_board_path="STATE.md"
     [ -n "$multi_agent_log_path" ] || multi_agent_log_path="MULTI_AGENT_LOG.md"
 
-    mapfile -t repository_facts < <(get_derived_repository_facts "$context_path")
+    load_array_from_command repository_facts get_derived_repository_facts "$context_path"
     load_context_array required_read "$context_path" "required_context" "read"
-    mapfile -t verification_commands < <(get_derived_verification_commands "$context_path")
-    mapfile -t shared_contracts < <(get_derived_shared_contracts "$context_path")
-    mapfile -t shared_asset_paths < <(get_derived_shared_asset_paths "$context_path")
-    mapfile -t do_not_touch_paths < <(get_derived_do_not_touch_paths "$context_path")
-    mapfile -t hard_triggers < <(get_derived_hard_triggers "$context_path")
-    mapfile -t approval_zones < <(get_derived_approval_zones "$context_path")
-    mapfile -t worker_mapping < <(get_derived_worker_mapping "$context_path")
-    mapfile -t reviewer_focus < <(get_derived_reviewer_focus "$context_path")
-    mapfile -t forbidden_patterns < <(get_derived_forbidden_patterns "$context_path")
+    load_array_from_command verification_commands get_derived_verification_commands "$context_path"
+    load_array_from_command shared_contracts get_derived_shared_contracts "$context_path"
+    load_array_from_command shared_asset_paths get_derived_shared_asset_paths "$context_path"
+    load_array_from_command do_not_touch_paths get_derived_do_not_touch_paths "$context_path"
+    load_array_from_command hard_triggers get_derived_hard_triggers "$context_path"
+    load_array_from_command approval_zones get_derived_approval_zones "$context_path"
+    load_array_from_command worker_mapping get_derived_worker_mapping "$context_path"
+    load_array_from_command reviewer_focus get_derived_reviewer_focus "$context_path"
+    load_array_from_command forbidden_patterns get_derived_forbidden_patterns "$context_path"
 
     {
         printf '# Workspace Override: %s\n\n' "$title"
@@ -443,8 +455,8 @@ generate_workspace_state_from_context() {
     title=$(toml_get_scalar "$context_path" "workspace" "name")
     [ -n "$title" ] || title="$workspace_name"
 
-    mapfile -t shared_contracts < <(get_derived_shared_contracts "$context_path")
-    mapfile -t reviewer_focus < <(get_derived_reviewer_focus "$context_path")
+    load_array_from_command shared_contracts get_derived_shared_contracts "$context_path"
+    load_array_from_command reviewer_focus get_derived_reviewer_focus "$context_path"
 
     if [ "${#shared_contracts[@]}" -eq 0 ]; then
         shared_contracts=("n/a")
