@@ -253,7 +253,7 @@ get_derived_repository_facts() {
     current_deploy_base=$(toml_get_scalar "$context_path" "deployment_current" "active_deploy_base")
 
     merge_context_items \
-        "${repository_facts[@]}" \
+        ${repository_facts[@]+"${repository_facts[@]}"} \
         "${display_name:+Display name: $display_name}" \
         "${page_kind:+Page kind: $page_kind}" \
         "${primary_entry:+Primary entry: $primary_entry}" \
@@ -272,7 +272,7 @@ get_derived_verification_commands() {
     context_path="$1"
     load_context_array commands_a "$context_path" "verification" "commands"
     load_context_array commands_b "$context_path" "verification" "recommended_commands"
-    merge_context_items "${commands_a[@]}" "${commands_b[@]}"
+    merge_context_items ${commands_a[@]+"${commands_a[@]}"} ${commands_b[@]+"${commands_b[@]}"}
 }
 
 get_derived_shared_contracts() {
@@ -285,7 +285,7 @@ get_derived_shared_contracts() {
     env_source=$(toml_get_scalar "$context_path" "env_strategy" "current_env_source_of_truth")
 
     merge_context_items \
-        "${contracts_shared[@]}" \
+        ${contracts_shared[@]+"${contracts_shared[@]}"} \
         "${source_of_truth:+Frontend source of truth remains $source_of_truth}" \
         "${route_constants:+Route constants stay aligned with $route_constants}" \
         "${authoring_model:+$authoring_model}" \
@@ -306,8 +306,8 @@ get_derived_shared_asset_paths() {
     route_constants=$(toml_get_scalar "$context_path" "architecture" "route_constants")
 
     merge_context_items \
-        "${shared_assets_a[@]}" \
-        "${shared_assets_b[@]}" \
+        ${shared_assets_a[@]+"${shared_assets_a[@]}"} \
+        ${shared_assets_b[@]+"${shared_assets_b[@]}"} \
         "$shell_runtime" \
         "$shared_react" \
         "$landing_script" \
@@ -321,7 +321,7 @@ get_derived_do_not_touch_paths() {
     context_path="$1"
     load_context_array do_not_touch_a "$context_path" "paths" "do_not_touch"
     load_context_array do_not_touch_b "$context_path" "editing_rules" "do_not_edit"
-    merge_context_items "${do_not_touch_a[@]}" "${do_not_touch_b[@]}"
+    merge_context_items ${do_not_touch_a[@]+"${do_not_touch_a[@]}"} ${do_not_touch_b[@]+"${do_not_touch_b[@]}"}
 }
 
 get_derived_hard_triggers() {
@@ -333,7 +333,7 @@ get_derived_hard_triggers() {
     spring_mirror=$(toml_get_scalar "$context_path" "architecture" "spring_mirror")
 
     merge_context_items \
-        "${hard_triggers_a[@]}" \
+        ${hard_triggers_a[@]+"${hard_triggers_a[@]}"} \
         "${route_constants:+Changing route constants or route ownership in $route_constants}" \
         "${shell_runtime:+Changing shared shell runtime behavior in $shell_runtime}" \
         "${webapp_mirror:+Touching deployment mirror path $webapp_mirror}" \
@@ -348,7 +348,7 @@ get_derived_approval_zones() {
     future_plan=$(toml_get_scalar "$context_path" "env_strategy" "future_plan")
 
     merge_context_items \
-        "${approval_a[@]}" \
+        ${approval_a[@]+"${approval_a[@]}"} \
         "${deploy_method:+Deployment method changes: $deploy_method}" \
         "${deploy_target:+Deploy target changes: $deploy_target}" \
         "${future_plan:+Runtime env ownership changes: $future_plan}"
@@ -362,7 +362,7 @@ get_derived_worker_mapping() {
     landing_script=$(toml_get_scalar "$context_path" "architecture" "landing_script")
 
     merge_context_items \
-        "${worker_mapping_a[@]}" \
+        ${worker_mapping_a[@]+"${worker_mapping_a[@]}"} \
         "${shell_runtime:+worker_shell_runtime = $shell_runtime}" \
         "${shared_react:+worker_shared = $shared_react}" \
         "${landing_script:+worker_feature_landing = $landing_script}"
@@ -373,14 +373,14 @@ get_derived_reviewer_focus() {
     load_context_array reviewer_focus_a "$context_path" "reviewer" "focus"
     load_context_array reviewer_focus_b "$context_path" "verification" "manual_checks"
     load_context_array reviewer_focus_c "$context_path" "editing_rules" "notes"
-    merge_context_items "${reviewer_focus_a[@]}" "${reviewer_focus_b[@]}" "${reviewer_focus_c[@]}"
+    merge_context_items ${reviewer_focus_a[@]+"${reviewer_focus_a[@]}"} ${reviewer_focus_b[@]+"${reviewer_focus_b[@]}"} ${reviewer_focus_c[@]+"${reviewer_focus_c[@]}"}
 }
 
 get_derived_forbidden_patterns() {
     context_path="$1"
     load_context_array forbidden_a "$context_path" "forbidden" "patterns"
     load_context_array forbidden_b "$context_path" "content_guidelines" "avoid"
-    merge_context_items "${forbidden_a[@]}" "${forbidden_b[@]}"
+    merge_context_items ${forbidden_a[@]+"${forbidden_a[@]}"} ${forbidden_b[@]+"${forbidden_b[@]}"}
 }
 
 generate_workspace_agents_from_context() {
@@ -418,16 +418,16 @@ generate_workspace_agents_from_context() {
         printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
         printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
 
-        combined_facts=("${repository_facts[@]}" "Task board path: \`$task_board_path\`" "Multi-agent log path: \`$multi_agent_log_path\`")
-        write_markdown_section 'Repository Facts' "${combined_facts[@]}"
-        write_markdown_section 'Required Context Before Editing' "${required_read[@]}"
-        write_markdown_section 'Verification Commands' "${verification_commands[@]}"
-        write_markdown_section 'Shared Contracts' "${shared_contracts[@]}"
-        write_markdown_section 'Shared Asset Paths' "${shared_asset_paths[@]}"
-        write_markdown_section 'Repo-Specific Hard Triggers' "${hard_triggers[@]}"
-        write_markdown_section 'Do-Not-Touch Paths' "${do_not_touch_paths[@]}"
-        write_markdown_section 'Manual Approval Zones' "${approval_zones[@]}"
-        write_markdown_section 'Worker Mapping' "${worker_mapping[@]}"
+        combined_facts=(${repository_facts[@]+"${repository_facts[@]}"} "Task board path: \`$task_board_path\`" "Multi-agent log path: \`$multi_agent_log_path\`")
+        write_markdown_section 'Repository Facts' ${combined_facts[@]+"${combined_facts[@]}"}
+        write_markdown_section 'Required Context Before Editing' ${required_read[@]+"${required_read[@]}"}
+        write_markdown_section 'Verification Commands' ${verification_commands[@]+"${verification_commands[@]}"}
+        write_markdown_section 'Shared Contracts' ${shared_contracts[@]+"${shared_contracts[@]}"}
+        write_markdown_section 'Shared Asset Paths' ${shared_asset_paths[@]+"${shared_asset_paths[@]}"}
+        write_markdown_section 'Repo-Specific Hard Triggers' ${hard_triggers[@]+"${hard_triggers[@]}"}
+        write_markdown_section 'Do-Not-Touch Paths' ${do_not_touch_paths[@]+"${do_not_touch_paths[@]}"}
+        write_markdown_section 'Manual Approval Zones' ${approval_zones[@]+"${approval_zones[@]}"}
+        write_markdown_section 'Worker Mapping' ${worker_mapping[@]+"${worker_mapping[@]}"}
 
         printf '\n## Repository Overrides\n\n'
         printf -- '- Role caps inherited from global defaults stay fixed\n'
@@ -442,8 +442,8 @@ generate_workspace_agents_from_context() {
             printf -- '- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules\n'
         fi
 
-        write_markdown_section 'Reviewer Focus' "${reviewer_focus[@]}"
-        write_markdown_section 'Forbidden Patterns' "${forbidden_patterns[@]}"
+        write_markdown_section 'Reviewer Focus' ${reviewer_focus[@]+"${reviewer_focus[@]}"}
+        write_markdown_section 'Forbidden Patterns' ${forbidden_patterns[@]+"${forbidden_patterns[@]}"}
     } > "$agents_target"
 }
 
@@ -458,11 +458,11 @@ generate_workspace_state_from_context() {
     load_array_from_command shared_contracts get_derived_shared_contracts "$context_path"
     load_array_from_command reviewer_focus get_derived_reviewer_focus "$context_path"
 
-    if [ "${#shared_contracts[@]}" -eq 0 ]; then
+    if [ "${#shared_contracts[@]:-0}" -eq 0 ]; then
         shared_contracts=("n/a")
     fi
 
-    if [ "${#reviewer_focus[@]}" -eq 0 ]; then
+    if [ "${#reviewer_focus[@]:-0}" -eq 0 ]; then
         reviewer_focus=("n/a")
     fi
 
@@ -488,14 +488,14 @@ generate_workspace_state_from_context() {
         printf '\n## Contract Freeze\n\n'
         printf -- '- status: `open`\n'
         printf -- '- shared_contracts:\n'
-        for item in "${shared_contracts[@]}"; do
+        for item in ${shared_contracts[@]+"${shared_contracts[@]}"}; do
             printf '  - `%s`\n' "$item"
         done
         printf -- '- freeze_owner: `main`\n'
         printf '\n## Reviewer\n\n'
         printf -- '- target: `n/a`\n'
         printf -- '- focus:\n'
-        for item in "${reviewer_focus[@]}"; do
+        for item in ${reviewer_focus[@]+"${reviewer_focus[@]}"}; do
             printf '  - `%s`\n' "$item"
         done
         printf '\n## Last Update\n\n'
