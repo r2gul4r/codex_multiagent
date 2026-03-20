@@ -17,106 +17,7 @@ Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운
 
 ---
 
-## 이 킷이 하는 일
-
-Codex는 현재 `default`, `worker`, `explorer`, `reviewer` 같은 공식 서브에이전트 역할을 기본 제공한다.
-
-이 저장소는 그 기본 기능을 대체하려는 것이 아니라, 실제 작업에서 덜 꼬이도록 운영 규칙을 덧씌우는 데 초점을 둔다.
-
-이 킷이 추가로 제공하는 것은 다음과 같다.
-
-- 전역 `AGENTS.md` 기본값
-- 저장소별 `AGENTS.md` 오버라이드 템플릿
-- `STATE.md` 기반 경량 task board
-- `route + writer_slot + write_sets` 기반 실행 소유권 흐름
-- `contract_freeze` 기반 공유 계약 고정 절차
-- `MULTI_AGENT_LOG.md` 기반 역할 참여 기록
-- 파괴적 명령 차단 rules
-- 저장소별 검증 명령, 보안 규칙, 금지 경로를 넣기 위한 템플릿
-
----
-
-## Codex 기본 설정과의 차이
-
-Codex 기본 설정은 서브에이전트 역할과 호출 기능 자체를 제공한다.
-
-이 킷은 그 위에 다음 운영 기준을 추가한다.
-
-- 작은 작업은 `main` 단독 진행
-- 작업 크기는 `하드 트리거 + 점수제` 로 먼저 분류
-- 큰 작업은 `main planner-only` 로 전환
-- `explorer`, `reviewer` 는 read-only 유지
-- 큰 작업의 쓰기 변경은 `feature worker` 와 `worker_shared` 로 분리
-- 공유 계약은 fan-out 전에 `main` 이 먼저 고정
-- 멀티스텝 작업은 `STATE.md` 로 `route`, `writer_slot`, `contract_freeze`, `write_sets` 까지 추적
-- 작업이 끝날 때 reviewer 확인 절차를 거치도록 유도
-- 전역 규칙과 작업공간 예외 규칙을 계층적으로 관리
-
-정리하면, Codex 기본 설정이 "서브에이전트를 사용할 수 있는 기반"이라면 이 킷은 "그 기반을 팀 규칙에 맞게 운영하는 틀"에 가깝다.
-
----
-
-## 전역 + 작업공간 구조
-
-핵심 구조는 두 층이다.
-
-1. 전역 기본값
-2. 작업공간 오버라이드
-
-### 전역 기본값
-
-`%USERPROFILE%\.codex\AGENTS.md` 또는 `~/.codex/AGENTS.md` 에 공통 멀티에이전트 규칙을 설치한다.
-
-한 번 설치해 두면 기존 작업공간과 새 작업공간 모두에서 같은 기본 운영 규칙을 사용할 수 있다.
-
-### 작업공간 오버라이드
-
-특정 프로젝트 루트의 `AGENTS.md` 로 저장소별 예외 규칙을 추가한다.
-
-이 킷은 실제 프로젝트 사용 기준으로 `전역 설치 -> 작업공간 오버라이드 설치` 순서를 기본 흐름으로 본다.
-전역 설치만으로도 기본 규칙은 적용되지만, 실제 저장소 작업은 작업공간 오버라이드까지 반영하는 것을 필수 단계로 간주한다.
-이때 작업공간 루트에 `WORKSPACE_CONTEXT.toml` 을 먼저 작성해 두어야 installer 가 프로젝트 방향성에 맞는 `AGENTS.md` 와 초기 `STATE.md` 를 생성할 수 있다.
-
-작업공간 오버라이드는 공통 규칙 위에 다음 항목만 덧씌우는 용도로 설계되어 있다.
-
-- worker 이름
-- 검증 명령
-- 공유 계약
-- 금지 경로
-- reviewer 확인 포인트
-- 보안 또는 승인 규칙
-
-한 줄로 정리하면 다음과 같다.
-
-- 전역 설치 = 모든 작업공간에 공통으로 적용되는 기본값
-- 작업공간 설치 = 실제 프로젝트 작업 전에 반드시 얹는 저장소 전용 규칙
-
----
-
-## 왜 이런 구조를 쓰나
-
-단순히 참고용 폴더를 복사하는 방식만으로는 Codex의 전역 규칙과 프로젝트 규칙이 안정적으로 분리되지 않는다.
-
-실제로 적용되는 것은 `AGENTS.md` 계층이기 때문에, 전역은 전역 위치에, 프로젝트는 프로젝트 루트에 규칙 파일을 두는 편이 관리와 재사용 면에서 더 단순하다.
-
-이 킷이 기본으로 잡는 운영 방향은 다음과 같다.
-
-- 작은 작업은 `main` 단독 진행
-- 작업 크기는 `하드 트리거 + 점수제` 로 먼저 분류
-- 큰 작업은 `main planner-only` 로 전환
-- `explorer`, `reviewer` 는 read-only 역할로 유지
-- 큰 작업의 쓰기 변경은 `feature worker` 와 `worker_shared` 로 분리
-- `STATE.md` 로 `current_task`, `route`, `writer_slot`, `contract_freeze`, `write_sets` 를 추적
-
-여기서 라우트는 이렇게 본다.
-
-- `Route A` = 작은 작업, `main` 직접 수정
-- `Route B` = 경계 작업, `main` 직접 수정 + 필요시 read-only 보조
-- `Route C` = 큰 작업, `main` 은 수정 안 하고 계약 고정/분배만 수행
-
-큰 작업에선 `worker_shared` 가 공용 타입, 공용 util, 공용 컴포넌트, import 경로 같은 shared 자산을 전담한다.
-
----
+## 설치전 리드미를 꼭 읽어보시길 바랍니다
 
 ## 빠른 시작
 
@@ -241,6 +142,107 @@ workspace="/path/to/your/workspace"; curl -fsSL https://raw.githubusercontent.co
 - 테스트 격리를 위해 `CODEX_HOME=/tmp/codex-test-home/.codex` 같이 별도 경로를 지정할 수 있다
 - CI나 검증용 브랜치에서는 `CODEX_MULTIAGENT_ZIP_URL` 로 bootstrap 대상 zip 경로를 override 할 수 있다
 - GitHub Actions `macos-latest` 러너에서 전역 설치, workspace 오버라이드, `curl | bash` bootstrap 경로까지 실검증을 마쳤다
+
+---
+
+## 이 킷이 하는 일
+
+Codex는 현재 `default`, `worker`, `explorer`, `reviewer` 같은 공식 서브에이전트 역할을 기본 제공한다.
+
+이 저장소는 그 기본 기능을 대체하려는 것이 아니라, 실제 작업에서 덜 꼬이도록 운영 규칙을 덧씌우는 데 초점을 둔다.
+
+이 킷이 추가로 제공하는 것은 다음과 같다.
+
+- 전역 `AGENTS.md` 기본값
+- 저장소별 `AGENTS.md` 오버라이드 템플릿
+- `STATE.md` 기반 경량 task board
+- `route + writer_slot + write_sets` 기반 실행 소유권 흐름
+- `contract_freeze` 기반 공유 계약 고정 절차
+- `MULTI_AGENT_LOG.md` 기반 역할 참여 기록
+- 파괴적 명령 차단 rules
+- 저장소별 검증 명령, 보안 규칙, 금지 경로를 넣기 위한 템플릿
+
+---
+
+## Codex 기본 설정과의 차이
+
+Codex 기본 설정은 서브에이전트 역할과 호출 기능 자체를 제공한다.
+
+이 킷은 그 위에 다음 운영 기준을 추가한다.
+
+- 작은 작업은 `main` 단독 진행
+- 작업 크기는 `하드 트리거 + 점수제` 로 먼저 분류
+- 큰 작업은 `main planner-only` 로 전환
+- `explorer`, `reviewer` 는 read-only 유지
+- 큰 작업의 쓰기 변경은 `feature worker` 와 `worker_shared` 로 분리
+- 공유 계약은 fan-out 전에 `main` 이 먼저 고정
+- 멀티스텝 작업은 `STATE.md` 로 `route`, `writer_slot`, `contract_freeze`, `write_sets` 까지 추적
+- 작업이 끝날 때 reviewer 확인 절차를 거치도록 유도
+- 전역 규칙과 작업공간 예외 규칙을 계층적으로 관리
+
+정리하면, Codex 기본 설정이 "서브에이전트를 사용할 수 있는 기반"이라면 이 킷은 "그 기반을 팀 규칙에 맞게 운영하는 틀"에 가깝다.
+
+---
+
+## 전역 + 작업공간 구조
+
+핵심 구조는 두 층이다.
+
+1. 전역 기본값
+2. 작업공간 오버라이드
+
+### 전역 기본값
+
+`%USERPROFILE%\.codex\AGENTS.md` 또는 `~/.codex/AGENTS.md` 에 공통 멀티에이전트 규칙을 설치한다.
+
+한 번 설치해 두면 기존 작업공간과 새 작업공간 모두에서 같은 기본 운영 규칙을 사용할 수 있다.
+
+### 작업공간 오버라이드
+
+특정 프로젝트 루트의 `AGENTS.md` 로 저장소별 예외 규칙을 추가한다.
+
+이 킷은 실제 프로젝트 사용 기준으로 `전역 설치 -> 작업공간 오버라이드 설치` 순서를 기본 흐름으로 본다.
+전역 설치만으로도 기본 규칙은 적용되지만, 실제 저장소 작업은 작업공간 오버라이드까지 반영하는 것을 필수 단계로 간주한다.
+이때 작업공간 루트에 `WORKSPACE_CONTEXT.toml` 을 먼저 작성해 두어야 installer 가 프로젝트 방향성에 맞는 `AGENTS.md` 와 초기 `STATE.md` 를 생성할 수 있다.
+
+작업공간 오버라이드는 공통 규칙 위에 다음 항목만 덧씌우는 용도로 설계되어 있다.
+
+- worker 이름
+- 검증 명령
+- 공유 계약
+- 금지 경로
+- reviewer 확인 포인트
+- 보안 또는 승인 규칙
+
+한 줄로 정리하면 다음과 같다.
+
+- 전역 설치 = 모든 작업공간에 공통으로 적용되는 기본값
+- 작업공간 설치 = 실제 프로젝트 작업 전에 반드시 얹는 저장소 전용 규칙
+
+---
+
+## 왜 이런 구조를 쓰나
+
+단순히 참고용 폴더를 복사하는 방식만으로는 Codex의 전역 규칙과 프로젝트 규칙이 안정적으로 분리되지 않는다.
+
+실제로 적용되는 것은 `AGENTS.md` 계층이기 때문에, 전역은 전역 위치에, 프로젝트는 프로젝트 루트에 규칙 파일을 두는 편이 관리와 재사용 면에서 더 단순하다.
+
+이 킷이 기본으로 잡는 운영 방향은 다음과 같다.
+
+- 작은 작업은 `main` 단독 진행
+- 작업 크기는 `하드 트리거 + 점수제` 로 먼저 분류
+- 큰 작업은 `main planner-only` 로 전환
+- `explorer`, `reviewer` 는 read-only 역할로 유지
+- 큰 작업의 쓰기 변경은 `feature worker` 와 `worker_shared` 로 분리
+- `STATE.md` 로 `current_task`, `route`, `writer_slot`, `contract_freeze`, `write_sets` 를 추적
+
+여기서 라우트는 이렇게 본다.
+
+- `Route A` = 작은 작업, `main` 직접 수정
+- `Route B` = 경계 작업, `main` 직접 수정 + 필요시 read-only 보조
+- `Route C` = 큰 작업, `main` 은 수정 안 하고 계약 고정/분배만 수행
+
+큰 작업에선 `worker_shared` 가 공용 타입, 공용 util, 공용 컴포넌트, import 경로 같은 shared 자산을 전담한다.
 
 ---
 
