@@ -78,6 +78,7 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 
 작업공간 루트에 `WORKSPACE_CONTEXT.toml` 이 있으면 설치기가 그 파일을 먼저 읽고, 그 내용으로 프로젝트에 맞는 `AGENTS.md` 와 초기 `STATE.md` 를 생성한다.
 파일이 없으면 기존 오버라이드 템플릿 fallback 으로 동작하므로, 실제 프로젝트에 맞춘 설치를 원하면 먼저 `WORKSPACE_CONTEXT.toml` 을 준비해 두는 편이 좋다.
+`WORKSPACE_CONTEXT.toml` 작성 기준표와 프롬프트는 [WORKSPACE_CONTEXT_GUIDE.md](./docs/WORKSPACE_CONTEXT_GUIDE.md) 참고.
 
 기본 템플릿은 `standard` 이고, 더 짧은 구성이 필요하면 끝에 `-Template minimal` 을 추가하면 된다.
 
