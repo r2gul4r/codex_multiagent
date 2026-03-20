@@ -74,6 +74,240 @@ get_workspace_template_source() {
     esac
 }
 
+get_workspace_context_path() {
+    workspace_path="$1"
+    printf '%s\n' "${workspace_path}/WORKSPACE_CONTEXT.toml"
+}
+
+toml_get_scalar() {
+    file="$1"
+    section="$2"
+    key="$3"
+
+    awk -v section="$section" -v key="$key" '
+        function trim(s) {
+            sub(/^[[:space:]]+/, "", s)
+            sub(/[[:space:]]+$/, "", s)
+            return s
+        }
+        /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+        /^\[.*\]$/ {
+            current = $0
+            gsub(/^\[/, "", current)
+            gsub(/\]$/, "", current)
+            current = trim(current)
+            next
+        }
+        current == section {
+            lhs = $0
+            sub(/=.*/, "", lhs)
+            lhs = trim(lhs)
+            if (lhs == key) {
+                value = $0
+                sub(/^[^=]*=[[:space:]]*/, "", value)
+                value = trim(value)
+                if (value ~ /^".*"$/) {
+                    sub(/^"/, "", value)
+                    sub(/"$/, "", value)
+                }
+                gsub(/\\"/, "\"", value)
+                gsub(/\\\\/, "\\", value)
+                print value
+                exit
+            }
+        }
+    ' "$file"
+}
+
+toml_get_array() {
+    file="$1"
+    section="$2"
+    key="$3"
+
+    awk -v section="$section" -v key="$key" '
+        function trim(s) {
+            sub(/^[[:space:]]+/, "", s)
+            sub(/[[:space:]]+$/, "", s)
+            return s
+        }
+        /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+        /^\[.*\]$/ {
+            current = $0
+            gsub(/^\[/, "", current)
+            gsub(/\]$/, "", current)
+            current = trim(current)
+            next
+        }
+        current == section {
+            lhs = $0
+            sub(/=.*/, "", lhs)
+            lhs = trim(lhs)
+            if (lhs == key) {
+                value = $0
+                sub(/^[^=]*=[[:space:]]*/, "", value)
+                value = trim(value)
+                while (match(value, /"([^"\\]|\\.)*"/)) {
+                    item = substr(value, RSTART + 1, RLENGTH - 2)
+                    gsub(/\\"/, "\"", item)
+                    gsub(/\\\\/, "\\", item)
+                    print item
+                    value = substr(value, RSTART + RLENGTH)
+                }
+                exit
+            }
+        }
+    ' "$file"
+}
+
+load_context_array() {
+    target_name="$1"
+    file="$2"
+    section="$3"
+    key="$4"
+
+    eval "$target_name=()"
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            eval "$target_name+=(\"\$line\")"
+        fi
+    done < <(toml_get_array "$file" "$section" "$key")
+}
+
+write_markdown_section() {
+    title="$1"
+    shift
+
+    if [ "$#" -eq 0 ]; then
+        return
+    fi
+
+    printf '\n## %s\n\n' "$title"
+    for item in "$@"; do
+        [ -n "$item" ] && printf -- '- %s\n' "$item"
+    done
+}
+
+generate_workspace_agents_from_context() {
+    context_path="$1"
+    workspace_name="$2"
+    template_name="$3"
+    agents_target="$4"
+
+    title=$(toml_get_scalar "$context_path" "workspace" "name")
+    summary=$(toml_get_scalar "$context_path" "workspace" "summary")
+    task_board_path=$(toml_get_scalar "$context_path" "workspace" "task_board_path")
+    multi_agent_log_path=$(toml_get_scalar "$context_path" "workspace" "multi_agent_log_path")
+
+    [ -n "$title" ] || title="$workspace_name"
+    [ -n "$task_board_path" ] || task_board_path="STATE.md"
+    [ -n "$multi_agent_log_path" ] || multi_agent_log_path="MULTI_AGENT_LOG.md"
+
+    load_context_array repository_facts "$context_path" "repository" "facts"
+    load_context_array required_read "$context_path" "required_context" "read"
+    load_context_array verification_commands "$context_path" "verification" "commands"
+    load_context_array shared_contracts "$context_path" "contracts" "shared"
+    load_context_array shared_asset_paths "$context_path" "paths" "shared_assets"
+    load_context_array do_not_touch_paths "$context_path" "paths" "do_not_touch"
+    load_context_array hard_triggers "$context_path" "triggers" "hard"
+    load_context_array approval_zones "$context_path" "approval" "zones"
+    load_context_array worker_mapping "$context_path" "workers" "mapping"
+    load_context_array reviewer_focus "$context_path" "reviewer" "focus"
+    load_context_array forbidden_patterns "$context_path" "forbidden" "patterns"
+
+    {
+        printf '# Workspace Override: %s\n\n' "$title"
+        if [ -n "$summary" ]; then
+            printf '%s\n\n' "$summary"
+        fi
+        printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
+        printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+
+        combined_facts=("${repository_facts[@]}" "Task board path: \`$task_board_path\`" "Multi-agent log path: \`$multi_agent_log_path\`")
+        write_markdown_section 'Repository Facts' "${combined_facts[@]}"
+        write_markdown_section 'Required Context Before Editing' "${required_read[@]}"
+        write_markdown_section 'Verification Commands' "${verification_commands[@]}"
+        write_markdown_section 'Shared Contracts' "${shared_contracts[@]}"
+        write_markdown_section 'Shared Asset Paths' "${shared_asset_paths[@]}"
+        write_markdown_section 'Repo-Specific Hard Triggers' "${hard_triggers[@]}"
+        write_markdown_section 'Do-Not-Touch Paths' "${do_not_touch_paths[@]}"
+        write_markdown_section 'Manual Approval Zones' "${approval_zones[@]}"
+        write_markdown_section 'Worker Mapping' "${worker_mapping[@]}"
+
+        printf '\n## Repository Overrides\n\n'
+        printf -- '- Role caps inherited from global defaults stay fixed\n'
+        printf '  `explorer 3`, `reviewer 2`, `worker up to 4 on Route C`\n'
+        printf -- '- Keep `%s` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route C is active\n' "$task_board_path"
+        printf -- '- If multiple roles are used, append real participation to `%s` before reporting that they ran\n' "$multi_agent_log_path"
+        if [ "$template_name" = "minimal" ]; then
+            printf -- '- Keep changes small\n'
+            printf -- '- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules\n'
+        else
+            printf -- '- Add repository-specific worker ownership, hard triggers, and approval zones here as they become clear\n'
+            printf -- '- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules\n'
+        fi
+
+        write_markdown_section 'Reviewer Focus' "${reviewer_focus[@]}"
+        write_markdown_section 'Forbidden Patterns' "${forbidden_patterns[@]}"
+    } > "$agents_target"
+}
+
+generate_workspace_state_from_context() {
+    context_path="$1"
+    workspace_name="$2"
+    state_target="$3"
+
+    title=$(toml_get_scalar "$context_path" "workspace" "name")
+    [ -n "$title" ] || title="$workspace_name"
+
+    load_context_array shared_contracts "$context_path" "contracts" "shared"
+    load_context_array reviewer_focus "$context_path" "reviewer" "focus"
+
+    if [ "${#shared_contracts[@]}" -eq 0 ]; then
+        shared_contracts=("n/a")
+    fi
+
+    if [ "${#reviewer_focus[@]}" -eq 0 ]; then
+        reviewer_focus=("n/a")
+    fi
+
+    {
+        printf '# STATE\n\n'
+        printf '## Current Task\n\n'
+        printf -- '- id: `initial-task`\n'
+        printf -- '- summary: `Replace with the first concrete task for %s before execution`\n' "$title"
+        printf -- '- owner: `main`\n'
+        printf -- '- phase: `explore`\n'
+        printf '\n## Route\n\n'
+        printf -- '- name: `Route A`\n'
+        printf -- '- reason: `placeholder - classify the first task before editing`\n'
+        printf '\n## Next Tasks\n\n'
+        printf -- '- `Replace with the first concrete next step`\n'
+        printf '\n## Blocked Tasks\n\n'
+        printf -- '- `없음`\n'
+        printf '\n## Writer Slot\n\n'
+        printf -- '- status: `free`\n'
+        printf -- '- target_scope: `n/a`\n'
+        printf -- '- write_sets:\n'
+        printf '  - `n/a`\n'
+        printf '\n## Contract Freeze\n\n'
+        printf -- '- status: `open`\n'
+        printf -- '- shared_contracts:\n'
+        for item in "${shared_contracts[@]}"; do
+            printf '  - `%s`\n' "$item"
+        done
+        printf -- '- freeze_owner: `main`\n'
+        printf '\n## Reviewer\n\n'
+        printf -- '- target: `n/a`\n'
+        printf -- '- focus:\n'
+        for item in "${reviewer_focus[@]}"; do
+            printf '  - `%s`\n' "$item"
+        done
+        printf '\n## Last Update\n\n'
+        printf -- '- updated_by: `main`\n'
+        printf -- '- updated_at: `[timestamp]`\n'
+    } > "$state_target"
+}
+
 should_overwrite_file() {
     path="$1"
 
@@ -250,6 +484,7 @@ install_global_kit() {
         AGENTS_TEMPLATE.md \
         GLOBAL_AGENTS_TEMPLATE.md \
         STATE_TEMPLATE.md \
+        WORKSPACE_CONTEXT_TEMPLATE.toml \
         WORKSPACE_OVERRIDE_TEMPLATE.md \
         WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md \
         MULTI_AGENT_GUIDE.md \
@@ -295,25 +530,40 @@ apply_to_workspace() {
     ensure_directory "$workspace_path"
     resolved_workspace=$(CDPATH= cd -- "$workspace_path" && pwd)
     source_kit_root=$(get_source_kit_root)
+    context_path=$(get_workspace_context_path "$resolved_workspace")
     template_source=$(get_workspace_template_source "$source_kit_root" "$template_name")
     agents_target="${resolved_workspace}/AGENTS.md"
     state_template="${source_kit_root}/STATE_TEMPLATE.md"
-    state_target="${resolved_workspace}/STATE.md"
+    state_relative_path=$(toml_get_scalar "$context_path" "workspace" "task_board_path")
+    [ -n "$state_relative_path" ] || state_relative_path="STATE.md"
+    state_target="${resolved_workspace}/${state_relative_path}"
 
     write_section 'Applying workspace override'
     printf 'Workspace: %s\n' "$resolved_workspace"
     printf 'Template: %s\n' "$template_name"
     printf 'Supporting docs: %s\n' "$copy_docs"
+    if [ -f "$context_path" ]; then
+        printf 'Workspace context: %s\n' "$context_path"
+    fi
 
     if ! should_overwrite_file "$agents_target"; then
         printf 'Skipped AGENTS.md overwrite\n'
         return
     fi
 
-    cp "$template_source" "$agents_target"
+    if [ -f "$context_path" ]; then
+        generate_workspace_agents_from_context "$context_path" "$(basename "$resolved_workspace")" "$template_name" "$agents_target"
+    else
+        cp "$template_source" "$agents_target"
+    fi
 
     if [ ! -e "$state_target" ]; then
-        cp "$state_template" "$state_target"
+        ensure_directory "$(dirname "$state_target")"
+        if [ -f "$context_path" ]; then
+            generate_workspace_state_from_context "$context_path" "$(basename "$resolved_workspace")" "$state_target"
+        else
+            cp "$state_template" "$state_target"
+        fi
     fi
 
     if [ "$copy_docs" -eq 1 ]; then
@@ -326,6 +576,7 @@ apply_to_workspace() {
         cp "${source_kit_root}/MULTI_AGENT_GUIDE.md" "${docs_root}/MULTI_AGENT_GUIDE.md"
         cp "${source_kit_root}/GLOBAL_AGENTS_TEMPLATE.md" "${docs_root}/GLOBAL_AGENTS_TEMPLATE.md"
         cp "${source_kit_root}/STATE_TEMPLATE.md" "${docs_root}/STATE_TEMPLATE.md"
+        cp "${source_kit_root}/WORKSPACE_CONTEXT_TEMPLATE.toml" "${docs_root}/WORKSPACE_CONTEXT_TEMPLATE.toml"
         cp "${source_kit_root}/WORKSPACE_OVERRIDE_TEMPLATE.md" "${docs_root}/WORKSPACE_OVERRIDE_TEMPLATE.md"
         cp "${source_kit_root}/WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md" "${docs_root}/WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md"
 

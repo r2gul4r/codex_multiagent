@@ -87,6 +87,33 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
   - `main` does not edit
   - `main` freezes contracts, declares write sets, and orchestrates workers and reviewer
 
+## Execution Enforcement
+
+- `STATE.md` is mandatory for any non-trivial implementation task
+- Before editing any file other than `STATE.md` or `MULTI_AGENT_LOG.md`, `main` must record the selected `route` and the concrete `reason` in `STATE.md`
+- `reason` must name the hard trigger that fired or the concrete scorecard basis for the selected route
+- Use exact route labels only: `Route A`, `Route B`, or `Route C`
+- Do not use hedge labels such as `Route C-equivalent`, `mostly Route B`, or `single-agent fallback`
+- If `route` or `reason` is missing, stop and classify the task before writing
+- On `Route A`, keep exactly one write-capable lane and one tight implementation slice
+- On `Route A`, do not spawn write-capable workers
+- On `Route A`, if shared assets, `2+` directories, `2+` new files, test changes, or `2+` verification steps appear during execution, stop, update `STATE.md`, and promote the task to `Route B` or `Route C` before more writes
+- On `Route B`, keep exactly one write-capable lane; any support roles must stay read-only
+- On `Route B`, if a second write-capable lane would help, treat that as a promotion signal to `Route C`, not permission to start another writer
+- On `Route B`, if any hard trigger appears or the work separates into shared-assets plus feature slices, stop, update `STATE.md`, and promote the task to `Route C` before more implementation writes
+- On `Route B`, close the task only after at least one `reviewer` pass
+- On `Route C`, `main` is planner-only and may edit only `STATE.md` and `MULTI_AGENT_LOG.md`
+- On `Route C`, implementation files must not be edited until `contract_freeze` and `write_sets` are explicitly recorded in `STATE.md`
+- On `Route C`, `main` must delegate implementation to at least one `worker` and close the task with at least one `reviewer` pass
+- On `Route C`, `main` must not keep implementation in a single-agent fallback lane
+- On `Route C`, if the scope touches both shared assets and feature files, assign a designated `worker_shared` plus at least one feature worker
+- On `Route C`, if the scope naturally separates into `2+` disjoint feature slices, split them across `2+` workers instead of handing one oversized slice to a single worker
+- A single `worker` on `Route C` is allowed only when `main` records in `STATE.md` why the slice cannot be safely split further
+- If `Route C` starts without `write_sets`, stop, shrink the slice, or re-plan before any implementation write
+- If `Route C` starts without a named `reviewer` target, stop and assign one before implementation begins
+- If the route changes during execution, update `STATE.md` first and only then continue
+- Any Route C run that skips route logging, contract freeze, worker delegation, reviewer assignment, or write-set ownership is considered a process failure
+
 ## Base Roles
 
 - `main`
@@ -119,6 +146,7 @@ Use a lightweight `STATE.md` instead of a heavy queue system
 - `writer_slot`
 - `contract_freeze`
 - `write_sets` when `Route C` is active
+- `reviewer_target` when a reviewer is assigned
 
 ## Coordination Log
 

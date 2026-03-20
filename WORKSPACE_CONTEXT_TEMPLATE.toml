@@ -1,0 +1,39 @@
+# Copy this file to a workspace root as WORKSPACE_CONTEXT.toml.
+# Keep arrays on a single line.
+
+[workspace]
+name = "example-workspace"
+summary = "Repository-specific context used to generate a workspace override AGENTS.md and initial STATE.md."
+task_board_path = "STATE.md"
+multi_agent_log_path = "MULTI_AGENT_LOG.md"
+
+[repository]
+facts = ["Package manager: pnpm", "Primary source of truth: src/**"]
+
+[required_context]
+read = ["docs/architecture.md", "docs/contributing.md"]
+
+[verification]
+commands = ["pnpm lint", "pnpm test", "pnpm build"]
+
+[contracts]
+shared = ["Routes remain stable unless explicitly changed", "Shared UI components stay reusable", "Public env keys must be pinned before fan-out"]
+
+[paths]
+shared_assets = ["src/components/common/**", "src/shared/**", "src/types/**"]
+do_not_touch = ["dist/**", "generated/**", "vendor/**"]
+
+[triggers]
+hard = ["Changing shared asset paths", "Changing routes or payload contracts", "UI + API changes in one task"]
+
+[approval]
+zones = ["Deploys", "Database migrations", "Writes to external systems"]
+
+[workers]
+mapping = ["worker_shared = src/components/common/**, src/shared/**, src/types/**", "worker_feature_ui = src/pages/**, src/features/**", "worker_feature_test = tests/**, docs/**"]
+
+[reviewer]
+focus = ["Contract integrity", "Regression risk", "Verification gaps"]
+
+[forbidden]
+patterns = ["Mechanical split by org chart only", "Direct edits to generated output", "Skipping reviewer on Route B or Route C"]

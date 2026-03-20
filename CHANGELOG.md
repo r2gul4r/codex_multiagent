@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.11 - 2026-03-21
+
+### Changed
+
+- 전역 규칙에 `route/reason` 선기록, `Route A/B` 승격 규칙, `Route C` 최소 worker/reviewer 요구를 추가
+- 작업공간 오버라이드 설치 시 `WORKSPACE_CONTEXT.toml` 을 우선 읽어 맞춤형 `AGENTS.md` 와 초기 `STATE.md` 를 생성하도록 installer 를 확장
+- `WORKSPACE_CONTEXT_TEMPLATE.toml` 예시 파일과 관련 문서를 추가
+- macOS GitHub Actions 검증에 `WORKSPACE_CONTEXT.toml` 기반 workspace 생성 경로를 추가
+- `.gitattributes` 를 추가해 `md`, `toml`, `yml`, `yaml`, `sh`, `ps1` 파일을 LF로 고정
+
 ## v0.1.10 - 2026-03-20
 
 ### Changed

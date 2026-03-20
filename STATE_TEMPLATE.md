@@ -7,12 +7,12 @@ Use this file as the lightweight task board and execution lock sheet for multi-a
 - id: `[task_id]`
 - summary: `[one-line acceptance criteria]`
 - owner: `[main | worker name]`
-- phase: `[explore | freeze | write | review | done | blocked]`
+- phase: `[explore | freeze | delegate | write | review | review-fix | done | blocked]`
 
 ## Route
 
 - name: `[Route A | Route B | Route C]`
-- reason: `[hard trigger or score summary]`
+- reason: `[hard trigger name or concrete score summary]`
 
 ## Next Tasks
 
@@ -32,18 +32,20 @@ Use this file as the lightweight task board and execution lock sheet for multi-a
 - write_sets:
   - `[worker_name = files or directories]`
 
+## Reviewer
+
+- target: `[reviewer | reviewer_name | n/a]`
+- focus:
+  - `[contract check]`
+  - `[regression risk]`
+  - `[verification gaps]`
+
 ## Contract Freeze
 
 - status: `[open | frozen]`
 - shared_contracts:
   - `[API / schema / event / props / env key]`
 - freeze_owner: `[main]`
-
-## Review Focus
-
-- `[contract check]`
-- `[regression risk]`
-- `[verification gaps]`
 
 ## Last Update
 

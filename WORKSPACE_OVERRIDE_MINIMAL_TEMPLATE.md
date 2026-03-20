@@ -18,8 +18,9 @@ This file is only the repository-specific override layer
 
 - Role caps inherited from global defaults stay fixed
   `explorer 3`, `reviewer 2`, `worker up to 4 on Route C`
-- Keep `STATE.md` updated with at least `current_task`, `route`, `writer_slot`, and `contract_freeze`
+- Keep `STATE.md` updated with at least `current_task`, exact `route`, concrete `reason`, `writer_slot`, and `contract_freeze`
 - If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`
+- If this repository narrows Route A/B/C behavior further, define those promotion rules here explicitly
 - Keep changes small
 - Do not parallelize unless hard triggers or scorecard push the task into `Route C`
 - On `Route C`, declare shared asset ownership before workers start

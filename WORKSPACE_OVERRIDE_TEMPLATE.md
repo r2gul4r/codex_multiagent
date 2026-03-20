@@ -29,8 +29,9 @@ This file is only the repository-specific override layer
 
 - Role caps inherited from global defaults stay fixed
   `explorer 3`, `reviewer 2`, `worker up to 4 on Route C`
-- Keep `STATE.md` updated with `current_task`, `next_tasks`, `blocked_tasks`, `route`, `writer_slot`, `contract_freeze`, and `write_sets` when Route C is active
+- Keep `STATE.md` updated with `current_task`, `next_tasks`, `blocked_tasks`, exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route C is active
 - If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran
+- If this repository narrows Route A/B/C behavior further, define those promotion and reviewer rules here explicitly
 - List repository-specific shared asset paths here
 - Add repository-specific hard triggers here
 - Define whether this repository allows `worker_shared`

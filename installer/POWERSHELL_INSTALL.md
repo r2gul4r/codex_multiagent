@@ -20,7 +20,9 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 ## 2. 특정 작업공간 오버라이드 설치
 
 이건 전역 규칙 위에
-그 프로젝트만의 규칙을 추가로 얹고 싶을 때만 사용
+그 프로젝트만의 규칙을 추가로 얹는 단계
+
+실제 프로젝트 작업은 `전역 설치 -> 작업공간 오버라이드 설치` 순서를 기본으로 본다.
 
 ```powershell
 $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
@@ -32,10 +34,12 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 - `STATE.md` 가 없으면 같이 생성
 - 전역 기본 규칙 위에 저장소 전용 규칙을 오버라이드로 추가
 - `docs/codex-multiagent/` 참고 문서 복사
+- 작업공간 루트에 `WORKSPACE_CONTEXT.toml` 이 있으면 그 파일을 먼저 읽어 맞춤형 `AGENTS.md` 와 초기 `STATE.md` 생성
+- `WORKSPACE_CONTEXT.toml` 이 없으면 기본 오버라이드 템플릿 fallback 사용
 
 ## 참고
 
 - 전역 설치만 해도 공통 기본값은 모든 Codex 작업공간에 적용
-- 작업공간 설치는 예외 규칙이나 저장소 전용 계약이 필요할 때만
+- 실제 프로젝트 작업은 작업공간 오버라이드까지 적용하는 것을 기본으로 권장
 - 더 짧은 템플릿을 원하면 끝에 `-Template minimal` 추가
 - macOS용 설치 명령은 `README.md` 의 macOS 설치 섹션 참고

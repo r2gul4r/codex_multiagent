@@ -15,6 +15,7 @@ on:
       - "WORKSPACE_OVERRIDE_TEMPLATE.md"
       - "WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md"
       - "STATE_TEMPLATE.md"
+      - "WORKSPACE_CONTEXT_TEMPLATE.toml"
   pull_request:
     paths:
       - ".github/workflows/macos-codex-installer.yml"
@@ -28,6 +29,7 @@ on:
       - "WORKSPACE_OVERRIDE_TEMPLATE.md"
       - "WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md"
       - "STATE_TEMPLATE.md"
+      - "WORKSPACE_CONTEXT_TEMPLATE.toml"
 
 jobs:
   macos-install:
@@ -51,6 +53,7 @@ jobs:
           test -f "$CODEX_HOME/agents/default.toml"
           test -f "$CODEX_HOME/rules/default.rules"
           test -f "$CODEX_HOME/multiagent-kit/README.md"
+          test -f "$CODEX_HOME/multiagent-kit/WORKSPACE_CONTEXT_TEMPLATE.toml"
 
       - name: Test local installer workspace
         env:
@@ -63,6 +66,23 @@ jobs:
           test -f "$WORKSPACE/STATE.md"
           test -f "$WORKSPACE/docs/codex-multiagent/README.md"
           test -f "$WORKSPACE/docs/codex-multiagent/codex_rules/default.rules"
+          test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_TEMPLATE.toml"
+
+      - name: Test local installer workspace with WORKSPACE_CONTEXT
+        env:
+          CODEX_HOME: ${{ runner.temp }}/home-local/.codex
+          WORKSPACE: ${{ runner.temp }}/workspace-context-local
+        run: |
+          mkdir -p "$WORKSPACE"
+          cp WORKSPACE_CONTEXT_TEMPLATE.toml "$WORKSPACE/WORKSPACE_CONTEXT.toml"
+          bash installer/CodexMultiAgent.sh apply-workspace --workspace "$WORKSPACE" --include-docs --template standard --force --no-prompt
+          test -f "$WORKSPACE/AGENTS.md"
+          test -f "$WORKSPACE/STATE.md"
+          grep -q "# Workspace Override: example-workspace" "$WORKSPACE/AGENTS.md"
+          grep -q "Package manager: pnpm" "$WORKSPACE/AGENTS.md"
+          grep -q "Routes remain stable unless explicitly changed" "$WORKSPACE/STATE.md"
+          grep -q "Contract integrity" "$WORKSPACE/STATE.md"
+          test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_TEMPLATE.toml"
 
       - name: Test bootstrap installer
         env:
@@ -79,3 +99,19 @@ jobs:
           curl -fsSL "$SCRIPT_URL" | bash -s -- apply-workspace --workspace "$WORKSPACE" --include-docs
           test -f "$WORKSPACE/AGENTS.md"
           test -f "$WORKSPACE/docs/codex-multiagent/README.md"
+
+      - name: Test bootstrap installer workspace with WORKSPACE_CONTEXT
+        env:
+          CODEX_HOME: ${{ runner.temp }}/home-bootstrap/.codex
+          WORKSPACE: ${{ runner.temp }}/workspace-context-bootstrap
+          SCRIPT_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/installer/Bootstrap.sh
+          CODEX_MULTIAGENT_ZIP_URL: https://github.com/${{ github.repository }}/archive/${{ github.sha }}.zip
+        run: |
+          mkdir -p "$(dirname "$CODEX_HOME")" "$WORKSPACE"
+          cp WORKSPACE_CONTEXT_TEMPLATE.toml "$WORKSPACE/WORKSPACE_CONTEXT.toml"
+          curl -fsSL "$SCRIPT_URL" | bash -s -- install-global
+          curl -fsSL "$SCRIPT_URL" | bash -s -- apply-workspace --workspace "$WORKSPACE" --include-docs
+          test -f "$WORKSPACE/AGENTS.md"
+          test -f "$WORKSPACE/STATE.md"
+          grep -q "# Workspace Override: example-workspace" "$WORKSPACE/AGENTS.md"
+          grep -q "Routes remain stable unless explicitly changed" "$WORKSPACE/STATE.md"

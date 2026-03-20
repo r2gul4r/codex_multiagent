@@ -51,6 +51,17 @@ Route selection
   - `main` becomes planner-only
   - workers implement and reviewer validates
 
+Before any write begins
+
+- record the exact `route` and concrete `reason` in `STATE.md`
+- do not use hedge labels such as `Route C-equivalent` or `single-agent fallback`
+- on `Route A`, keep one tight slice and one write-capable lane
+- on `Route B`, keep one write-capable lane and read-only support only
+- on `Route B`, if a second write-capable lane would help, promote to `Route C`
+- on `Route C`, `main` must stop writing implementation files and delegate to at least one `worker`
+- on `Route C`, a `reviewer` pass is mandatory before the task is closed
+- on `Route C`, if shared assets and feature files are both touched, use `worker_shared` plus at least one feature worker
+
 ## 3. What Makes A Safe Slice
 
 A safe slice satisfies all four conditions below
@@ -147,6 +158,7 @@ Use `STATE.md` to track
 - `writer_slot`
 - `contract_freeze`
 - `write_sets` when `Route C` is active
+- `reviewer_target` when a reviewer is assigned
 
 That gives `main` enough structure to sequence work without pretending this repo is a full scheduler
 
@@ -157,14 +169,17 @@ Small and large tasks need different visibility
 Recommended values
 
 - `route = Route A | Route B | Route C`
+- `reason = hard trigger name | concrete score summary`
 - `writer_slot = free | main | worker_name | parallel`
 - `write_sets = [worker_name = file globs]`
+- `reviewer_target = reviewer | reviewer_name`
 
 Before Route C starts
 
 - freeze the contract
 - declare write-set ownership
 - name the shared-assets owner
+- name the reviewer target
 
 After Route C ends
 
