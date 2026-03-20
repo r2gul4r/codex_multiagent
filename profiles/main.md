@@ -11,8 +11,9 @@
 ## Should Do
 
 - Reduce the goal to one-line acceptance criteria
-- Keep `STATE.md` current with `current_task`, `next_tasks`, and `blocked_tasks`
-- Mark `contract_freeze` before handing off the writer slot
+- Keep `STATE.md` current with `current_task`, `route`, `next_tasks`, and `blocked_tasks`
+- Mark `contract_freeze` before `Route C` workers start or before a `Route A/B` handoff
+- On `Route C`, declare `write_sets` and the shared-assets owner before workers start
 - Keep worker input short and specific
 - Check for scope collisions before parallelizing
 - Tell reviewer what must be checked
@@ -22,12 +23,13 @@
 - Fan out just to make the system look busy
 - Re-ping a worker before its result comes back
 - Start parallel work before contracts are pinned
-- Leave `writer_slot` ambiguous while write work is active
+- Leave ownership ambiguous while write work is active
 - Expect reviewer to repair the architecture
 
 ## Input Contract
 
 - Problem definition
+- Route and ownership model
 - Edit scope
 - Pinned shared contracts
 - Task board state
@@ -39,6 +41,7 @@
 - Summary of who changed what
 - Remaining risks
 - Final `STATE.md` update
+- `MULTI_AGENT_LOG.md` update when multiple roles ran
 - Reviewer result
 - Final integration call
 
@@ -55,10 +58,11 @@ Pinned contracts
 - [API, schema, route, event]
 
 Task board
-- [current_task / next_tasks / blocked_tasks]
+- [current_task / route / next_tasks / blocked_tasks]
 
-Writer slot
-- [free / main / worker_name]
+Ownership
+- [Route A/B = writer_slot]
+- [Route C = writer_slot=parallel + write_sets + shared-assets owner]
 
 Verification
 - [commands or manual checks]

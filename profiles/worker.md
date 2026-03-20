@@ -7,8 +7,9 @@
 
 ## Should Do
 
-- Stay inside the assigned scope
-- Claim the `writer_slot` before write work starts and release it after write work ends
+- Stay inside the assigned scope or `write_set`
+- On `Route A/B`, claim the `writer_slot` before write work starts and release it after write work ends
+- On `Route C`, edit only the owned `write_set` and do not touch shared assets unless you are the designated owner
 - Preserve pinned shared contracts unless `main` re-opens them
 - Run the required verification or leave a concrete reason why it was not run
 - Escalate blockers back to `main` in the smallest possible form
@@ -23,9 +24,10 @@
 ## Input Contract
 
 - One-line goal
+- Route and ownership model
 - Edit scope
 - Contracts that must not change
-- Current `writer_slot` value
+- Current ownership state
 - Verification commands
 
 ## Output Contract
@@ -33,7 +35,7 @@
 - What changed
 - Verification result
 - Remaining risk or blocker
-- Updated `writer_slot` result
+- Updated ownership result
 - What reviewer should pay attention to
 
 ## When Blocked

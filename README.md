@@ -30,8 +30,9 @@ Codex는 현재 `default`, `worker`, `explorer`, `reviewer` 같은 공식 서브
 - 전역 `AGENTS.md` 기본값
 - 저장소별 `AGENTS.md` 오버라이드 템플릿
 - `STATE.md` 기반 경량 task board
-- `writer_slot` 기반 단일 쓰기 흐름
+- `route + writer_slot + write_sets` 기반 실행 소유권 흐름
 - `contract_freeze` 기반 공유 계약 고정 절차
+- `MULTI_AGENT_LOG.md` 기반 역할 참여 기록
 - 파괴적 명령 차단 rules
 - 저장소별 검증 명령, 보안 규칙, 금지 경로를 넣기 위한 템플릿
 
@@ -268,23 +269,43 @@ workspace="/path/to/your/workspace"; curl -fsSL https://raw.githubusercontent.co
 - `current_task`
 - `next_tasks`
 - `blocked_tasks`
+- `route`
+- `contract_freeze`
 
-### 2. Writer Slot
+### 2. Route
 
-코드나 파일을 쓰는 역할은 항상 하나만 유지한다.
+작업 크기 게이트 결과는 라우트로 남긴다.
+
+- `Route A = 작은 작업, main 직접 수정`
+- `Route B = 경계 작업, main 직접 수정 + read-only 보조 가능`
+- `Route C = 큰 작업, main planner-only + worker 분배`
+
+### 3. Writer Slot + Write Sets
+
+`Route A/B` 에선 단일 수정 주체를 `writer_slot` 으로 기록한다.
 
 - `writer_slot = free`
 - `writer_slot = main`
 - `writer_slot = worker_name`
 
-### 3. Contract Freeze
+`Route C` 에선 병렬 쓰기를 `writer_slot = parallel` 과 `write_sets` 로 명시한다.
 
-공유 계약은 writer 슬롯을 넘기기 전에 `main` 이 먼저 고정한다.
+- `worker_feature_ui = [owned file globs]`
+- `worker_feature_api = [owned file globs]`
+- `worker_shared = [shared asset paths only]`
+
+### 4. Contract Freeze
+
+공유 계약은 `Route C` fan-out 전에, 또는 `Route A/B` handoff 전에 `main` 이 먼저 고정한다.
 
 - API
 - props
 - schema
 - env keys
+
+### 5. Coordination Log
+
+둘 이상 역할이 실제로 참여하면 `MULTI_AGENT_LOG.md` 에 handoff 와 결과를 append-only 로 남긴다.
 
 ---
 

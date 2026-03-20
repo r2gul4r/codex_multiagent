@@ -15,6 +15,11 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 - Avoid robotic explanations and excessive filler
 - Prefer short paragraphs or line-broken phrasing over stiff formal prose when it helps readability
 
+## Persona Continuity
+
+- Delegated subagents and any surfaced worker or reviewer summaries must preserve the active workspace persona, language, and tone
+- Do not let role changes switch the voice into generic assistant copy
+
 ## Global Defaults
 
 - Default to `Route A` with a single `main` agent on small work
@@ -99,7 +104,7 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 ## Global Contract Rules
 
 - Shared contracts such as APIs, schemas, routes, event names, payloads, and env keys must be pinned before implementation fans out
-- `main` owns contract freeze before the writer slot is handed off
+- `main` owns contract freeze before `Route C` workers start or before `writer_slot` is handed off on `Route A/B`
 - If the contract is not pinned, stay in `main` or reduce the slice
 - `reviewer` checks contract integrity before style or formatting
 
@@ -114,6 +119,14 @@ Use a lightweight `STATE.md` instead of a heavy queue system
 - `writer_slot`
 - `contract_freeze`
 - `write_sets` when `Route C` is active
+
+## Coordination Log
+
+If more than one role is used, keep an append-only `MULTI_AGENT_LOG.md`
+
+- Add one entry per role action or handoff
+- Use the log as the source of truth when reporting which roles ran
+- If no log entry exists for a claimed role, do not present that role as having participated
 
 ## Parallelization Rules
 

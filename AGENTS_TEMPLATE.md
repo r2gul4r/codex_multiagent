@@ -108,16 +108,18 @@ Only the bracketed items need repository-specific edits
 ## Execution Flow
 
 1. `main` pins the acceptance criteria in one line
-2. If needed, `explorer` performs a read-only scout
-3. One `worker` handles the smallest useful write slice
-4. Only add a second worker if the `write scope` is fully separate
-5. `reviewer` checks regressions, contract violations, and missing verification
-6. `main` integrates the result and closes the task
+2. `main` classifies the task with hard triggers and scorecard
+3. If needed, `explorer` performs a read-only scout
+4. On `Route A/B`, `main` may edit directly and keeps `writer_slot` explicit
+5. On `Route C`, `main` freezes contracts, declares `write_sets`, and names the shared-assets owner
+6. `Route C` workers implement only inside their owned slices
+7. `reviewer` checks regressions, contract violations, ownership drift, and missing verification
+8. `main` integrates the result and closes the task
 
 ## Shared Contract Rules
 
 - Shared contracts such as APIs, payloads, schemas, routes, event names, and env keys must be pinned before workers start
-- `main` owns contract freeze before the writer slot is handed off
+- `main` owns contract freeze before `Route C` workers start or before `writer_slot` is handed off on `Route A/B`
 - If implementation reveals a contract change, the worker escalates back to `main`
 - `reviewer` checks contract integrity before style or formatting
 
@@ -160,11 +162,12 @@ If more than one role is used, keep an append-only `MULTI_AGENT_LOG.md`
 ## Parallelization Checklist
 
 - Can the acceptance criteria be explained in one line
-- Is `current_task` clearly pinned in `STATE.md`
-- Do the changed file ranges stay separate
+- Is `current_task` and `route` clearly pinned in `STATE.md`
+- On `Route C`, do the changed file ranges stay separate
 - Are the shared contracts already pinned
-- Is `contract_freeze` marked before the writer slot is used
-- Can verification stay valid while keeping only one write-capable lane
+- Is `contract_freeze` marked before the write phase begins
+- On `Route C`, is the shared-assets owner named and kept separate from feature workers
+- Is ownership explicit as `writer_slot` on `Route A/B` or `write_sets` on `Route C`
 - Is it clear what the reviewer must confirm at the end
 
 If any answer is unclear, do not parallelize
