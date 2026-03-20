@@ -225,6 +225,41 @@ merge_context_items() {
     done | awk '!seen[$0]++'
 }
 
+compress_path_like_items() {
+    merge_context_items "$@" | awk '
+        {
+            if ($0 ~ / / && $0 ~ /\// && $0 !~ /: /) {
+                split($0, parts, /[[:space:]]+/)
+                for (j in parts) {
+                    if (parts[j] != "") {
+                        expanded[++m] = parts[j]
+                    }
+                }
+            } else {
+                expanded[++m] = $0
+            }
+        }
+        END {
+            for (k = 1; k <= m; k++) {
+                item = expanded[k]
+                if (item ~ /\/\*\*$/) {
+                    wildcard[substr(item, 1, length(item)-3)] = 1
+                }
+                items[++n] = item
+            }
+            for (i = 1; i <= n; i++) {
+                item = items[i]
+                if (item !~ / / && wildcard[item]) {
+                    continue
+                }
+                if (!seen[item]++) {
+                    print item
+                }
+            }
+        }
+    '
+}
+
 get_derived_workspace_summary() {
     context_path="$1"
     workspace_name="$2"
@@ -305,7 +340,7 @@ get_derived_shared_asset_paths() {
     footer_component=$(toml_get_scalar "$context_path" "architecture" "footer_component")
     route_constants=$(toml_get_scalar "$context_path" "architecture" "route_constants")
 
-    merge_context_items \
+    compress_path_like_items \
         ${shared_assets_a[@]+"${shared_assets_a[@]}"} \
         ${shared_assets_b[@]+"${shared_assets_b[@]}"} \
         "$shell_runtime" \
@@ -321,7 +356,7 @@ get_derived_do_not_touch_paths() {
     context_path="$1"
     load_context_array do_not_touch_a "$context_path" "paths" "do_not_touch"
     load_context_array do_not_touch_b "$context_path" "editing_rules" "do_not_edit"
-    merge_context_items ${do_not_touch_a[@]+"${do_not_touch_a[@]}"} ${do_not_touch_b[@]+"${do_not_touch_b[@]}"}
+    compress_path_like_items ${do_not_touch_a[@]+"${do_not_touch_a[@]}"} ${do_not_touch_b[@]+"${do_not_touch_b[@]}"}
 }
 
 get_derived_hard_triggers() {
@@ -345,12 +380,19 @@ get_derived_approval_zones() {
     load_context_array approval_a "$context_path" "approval" "zones"
     deploy_method=$(toml_get_scalar "$context_path" "deployment_current" "deploy_method")
     deploy_target=$(toml_get_scalar "$context_path" "deployment_current" "deploy_target")
+    execution_mode=$(toml_get_scalar "$context_path" "deployment_target" "final_execution_mode")
+    [ -n "$execution_mode" ] || execution_mode=$(toml_get_scalar "$context_path" "deployment_goal" "target_execution_mode")
+    target_platform=$(toml_get_scalar "$context_path" "deployment_goal" "target_platform")
+    oracle_priority=$(toml_get_scalar "$context_path" "deployment_goal" "oracle_cloud_priority")
     future_plan=$(toml_get_scalar "$context_path" "env_strategy" "future_plan")
 
     merge_context_items \
         ${approval_a[@]+"${approval_a[@]}"} \
         "${deploy_method:+Deployment method changes: $deploy_method}" \
         "${deploy_target:+Deploy target changes: $deploy_target}" \
+        "${execution_mode:+Execution mode changes: $execution_mode}" \
+        "${target_platform:+Target platform changes: $target_platform}" \
+        "${oracle_priority:+Oracle Cloud rollout changes: $oracle_priority}" \
         "${future_plan:+Runtime env ownership changes: $future_plan}"
 }
 
@@ -359,13 +401,32 @@ get_derived_worker_mapping() {
     load_context_array worker_mapping_a "$context_path" "workers" "mapping"
     shell_runtime=$(toml_get_scalar "$context_path" "architecture" "shell_runtime")
     shared_react=$(toml_get_scalar "$context_path" "architecture" "shared_react_components")
+    route_constants=$(toml_get_scalar "$context_path" "architecture" "route_constants")
+    header_component=$(toml_get_scalar "$context_path" "architecture" "header_component")
+    footer_component=$(toml_get_scalar "$context_path" "architecture" "footer_component")
     landing_script=$(toml_get_scalar "$context_path" "architecture" "landing_script")
+    landing_stylesheet=$(toml_get_scalar "$context_path" "architecture" "landing_stylesheet")
+    primary_entry=$(toml_get_scalar "$context_path" "workspace" "primary_entry")
+
+    shell_scope=()
+    [ -n "$shell_runtime" ] && shell_scope+=("$shell_runtime")
+    [ -n "$route_constants" ] && shell_scope+=("$route_constants")
+
+    shared_scope=()
+    [ -n "$shared_react" ] && shared_scope+=("$shared_react")
+    [ -n "$header_component" ] && shared_scope+=("$header_component")
+    [ -n "$footer_component" ] && shared_scope+=("$footer_component")
+
+    landing_scope=()
+    [ -n "$primary_entry" ] && landing_scope+=("$primary_entry")
+    [ -n "$landing_script" ] && landing_scope+=("$landing_script")
+    [ -n "$landing_stylesheet" ] && landing_scope+=("$landing_stylesheet")
 
     merge_context_items \
         ${worker_mapping_a[@]+"${worker_mapping_a[@]}"} \
-        "${shell_runtime:+worker_shell_runtime = $shell_runtime}" \
-        "${shared_react:+worker_shared = $shared_react}" \
-        "${landing_script:+worker_feature_landing = $landing_script}"
+        "$([ "${#shell_scope[@]}" -gt 0 ] && printf 'worker_shell_runtime = %s' "$(merge_context_items ${shell_scope[@]+"${shell_scope[@]}"} | paste -sd ', ' -)")" \
+        "$([ "${#shared_scope[@]}" -gt 0 ] && printf 'worker_shared = %s' "$(merge_context_items ${shared_scope[@]+"${shared_scope[@]}"} | paste -sd ', ' -)")" \
+        "$([ "${#landing_scope[@]}" -gt 0 ] && printf 'worker_feature_landing = %s' "$(merge_context_items ${landing_scope[@]+"${landing_scope[@]}"} | paste -sd ', ' -)")"
 }
 
 get_derived_reviewer_focus() {

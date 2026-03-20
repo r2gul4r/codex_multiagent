@@ -218,6 +218,7 @@ function Merge-ContextItems {
     )
 
     $merged = [System.Collections.Generic.List[string]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($item in $Items) {
         if ($null -eq $item) {
             continue
@@ -225,15 +226,59 @@ function Merge-ContextItems {
         if ($item -is [System.Array]) {
             foreach ($entry in $item) {
                 if ($entry) {
-                    $merged.Add([string]$entry)
+                    $text = [string]$entry
+                    if ($seen.Add($text)) {
+                        $merged.Add($text)
+                    }
                 }
             }
         }
         elseif ($item) {
-            $merged.Add([string]$item)
+            $text = [string]$item
+            if ($seen.Add($text)) {
+                $merged.Add($text)
+            }
         }
     }
     return $merged.ToArray()
+}
+
+function Compress-PathLikeItems {
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]]$Items
+    )
+
+    $pathTokens = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in (Merge-ContextItems $Items)) {
+        if ($item -match '\s' -and $item -match '/' -and -not $item.Contains(': ')) {
+            foreach ($token in ($item -split '\s+')) {
+                if ($token) {
+                    $pathTokens.Add($token)
+                }
+            }
+        }
+        else {
+            $pathTokens.Add($item)
+        }
+    }
+
+    $normalized = @(Merge-ContextItems $pathTokens.ToArray())
+    $wildcardOwners = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($item in $normalized) {
+        if ($item.EndsWith('/**')) {
+            $wildcardOwners.Add($item.Substring(0, $item.Length - 3)) | Out-Null
+        }
+    }
+
+    $result = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in $normalized) {
+        if (-not $item.Contains(' ') -and $wildcardOwners.Contains($item)) {
+            continue
+        }
+        $result.Add($item)
+    }
+    return $result.ToArray()
 }
 
 function Get-DerivedWorkspaceSummary {
@@ -343,7 +388,7 @@ function Get-DerivedSharedContracts {
 function Get-DerivedSharedAssetPaths {
     param([hashtable]$Context)
 
-    return (Merge-ContextItems `
+    return (Compress-PathLikeItems `
         (Get-ContextArray -Context $Context -Section 'paths' -Key 'shared_assets') `
         (Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'edit_in') `
         (Get-ContextString -Context $Context -Section 'architecture' -Key 'shell_runtime') `
@@ -358,7 +403,7 @@ function Get-DerivedSharedAssetPaths {
 function Get-DerivedDoNotTouchPaths {
     param([hashtable]$Context)
 
-    return (Merge-ContextItems `
+    return (Compress-PathLikeItems `
         (Get-ContextArray -Context $Context -Section 'paths' -Key 'do_not_touch') `
         (Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'do_not_edit'))
 }
@@ -396,10 +441,22 @@ function Get-DerivedApprovalZones {
     $deployTarget = Get-ContextString -Context $Context -Section 'deployment_current' -Key 'deploy_target'
     if ($deployTarget) { $zones.Add("Deploy target changes: $deployTarget") }
 
+    $executionMode = Get-ContextString -Context $Context -Section 'deployment_target' -Key 'final_execution_mode'
+    if (-not $executionMode) {
+        $executionMode = Get-ContextString -Context $Context -Section 'deployment_goal' -Key 'target_execution_mode'
+    }
+    if ($executionMode) { $zones.Add("Execution mode changes: $executionMode") }
+
+    $targetPlatform = Get-ContextString -Context $Context -Section 'deployment_goal' -Key 'target_platform'
+    if ($targetPlatform) { $zones.Add("Target platform changes: $targetPlatform") }
+
+    $oraclePriority = Get-ContextString -Context $Context -Section 'deployment_goal' -Key 'oracle_cloud_priority'
+    if ($oraclePriority) { $zones.Add("Oracle Cloud rollout changes: $oraclePriority") }
+
     $futurePlan = Get-ContextString -Context $Context -Section 'env_strategy' -Key 'future_plan'
     if ($futurePlan) { $zones.Add("Runtime env ownership changes: $futurePlan") }
 
-    return $zones.ToArray()
+    return (Merge-ContextItems $zones.ToArray())
 }
 
 function Get-DerivedWorkerMappings {
@@ -409,15 +466,36 @@ function Get-DerivedWorkerMappings {
     foreach ($item in (Get-ContextArray -Context $Context -Section 'workers' -Key 'mapping')) { $mappings.Add($item) }
 
     $shellRuntime = Get-ContextString -Context $Context -Section 'architecture' -Key 'shell_runtime'
-    if ($shellRuntime) { $mappings.Add("worker_shell_runtime = $shellRuntime") }
+    $routeConstants = Get-ContextString -Context $Context -Section 'architecture' -Key 'route_constants'
+    if ($shellRuntime) {
+        $shellScope = @($shellRuntime)
+        if ($routeConstants) { $shellScope += $routeConstants }
+        $mappings.Add(('worker_shell_runtime = {0}' -f ($shellScope -join ', ')))
+    }
 
     $sharedReact = Get-ContextString -Context $Context -Section 'architecture' -Key 'shared_react_components'
-    if ($sharedReact) { $mappings.Add("worker_shared = $sharedReact") }
+    $headerComponent = Get-ContextString -Context $Context -Section 'architecture' -Key 'header_component'
+    $footerComponent = Get-ContextString -Context $Context -Section 'architecture' -Key 'footer_component'
+    if ($sharedReact -or $headerComponent -or $footerComponent) {
+        $sharedScope = @()
+        if ($sharedReact) { $sharedScope += $sharedReact }
+        if ($headerComponent) { $sharedScope += $headerComponent }
+        if ($footerComponent) { $sharedScope += $footerComponent }
+        $mappings.Add(('worker_shared = {0}' -f ((Merge-ContextItems $sharedScope) -join ', ')))
+    }
 
     $landingScript = Get-ContextString -Context $Context -Section 'architecture' -Key 'landing_script'
-    if ($landingScript) { $mappings.Add("worker_feature_landing = $landingScript") }
+    $landingStylesheet = Get-ContextString -Context $Context -Section 'architecture' -Key 'landing_stylesheet'
+    $primaryEntry = Get-ContextString -Context $Context -Section 'workspace' -Key 'primary_entry'
+    if ($primaryEntry -or $landingScript -or $landingStylesheet) {
+        $landingScope = @()
+        if ($primaryEntry) { $landingScope += $primaryEntry }
+        if ($landingScript) { $landingScope += $landingScript }
+        if ($landingStylesheet) { $landingScope += $landingStylesheet }
+        $mappings.Add(('worker_feature_landing = {0}' -f ((Merge-ContextItems $landingScope) -join ', ')))
+    }
 
-    return $mappings.ToArray()
+    return (Merge-ContextItems $mappings.ToArray())
 }
 
 function Get-DerivedReviewerFocus {
