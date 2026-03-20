@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.12 - 2026-03-21
+
+### Changed
+
+- `WORKSPACE_CONTEXT.toml` 기반 workspace override 생성기를 확장해 풍부한 프로젝트 컨텍스트를 `AGENTS.md` 와 `STATE.md` 에 더 많이 반영하도록 개선
+- explicit `workers.mapping`, `reviewer.focus`, `approval.zones`, `editing_rules` 값이 있으면 자동 파생보다 우선 적용하도록 installer 출력 규칙을 정리
+- shell installer 를 macOS 기본 `bash 3.2` 환경에서도 동작하도록 `mapfile` 의존성과 빈 배열 `nounset` 오류를 제거
+- 서브에이전트 설정에 `model_reasoning_effort` 를 명시해 `default`, `worker`, `explorer`, `reviewer` 역할별 추론 강도를 고정
+- `README` 에 `WORKSPACE_CONTEXT.toml` 작성 기준표와 별도 가이드 링크를 추가
+- `docs/WORKSPACE_CONTEXT_GUIDE.md` 문서를 추가해 필수 항목 기준표와 프로젝트별 생성 프롬프트를 정리
+
 ## v0.1.11 - 2026-03-21
 
 ### Changed
