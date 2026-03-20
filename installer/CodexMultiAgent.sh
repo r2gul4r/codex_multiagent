@@ -84,6 +84,10 @@ toml_get_scalar() {
     section="$2"
     key="$3"
 
+    if [ ! -f "$file" ]; then
+        return 0
+    fi
+
     awk -v section="$section" -v key="$key" '
         function trim(s) {
             sub(/^[[:space:]]+/, "", s)
@@ -123,6 +127,10 @@ toml_get_array() {
     file="$1"
     section="$2"
     key="$3"
+
+    if [ ! -f "$file" ]; then
+        return 0
+    fi
 
     awk -v section="$section" -v key="$key" '
         function trim(s) {
