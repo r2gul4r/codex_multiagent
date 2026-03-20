@@ -8,13 +8,11 @@ Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운
 
 ## 최근 패치
 
-- `v0.1.10 - 2026-03-20`
-- `하드 트리거 + 점수제 + Route A/B/C` 작업 크기 게이트를 템플릿/가이드에 추가
-- 큰 작업에서 `main planner-only + feature workers + worker_shared + reviewer` 흐름을 문서화
-- `v0.1.3 - 2026-03-19`
-- macOS용 `bash` 설치기 `installer/CodexMultiAgent.sh` 추가
-- `curl | bash` 원클릭용 `installer/Bootstrap.sh` 추가
-- GitHub Actions `macos-latest` 기반 설치 검증 워크플로우 추가 및 실검증 통과
+- `v0.1.11 - 2026-03-21`
+- 전역 규칙에 `route/reason` 선기록, `Route A/B` 승격 규칙, `Route C` 최소 worker/reviewer 요구 추가
+- `WORKSPACE_CONTEXT.toml` 기반 맞춤형 workspace override 생성 지원
+- macOS GitHub Actions에 `WORKSPACE_CONTEXT.toml` 기반 workspace 생성 검증 추가
+- `.gitattributes` 추가로 `md`, `toml`, `yml`, `yaml`, `sh`, `ps1` 파일 LF 고정
 - 자세한 내용은 [CHANGELOG.md](./CHANGELOG.md) 참고
 
 ---
