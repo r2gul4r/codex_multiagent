@@ -154,6 +154,18 @@ toml_get_array() {
                 value = $0
                 sub(/^[^=]*=[[:space:]]*/, "", value)
                 value = trim(value)
+                if (value ~ /^\[/ && value !~ /\]$/) {
+                    while (getline nextline > 0) {
+                        nextline = trim(nextline)
+                        if (nextline == "" || nextline ~ /^#/) {
+                            continue
+                        }
+                        value = value " " nextline
+                        if (nextline ~ /\]$/) {
+                            break
+                        }
+                    }
+                }
                 while (match(value, /"([^"\\]|\\.)*"/)) {
                     item = substr(value, RSTART + 1, RLENGTH - 2)
                     gsub(/\\"/, "\"", item)
@@ -195,6 +207,170 @@ write_markdown_section() {
     done
 }
 
+merge_context_items() {
+    for item in "$@"; do
+        [ -n "$item" ] && printf '%s\n' "$item"
+    done | awk '!seen[$0]++'
+}
+
+get_derived_workspace_summary() {
+    context_path="$1"
+    workspace_name="$2"
+
+    summary=$(toml_get_scalar "$context_path" "workspace" "summary")
+    [ -n "$summary" ] || summary=$(toml_get_scalar "$context_path" "brand" "summary")
+    [ -n "$summary" ] || summary="Repository-specific context used to generate a workspace override AGENTS.md and initial STATE.md for $workspace_name."
+    printf '%s\n' "$summary"
+}
+
+get_derived_repository_facts() {
+    context_path="$1"
+
+    load_context_array repository_facts "$context_path" "repository" "facts"
+    display_name=$(toml_get_scalar "$context_path" "workspace" "display_name")
+    page_kind=$(toml_get_scalar "$context_path" "workspace" "page_kind")
+    primary_entry=$(toml_get_scalar "$context_path" "workspace" "primary_entry")
+    page_url=$(toml_get_scalar "$context_path" "workspace" "page_url")
+    locale=$(toml_get_scalar "$context_path" "workspace" "locale")
+    source_of_truth=$(toml_get_scalar "$context_path" "architecture" "source_of_truth")
+    shell_runtime=$(toml_get_scalar "$context_path" "architecture" "shell_runtime")
+    shared_react=$(toml_get_scalar "$context_path" "architecture" "shared_react_components")
+    authoring_model=$(toml_get_scalar "$context_path" "workflow" "authoring_model")
+    working_style=$(toml_get_scalar "$context_path" "workflow" "current_working_style")
+    deploy_goal=$(toml_get_scalar "$context_path" "deployment_goal" "primary_runtime")
+    current_deploy_base=$(toml_get_scalar "$context_path" "deployment_current" "active_deploy_base")
+
+    merge_context_items \
+        "${repository_facts[@]}" \
+        "${display_name:+Display name: $display_name}" \
+        "${page_kind:+Page kind: $page_kind}" \
+        "${primary_entry:+Primary entry: $primary_entry}" \
+        "${page_url:+Primary page URL: $page_url}" \
+        "${locale:+Locale: $locale}" \
+        "${source_of_truth:+Source of truth: $source_of_truth}" \
+        "${shell_runtime:+Shell runtime: $shell_runtime}" \
+        "${shared_react:+Shared React components: $shared_react}" \
+        "${authoring_model:+Authoring model: $authoring_model}" \
+        "${working_style:+Working style: $working_style}" \
+        "${deploy_goal:+Deployment goal: $deploy_goal}" \
+        "${current_deploy_base:+Current deployment base: $current_deploy_base}"
+}
+
+get_derived_verification_commands() {
+    context_path="$1"
+    load_context_array commands_a "$context_path" "verification" "commands"
+    load_context_array commands_b "$context_path" "verification" "recommended_commands"
+    merge_context_items "${commands_a[@]}" "${commands_b[@]}"
+}
+
+get_derived_shared_contracts() {
+    context_path="$1"
+    load_context_array contracts_shared "$context_path" "contracts" "shared"
+    source_of_truth=$(toml_get_scalar "$context_path" "architecture" "source_of_truth")
+    route_constants=$(toml_get_scalar "$context_path" "architecture" "route_constants")
+    authoring_model=$(toml_get_scalar "$context_path" "workflow" "authoring_model")
+    mirror_policy=$(toml_get_scalar "$context_path" "deployment_target" "mirror_policy")
+    env_source=$(toml_get_scalar "$context_path" "env_strategy" "current_env_source_of_truth")
+
+    merge_context_items \
+        "${contracts_shared[@]}" \
+        "${source_of_truth:+Frontend source of truth remains $source_of_truth}" \
+        "${route_constants:+Route constants stay aligned with $route_constants}" \
+        "${authoring_model:+$authoring_model}" \
+        "${mirror_policy:+$mirror_policy}" \
+        "${env_source:+Current env source of truth: $env_source}"
+}
+
+get_derived_shared_asset_paths() {
+    context_path="$1"
+    load_context_array shared_assets_a "$context_path" "paths" "shared_assets"
+    load_context_array shared_assets_b "$context_path" "editing_rules" "edit_in"
+    shell_runtime=$(toml_get_scalar "$context_path" "architecture" "shell_runtime")
+    shared_react=$(toml_get_scalar "$context_path" "architecture" "shared_react_components")
+    landing_script=$(toml_get_scalar "$context_path" "architecture" "landing_script")
+    landing_stylesheet=$(toml_get_scalar "$context_path" "architecture" "landing_stylesheet")
+    header_component=$(toml_get_scalar "$context_path" "architecture" "header_component")
+    footer_component=$(toml_get_scalar "$context_path" "architecture" "footer_component")
+    route_constants=$(toml_get_scalar "$context_path" "architecture" "route_constants")
+
+    merge_context_items \
+        "${shared_assets_a[@]}" \
+        "${shared_assets_b[@]}" \
+        "$shell_runtime" \
+        "$shared_react" \
+        "$landing_script" \
+        "$landing_stylesheet" \
+        "$header_component" \
+        "$footer_component" \
+        "$route_constants"
+}
+
+get_derived_do_not_touch_paths() {
+    context_path="$1"
+    load_context_array do_not_touch_a "$context_path" "paths" "do_not_touch"
+    load_context_array do_not_touch_b "$context_path" "editing_rules" "do_not_edit"
+    merge_context_items "${do_not_touch_a[@]}" "${do_not_touch_b[@]}"
+}
+
+get_derived_hard_triggers() {
+    context_path="$1"
+    load_context_array hard_triggers_a "$context_path" "triggers" "hard"
+    route_constants=$(toml_get_scalar "$context_path" "architecture" "route_constants")
+    shell_runtime=$(toml_get_scalar "$context_path" "architecture" "shell_runtime")
+    webapp_mirror=$(toml_get_scalar "$context_path" "architecture" "webapp_mirror")
+    spring_mirror=$(toml_get_scalar "$context_path" "architecture" "spring_mirror")
+
+    merge_context_items \
+        "${hard_triggers_a[@]}" \
+        "${route_constants:+Changing route constants or route ownership in $route_constants}" \
+        "${shell_runtime:+Changing shared shell runtime behavior in $shell_runtime}" \
+        "${webapp_mirror:+Touching deployment mirror path $webapp_mirror}" \
+        "${spring_mirror:+Touching deployment mirror path $spring_mirror}"
+}
+
+get_derived_approval_zones() {
+    context_path="$1"
+    load_context_array approval_a "$context_path" "approval" "zones"
+    deploy_method=$(toml_get_scalar "$context_path" "deployment_current" "deploy_method")
+    deploy_target=$(toml_get_scalar "$context_path" "deployment_current" "deploy_target")
+    future_plan=$(toml_get_scalar "$context_path" "env_strategy" "future_plan")
+
+    merge_context_items \
+        "${approval_a[@]}" \
+        "${deploy_method:+Deployment method changes: $deploy_method}" \
+        "${deploy_target:+Deploy target changes: $deploy_target}" \
+        "${future_plan:+Runtime env ownership changes: $future_plan}"
+}
+
+get_derived_worker_mapping() {
+    context_path="$1"
+    load_context_array worker_mapping_a "$context_path" "workers" "mapping"
+    shell_runtime=$(toml_get_scalar "$context_path" "architecture" "shell_runtime")
+    shared_react=$(toml_get_scalar "$context_path" "architecture" "shared_react_components")
+    landing_script=$(toml_get_scalar "$context_path" "architecture" "landing_script")
+
+    merge_context_items \
+        "${worker_mapping_a[@]}" \
+        "${shell_runtime:+worker_shell_runtime = $shell_runtime}" \
+        "${shared_react:+worker_shared = $shared_react}" \
+        "${landing_script:+worker_feature_landing = $landing_script}"
+}
+
+get_derived_reviewer_focus() {
+    context_path="$1"
+    load_context_array reviewer_focus_a "$context_path" "reviewer" "focus"
+    load_context_array reviewer_focus_b "$context_path" "verification" "manual_checks"
+    load_context_array reviewer_focus_c "$context_path" "editing_rules" "notes"
+    merge_context_items "${reviewer_focus_a[@]}" "${reviewer_focus_b[@]}" "${reviewer_focus_c[@]}"
+}
+
+get_derived_forbidden_patterns() {
+    context_path="$1"
+    load_context_array forbidden_a "$context_path" "forbidden" "patterns"
+    load_context_array forbidden_b "$context_path" "content_guidelines" "avoid"
+    merge_context_items "${forbidden_a[@]}" "${forbidden_b[@]}"
+}
+
 generate_workspace_agents_from_context() {
     context_path="$1"
     workspace_name="$2"
@@ -202,7 +378,7 @@ generate_workspace_agents_from_context() {
     agents_target="$4"
 
     title=$(toml_get_scalar "$context_path" "workspace" "name")
-    summary=$(toml_get_scalar "$context_path" "workspace" "summary")
+    summary=$(get_derived_workspace_summary "$context_path" "$workspace_name")
     task_board_path=$(toml_get_scalar "$context_path" "workspace" "task_board_path")
     multi_agent_log_path=$(toml_get_scalar "$context_path" "workspace" "multi_agent_log_path")
 
@@ -210,17 +386,17 @@ generate_workspace_agents_from_context() {
     [ -n "$task_board_path" ] || task_board_path="STATE.md"
     [ -n "$multi_agent_log_path" ] || multi_agent_log_path="MULTI_AGENT_LOG.md"
 
-    load_context_array repository_facts "$context_path" "repository" "facts"
+    mapfile -t repository_facts < <(get_derived_repository_facts "$context_path")
     load_context_array required_read "$context_path" "required_context" "read"
-    load_context_array verification_commands "$context_path" "verification" "commands"
-    load_context_array shared_contracts "$context_path" "contracts" "shared"
-    load_context_array shared_asset_paths "$context_path" "paths" "shared_assets"
-    load_context_array do_not_touch_paths "$context_path" "paths" "do_not_touch"
-    load_context_array hard_triggers "$context_path" "triggers" "hard"
-    load_context_array approval_zones "$context_path" "approval" "zones"
-    load_context_array worker_mapping "$context_path" "workers" "mapping"
-    load_context_array reviewer_focus "$context_path" "reviewer" "focus"
-    load_context_array forbidden_patterns "$context_path" "forbidden" "patterns"
+    mapfile -t verification_commands < <(get_derived_verification_commands "$context_path")
+    mapfile -t shared_contracts < <(get_derived_shared_contracts "$context_path")
+    mapfile -t shared_asset_paths < <(get_derived_shared_asset_paths "$context_path")
+    mapfile -t do_not_touch_paths < <(get_derived_do_not_touch_paths "$context_path")
+    mapfile -t hard_triggers < <(get_derived_hard_triggers "$context_path")
+    mapfile -t approval_zones < <(get_derived_approval_zones "$context_path")
+    mapfile -t worker_mapping < <(get_derived_worker_mapping "$context_path")
+    mapfile -t reviewer_focus < <(get_derived_reviewer_focus "$context_path")
+    mapfile -t forbidden_patterns < <(get_derived_forbidden_patterns "$context_path")
 
     {
         printf '# Workspace Override: %s\n\n' "$title"
@@ -267,8 +443,8 @@ generate_workspace_state_from_context() {
     title=$(toml_get_scalar "$context_path" "workspace" "name")
     [ -n "$title" ] || title="$workspace_name"
 
-    load_context_array shared_contracts "$context_path" "contracts" "shared"
-    load_context_array reviewer_focus "$context_path" "reviewer" "focus"
+    mapfile -t shared_contracts < <(get_derived_shared_contracts "$context_path")
+    mapfile -t reviewer_focus < <(get_derived_reviewer_focus "$context_path")
 
     if [ "${#shared_contracts[@]}" -eq 0 ]; then
         shared_contracts=("n/a")

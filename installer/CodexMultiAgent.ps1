@@ -129,9 +129,10 @@ function Read-WorkspaceContext {
 
     $context = @{}
     $currentSection = ''
+    $allLines = Get-Content -LiteralPath $Path
 
-    foreach ($rawLine in (Get-Content -LiteralPath $Path)) {
-        $line = $rawLine.Trim()
+    for ($index = 0; $index -lt $allLines.Count; $index++) {
+        $line = $allLines[$index].Trim()
         if (-not $line -or $line.StartsWith('#')) {
             continue
         }
@@ -150,7 +151,24 @@ function Read-WorkspaceContext {
 
         if ($line -match '^([A-Za-z0-9_-]+)\s*=\s*(.+)$') {
             $key = $Matches[1]
-            $value = ConvertFrom-WorkspaceContextTomlValue -RawValue $Matches[2]
+            $rawValue = $Matches[2].Trim()
+            if ($rawValue.StartsWith('[') -and -not $rawValue.EndsWith(']')) {
+                $builder = [System.Collections.Generic.List[string]]::new()
+                $builder.Add($rawValue)
+                while ($index + 1 -lt $allLines.Count) {
+                    $index += 1
+                    $nextLine = $allLines[$index].Trim()
+                    if (-not $nextLine -or $nextLine.StartsWith('#')) {
+                        continue
+                    }
+                    $builder.Add($nextLine)
+                    if ($nextLine.EndsWith(']')) {
+                        break
+                    }
+                }
+                $rawValue = ($builder -join ' ')
+            }
+            $value = ConvertFrom-WorkspaceContextTomlValue -RawValue $rawValue
             $context[$currentSection][$key] = $value
         }
     }
@@ -193,6 +211,232 @@ function Get-ContextArray {
     return @()
 }
 
+function Merge-ContextItems {
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]]$Items
+    )
+
+    $merged = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in $Items) {
+        if ($null -eq $item) {
+            continue
+        }
+        if ($item -is [System.Array]) {
+            foreach ($entry in $item) {
+                if ($entry) {
+                    $merged.Add([string]$entry)
+                }
+            }
+        }
+        elseif ($item) {
+            $merged.Add([string]$item)
+        }
+    }
+    return $merged.ToArray()
+}
+
+function Get-DerivedWorkspaceSummary {
+    param(
+        [hashtable]$Context,
+        [string]$WorkspaceName
+    )
+
+    $summary = Get-ContextString -Context $Context -Section 'workspace' -Key 'summary'
+    if (-not $summary) {
+        $summary = Get-ContextString -Context $Context -Section 'brand' -Key 'summary'
+    }
+    if (-not $summary) {
+        $summary = "Repository-specific context used to generate a workspace override AGENTS.md and initial STATE.md for $WorkspaceName."
+    }
+    return $summary
+}
+
+function Get-DerivedRepositoryFacts {
+    param([hashtable]$Context)
+
+    $facts = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in (Get-ContextArray -Context $Context -Section 'repository' -Key 'facts')) { $facts.Add($item) }
+
+    $displayName = Get-ContextString -Context $Context -Section 'workspace' -Key 'display_name'
+    if ($displayName) { $facts.Add("Display name: $displayName") }
+
+    $pageKind = Get-ContextString -Context $Context -Section 'workspace' -Key 'page_kind'
+    if ($pageKind) { $facts.Add("Page kind: $pageKind") }
+
+    $primaryEntry = Get-ContextString -Context $Context -Section 'workspace' -Key 'primary_entry'
+    if ($primaryEntry) { $facts.Add("Primary entry: $primaryEntry") }
+
+    $pageUrl = Get-ContextString -Context $Context -Section 'workspace' -Key 'page_url'
+    if ($pageUrl) { $facts.Add("Primary page URL: $pageUrl") }
+
+    $locale = Get-ContextString -Context $Context -Section 'workspace' -Key 'locale'
+    if ($locale) { $facts.Add("Locale: $locale") }
+
+    $sourceOfTruth = Get-ContextString -Context $Context -Section 'architecture' -Key 'source_of_truth'
+    if ($sourceOfTruth) { $facts.Add("Source of truth: $sourceOfTruth") }
+
+    $shellRuntime = Get-ContextString -Context $Context -Section 'architecture' -Key 'shell_runtime'
+    if ($shellRuntime) { $facts.Add("Shell runtime: $shellRuntime") }
+
+    $sharedReact = Get-ContextString -Context $Context -Section 'architecture' -Key 'shared_react_components'
+    if ($sharedReact) { $facts.Add("Shared React components: $sharedReact") }
+
+    $authoringModel = Get-ContextString -Context $Context -Section 'workflow' -Key 'authoring_model'
+    if ($authoringModel) { $facts.Add("Authoring model: $authoringModel") }
+
+    $workingStyle = Get-ContextString -Context $Context -Section 'workflow' -Key 'current_working_style'
+    if ($workingStyle) { $facts.Add("Working style: $workingStyle") }
+
+    $deployTarget = Get-ContextString -Context $Context -Section 'deployment_goal' -Key 'primary_runtime'
+    if ($deployTarget) { $facts.Add("Deployment goal: $deployTarget") }
+
+    $currentDeployBase = Get-ContextString -Context $Context -Section 'deployment_current' -Key 'active_deploy_base'
+    if ($currentDeployBase) { $facts.Add("Current deployment base: $currentDeployBase") }
+
+    return $facts.ToArray()
+}
+
+function Get-DerivedRequiredRead {
+    param([hashtable]$Context)
+
+    $items = @(Get-ContextArray -Context $Context -Section 'required_context' -Key 'read')
+    if ($items.Count -gt 0) {
+        return $items
+    }
+
+    return @()
+}
+
+function Get-DerivedVerificationCommands {
+    param([hashtable]$Context)
+
+    return (Merge-ContextItems `
+        (Get-ContextArray -Context $Context -Section 'verification' -Key 'commands') `
+        (Get-ContextArray -Context $Context -Section 'verification' -Key 'recommended_commands'))
+}
+
+function Get-DerivedSharedContracts {
+    param([hashtable]$Context)
+
+    $contracts = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in (Get-ContextArray -Context $Context -Section 'contracts' -Key 'shared')) { $contracts.Add($item) }
+
+    $sourceOfTruth = Get-ContextString -Context $Context -Section 'architecture' -Key 'source_of_truth'
+    if ($sourceOfTruth) { $contracts.Add("Frontend source of truth remains $sourceOfTruth") }
+
+    $routeConstants = Get-ContextString -Context $Context -Section 'architecture' -Key 'route_constants'
+    if ($routeConstants) { $contracts.Add("Route constants stay aligned with $routeConstants") }
+
+    $authoringModel = Get-ContextString -Context $Context -Section 'workflow' -Key 'authoring_model'
+    if ($authoringModel) { $contracts.Add($authoringModel) }
+
+    $mirrorPolicy = Get-ContextString -Context $Context -Section 'deployment_target' -Key 'mirror_policy'
+    if ($mirrorPolicy) { $contracts.Add($mirrorPolicy) }
+
+    $envSource = Get-ContextString -Context $Context -Section 'env_strategy' -Key 'current_env_source_of_truth'
+    if ($envSource) { $contracts.Add("Current env source of truth: $envSource") }
+
+    return $contracts.ToArray()
+}
+
+function Get-DerivedSharedAssetPaths {
+    param([hashtable]$Context)
+
+    return (Merge-ContextItems `
+        (Get-ContextArray -Context $Context -Section 'paths' -Key 'shared_assets') `
+        (Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'edit_in') `
+        (Get-ContextString -Context $Context -Section 'architecture' -Key 'shell_runtime') `
+        (Get-ContextString -Context $Context -Section 'architecture' -Key 'shared_react_components') `
+        (Get-ContextString -Context $Context -Section 'architecture' -Key 'landing_script') `
+        (Get-ContextString -Context $Context -Section 'architecture' -Key 'landing_stylesheet') `
+        (Get-ContextString -Context $Context -Section 'architecture' -Key 'header_component') `
+        (Get-ContextString -Context $Context -Section 'architecture' -Key 'footer_component') `
+        (Get-ContextString -Context $Context -Section 'architecture' -Key 'route_constants'))
+}
+
+function Get-DerivedDoNotTouchPaths {
+    param([hashtable]$Context)
+
+    return (Merge-ContextItems `
+        (Get-ContextArray -Context $Context -Section 'paths' -Key 'do_not_touch') `
+        (Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'do_not_edit'))
+}
+
+function Get-DerivedHardTriggers {
+    param([hashtable]$Context)
+
+    $triggers = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in (Get-ContextArray -Context $Context -Section 'triggers' -Key 'hard')) { $triggers.Add($item) }
+
+    $routeConstants = Get-ContextString -Context $Context -Section 'architecture' -Key 'route_constants'
+    if ($routeConstants) { $triggers.Add("Changing route constants or route ownership in $routeConstants") }
+
+    $shellRuntime = Get-ContextString -Context $Context -Section 'architecture' -Key 'shell_runtime'
+    if ($shellRuntime) { $triggers.Add("Changing shared shell runtime behavior in $shellRuntime") }
+
+    $webappMirror = Get-ContextString -Context $Context -Section 'architecture' -Key 'webapp_mirror'
+    if ($webappMirror) { $triggers.Add("Touching deployment mirror path $webappMirror") }
+
+    $springMirror = Get-ContextString -Context $Context -Section 'architecture' -Key 'spring_mirror'
+    if ($springMirror) { $triggers.Add("Touching deployment mirror path $springMirror") }
+
+    return $triggers.ToArray()
+}
+
+function Get-DerivedApprovalZones {
+    param([hashtable]$Context)
+
+    $zones = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in (Get-ContextArray -Context $Context -Section 'approval' -Key 'zones')) { $zones.Add($item) }
+
+    $deployMethod = Get-ContextString -Context $Context -Section 'deployment_current' -Key 'deploy_method'
+    if ($deployMethod) { $zones.Add("Deployment method changes: $deployMethod") }
+
+    $deployTarget = Get-ContextString -Context $Context -Section 'deployment_current' -Key 'deploy_target'
+    if ($deployTarget) { $zones.Add("Deploy target changes: $deployTarget") }
+
+    $futurePlan = Get-ContextString -Context $Context -Section 'env_strategy' -Key 'future_plan'
+    if ($futurePlan) { $zones.Add("Runtime env ownership changes: $futurePlan") }
+
+    return $zones.ToArray()
+}
+
+function Get-DerivedWorkerMappings {
+    param([hashtable]$Context)
+
+    $mappings = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in (Get-ContextArray -Context $Context -Section 'workers' -Key 'mapping')) { $mappings.Add($item) }
+
+    $shellRuntime = Get-ContextString -Context $Context -Section 'architecture' -Key 'shell_runtime'
+    if ($shellRuntime) { $mappings.Add("worker_shell_runtime = $shellRuntime") }
+
+    $sharedReact = Get-ContextString -Context $Context -Section 'architecture' -Key 'shared_react_components'
+    if ($sharedReact) { $mappings.Add("worker_shared = $sharedReact") }
+
+    $landingScript = Get-ContextString -Context $Context -Section 'architecture' -Key 'landing_script'
+    if ($landingScript) { $mappings.Add("worker_feature_landing = $landingScript") }
+
+    return $mappings.ToArray()
+}
+
+function Get-DerivedReviewerFocus {
+    param([hashtable]$Context)
+
+    return (Merge-ContextItems `
+        (Get-ContextArray -Context $Context -Section 'reviewer' -Key 'focus') `
+        (Get-ContextArray -Context $Context -Section 'verification' -Key 'manual_checks') `
+        (Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'notes'))
+}
+
+function Get-DerivedForbiddenPatterns {
+    param([hashtable]$Context)
+
+    return (Merge-ContextItems `
+        (Get-ContextArray -Context $Context -Section 'forbidden' -Key 'patterns') `
+        (Get-ContextArray -Context $Context -Section 'content_guidelines' -Key 'avoid'))
+}
+
 function Add-MarkdownSection {
     param(
         [System.Collections.Generic.List[string]]$Lines,
@@ -200,17 +444,17 @@ function Add-MarkdownSection {
         [string[]]$Items
     )
 
-    if (-not $Items -or $Items.Count -eq 0) {
+    $normalizedItems = @($Items | Where-Object { $_ })
+
+    if ($normalizedItems.Count -eq 0) {
         return
     }
 
     $Lines.Add('')
     $Lines.Add("## $Title")
     $Lines.Add('')
-    foreach ($item in $Items) {
-        if ($item) {
-            $Lines.Add("- $item")
-        }
+    foreach ($item in $normalizedItems) {
+        $Lines.Add("- $item")
     }
 }
 
@@ -224,19 +468,19 @@ function New-WorkspaceAgentsFromContext {
     $taskBoardPath = Get-ContextString -Context $Context -Section 'workspace' -Key 'task_board_path' -DefaultValue 'STATE.md'
     $multiAgentLogPath = Get-ContextString -Context $Context -Section 'workspace' -Key 'multi_agent_log_path' -DefaultValue 'MULTI_AGENT_LOG.md'
     $title = Get-ContextString -Context $Context -Section 'workspace' -Key 'name' -DefaultValue $WorkspaceName
-    $summary = Get-ContextString -Context $Context -Section 'workspace' -Key 'summary'
+    $summary = Get-DerivedWorkspaceSummary -Context $Context -WorkspaceName $WorkspaceName
 
-    $repositoryFacts = Get-ContextArray -Context $Context -Section 'repository' -Key 'facts'
-    $requiredRead = Get-ContextArray -Context $Context -Section 'required_context' -Key 'read'
-    $verificationCommands = Get-ContextArray -Context $Context -Section 'verification' -Key 'commands'
-    $sharedContracts = Get-ContextArray -Context $Context -Section 'contracts' -Key 'shared'
-    $sharedAssetPaths = Get-ContextArray -Context $Context -Section 'paths' -Key 'shared_assets'
-    $doNotTouchPaths = Get-ContextArray -Context $Context -Section 'paths' -Key 'do_not_touch'
-    $hardTriggers = Get-ContextArray -Context $Context -Section 'triggers' -Key 'hard'
-    $approvalZones = Get-ContextArray -Context $Context -Section 'approval' -Key 'zones'
-    $workerMappings = Get-ContextArray -Context $Context -Section 'workers' -Key 'mapping'
-    $reviewerFocus = Get-ContextArray -Context $Context -Section 'reviewer' -Key 'focus'
-    $forbiddenPatterns = Get-ContextArray -Context $Context -Section 'forbidden' -Key 'patterns'
+    $repositoryFacts = @(Get-DerivedRepositoryFacts -Context $Context)
+    $requiredRead = @(Get-DerivedRequiredRead -Context $Context)
+    $verificationCommands = @(Get-DerivedVerificationCommands -Context $Context)
+    $sharedContracts = @(Get-DerivedSharedContracts -Context $Context)
+    $sharedAssetPaths = @(Get-DerivedSharedAssetPaths -Context $Context)
+    $doNotTouchPaths = @(Get-DerivedDoNotTouchPaths -Context $Context)
+    $hardTriggers = @(Get-DerivedHardTriggers -Context $Context)
+    $approvalZones = @(Get-DerivedApprovalZones -Context $Context)
+    $workerMappings = @(Get-DerivedWorkerMappings -Context $Context)
+    $reviewerFocus = @(Get-DerivedReviewerFocus -Context $Context)
+    $forbiddenPatterns = @(Get-DerivedForbiddenPatterns -Context $Context)
 
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add("# Workspace Override: $title")
@@ -290,14 +534,14 @@ function New-WorkspaceStateFromContext {
     )
 
     $title = Get-ContextString -Context $Context -Section 'workspace' -Key 'name' -DefaultValue $WorkspaceName
-    $sharedContracts = Get-ContextArray -Context $Context -Section 'contracts' -Key 'shared'
-    $reviewerFocus = Get-ContextArray -Context $Context -Section 'reviewer' -Key 'focus'
+    $sharedContracts = @(Get-DerivedSharedContracts -Context $Context)
+    $reviewerFocus = @(Get-DerivedReviewerFocus -Context $Context)
 
-    if (-not $sharedContracts -or $sharedContracts.Count -eq 0) {
+    if (@($sharedContracts).Count -eq 0) {
         $sharedContracts = @('n/a')
     }
 
-    if (-not $reviewerFocus -or $reviewerFocus.Count -eq 0) {
+    if (@($reviewerFocus).Count -eq 0) {
         $reviewerFocus = @('n/a')
     }
 
