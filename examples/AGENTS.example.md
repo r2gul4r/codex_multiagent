@@ -6,10 +6,10 @@ Adjust the paths and commands to match the real repository
 
 ## Operating Goal
 
-- Default to `main` alone
-- Allow parallel work only when the single writer rule stays intact
+- Default to `Route A` in `main`
+- Use `Route C` only when hard triggers or scorecard justify planner-only orchestration
 - Pin API, schema, and route contracts before workers start
-- Max concurrent role caps are `explorer 3`, `reviewer 2`, `writer 1`
+- Max concurrent role caps are `explorer 3`, `reviewer 2`, `worker 4 on Route C`
 
 ## Roles
 
@@ -29,8 +29,9 @@ Adjust the paths and commands to match the real repository
 ## Repository-Specific Rules
 
 - `explorer` and `reviewer` are read-only
-- Only worker roles make write changes
-- Keep `STATE.md` updated with `current_task`, `writer_slot`, and `contract_freeze`
+- `main` may write on `Route A/B` only
+- On `Route C`, only worker roles make write changes
+- Keep `STATE.md` updated with `current_task`, `route`, `writer_slot`, `contract_freeze`, and `write_sets`
 - If both `apps/web` and `apps/api` are touched, request payload contracts must be pinned first
 - If a migration file is involved, do not parallelize
 - Do not edit `generated/` or `dist/` directly
@@ -44,15 +45,16 @@ Adjust the paths and commands to match the real repository
 ## Parallel Work That Is Safe
 
 - Up to three `explorer` agents narrow scope in read-only mode
-- One writer changes presentation-only code
+- One `worker_shared` owns shared types and common utilities
+- Feature workers edit separate file ranges
 - Up to two `reviewer` agents split final checking by concern if needed
-- Only one write-capable role runs at a time
+- `main` does not write during `Route C`
 
 ## Parallel Work That Is Not Safe
 
 - Splitting a form UI, validator, and submit payload across different workers
 - Splitting one migration and the code that depends on it
-- Opening a second write-capable lane just because the file ranges look separate
+- Letting feature workers edit shared types or shared utilities directly
 - Any flow where reviewer would need to implement fixes just to make the task finish
 
 ## Done Means

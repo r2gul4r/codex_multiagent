@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.10 - 2026-03-20
+
+### Changed
+
+- 전역/저장소 AGENTS 템플릿에 `하드 트리거 + 점수제 + Route A/B/C` 작업 크기 게이트 추가
+- `main` 직접 수정은 `Route A/B`, 큰 작업은 `Route C planner-only` 로 정리
+- 작업공간 오버라이드 템플릿과 `STATE_TEMPLATE.md` 에 `route` 와 `write_sets` 개념 추가
+- 운영 가이드와 예시를 route 기반 멀티에이전트 모델로 갱신
+
 ## v0.1.3 - 2026-03-19
 
 ### Added

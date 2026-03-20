@@ -4,12 +4,12 @@ This is the fast-start version for small repositories or personal projects
 
 ## Core Rules
 
-- Default to `main` alone
+- Default to `Route A` in `main`
 - Do not use multiple agents for simple investigation or short edits
-- If there is write work, start with one `worker`
+- Use a hard-trigger + scorecard gate before switching into `Route C`
 - Before closing, let `reviewer` do one read-only pass
-- Max concurrent role caps are `explorer 3`, `reviewer 2`, `writer 1`
-- Keep a small `STATE.md` with `current_task`, `writer_slot`, and `contract_freeze`
+- Max concurrent role caps are `explorer 3`, `reviewer 2`, `worker 4 on Route C`
+- Keep a small `STATE.md` with `current_task`, `route`, `writer_slot`, and `contract_freeze`
 
 ## Roles
 
@@ -23,7 +23,7 @@ This is the fast-start version for small repositories or personal projects
 ## Parallelization
 
 - Default to no parallelization
-- Make an exception only when `write scope` is fully separate
+- Make an exception only when hard triggers or scorecard move the task into `Route C`
 - If the shared contract starts drifting, collapse back to `main`
 
 ## Done Means

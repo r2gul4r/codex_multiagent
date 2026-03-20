@@ -9,6 +9,11 @@ Use this file as the lightweight task board and execution lock sheet for multi-a
 - owner: `[main | worker name]`
 - phase: `[explore | freeze | write | review | done | blocked]`
 
+## Route
+
+- name: `[Route A | Route B | Route C]`
+- reason: `[hard trigger or score summary]`
+
 ## Next Tasks
 
 - `[next_task_1]`
@@ -22,8 +27,10 @@ Use this file as the lightweight task board and execution lock sheet for multi-a
 
 ## Writer Slot
 
-- status: `[free | main | worker_name]`
+- status: `[free | main | worker_name | parallel]`
 - target_scope: `[files or directories currently being edited]`
+- write_sets:
+  - `[worker_name = files or directories]`
 
 ## Contract Freeze
 

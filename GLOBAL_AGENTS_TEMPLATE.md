@@ -17,8 +17,10 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 
 ## Global Defaults
 
-- Default to a single `main` agent
-- Use multiple agents only when the split is genuinely safer than staying single-agent
+- Default to `Route A` with a single `main` agent on small work
+- Use a `hard-trigger + scorecard` gate before choosing the execution model
+- Allow `main` to edit directly only on `Route A` and `Route B`
+- Switch `main` into planner-only mode on `Route C`
 - Split by `write scope`, shared contracts, and verification scope
 - Keep `explorer` and `reviewer` read-only
 - Close every write slice with a reviewer pass
@@ -26,16 +28,71 @@ Repository-level `AGENTS.md` files should be treated as more specific overrides
 - Do not respawn interrupted workers with the same prompt
 - For multi-step work, maintain a lightweight `STATE.md` task board
 
+## Task Size Gate
+
+- `main` must classify the task before writing
+- First check hard triggers
+- If no hard trigger exists, calculate the scorecard
+- Then pick `Route A`, `Route B`, or `Route C`
+
+## Hard Triggers
+
+- Shared contract changes
+  - API payload
+  - state names or transitions
+  - event names
+  - routes
+  - env keys
+- Shared asset changes
+  - common types
+  - shared utilities
+  - common components
+  - import paths or aliases
+  - schemas
+- Multi-layer changes
+  - UI + server
+  - UI + tests
+  - server + schema
+- Naturally separable write sets
+- Medium-or-higher regression risk
+- A distinct reviewer pass is clearly required
+
+## Scorecard
+
+- Only use the scorecard when no hard trigger exists
+- Add `1` point for each item below
+- `3+` modified files
+- `2+` directories
+- `2+` new files
+- tests must change
+- meaningful codebase reading is required before editing
+- at least one design decision must be made before implementation
+- verification has `2+` manual or command steps
+
+## Route Selection
+
+- `Route A`
+  - `0-1` points
+  - `main` may edit directly
+- `Route B`
+  - `2-3` points
+  - `main` may still edit directly, but read-only support roles are allowed when useful
+- `Route C`
+  - `4+` points, or any hard trigger
+  - `main` does not edit
+  - `main` freezes contracts, declares write sets, and orchestrates workers and reviewer
+
 ## Base Roles
 
 - `main`
   Orchestration, contract pinning, result integration, final decisions
-  If `main` writes code directly, it consumes the single `writer` slot
+  `main` may write only on `Route A` and `Route B`
+  On `Route C`, `main` is planner-only
 - `explorer`
   Read-only scouting for files, contracts, and tests
 - `worker`
   Implementation
-  When implementation is delegated, that worker consumes the single `writer` slot
+  A worker may be assigned as a feature worker or a shared-assets worker
 - `reviewer`
   Final read-only review
 
@@ -53,20 +110,23 @@ Use a lightweight `STATE.md` instead of a heavy queue system
 - `current_task`
 - `next_tasks`
 - `blocked_tasks`
+- `route`
 - `writer_slot`
 - `contract_freeze`
+- `write_sets` when `Route C` is active
 
 ## Parallelization Rules
 
-- Default to `main` alone
+- Default to `Route A` or `Route B` in `main`
 - Maximum concurrent `explorer` agents is `3`
 - Maximum concurrent `reviewer` agents is `2`
-- Maximum concurrent code-writing agents is `1`
-- The single `writer` slot may be held by `main` or by one delegated `worker`
-- Do not open a second write-capable lane under any circumstance
-- Do not let `main` and a `worker` write at the same time
-- Record `writer_slot` as `free`, `main`, or the delegated writer name in `STATE.md`
-- Parallel work is limited to combinations that keep the single writer rule intact
+- Maximum concurrent code-writing agents is `4`, but only on `Route C`
+- `main` may not write while `Route C` workers are active
+- Feature workers must have fully separate write sets
+- One designated shared-assets worker owns common types, shared utilities, common components, import-path changes, and other shared assets
+- Feature workers do not edit shared assets
+- Record `writer_slot` for `Route A/B` and add `write_sets` for `Route C`
+- Parallel work is limited to combinations with explicit write-set ownership
 - If the split is unclear, do not parallelize
 
 ## Forbidden Commands

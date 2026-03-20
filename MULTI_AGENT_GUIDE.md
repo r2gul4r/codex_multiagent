@@ -13,7 +13,45 @@ Only then worry about concurrency
 - On small tasks, handoff cost is often larger than implementation cost
 - Single-agent execution can look slower while still producing a shorter total lead time
 
-## 2. What Makes A Safe Slice
+## 2. Hard Trigger + Scorecard Gate
+
+Use task-size gating before deciding whether `main` should write directly or switch into planner-only mode
+
+Hard trigger first
+
+- Shared contract changes
+- Shared asset changes
+- Multi-layer changes
+- Naturally separable write sets
+- Medium-or-higher regression risk
+- A clearly necessary reviewer pass
+
+If any hard trigger exists, treat the task as `Route C`
+
+If no hard trigger exists, score these at `1` point each
+
+- `3+` modified files
+- `2+` directories
+- `2+` new files
+- test changes required
+- meaningful code reading required before editing
+- at least one design decision required before implementation
+- `2+` verification steps
+
+Route selection
+
+- `Route A`
+  - `0-1` points
+  - `main` may edit directly
+- `Route B`
+  - `2-3` points
+  - `main` may still edit directly, with optional read-only help
+- `Route C`
+  - `4+` points, or any hard trigger
+  - `main` becomes planner-only
+  - workers implement and reviewer validates
+
+## 3. What Makes A Safe Slice
 
 A safe slice satisfies all four conditions below
 
@@ -24,7 +62,7 @@ A safe slice satisfies all four conditions below
 
 If any part is blurry, shrink the slice or keep it in `main`
 
-## 3. When To Use `explorer`
+## 4. When To Use `explorer`
 
 `explorer` only matters when scouting is cheaper than guessing
 
@@ -35,12 +73,13 @@ If any part is blurry, shrink the slice or keep it in `main`
 
 If the file and the edit are obvious, splitting out an explorer is just ceremony
 
-## 4. When Multiple Agents Are Actually Safe
+## 5. When Multiple Agents Are Actually Safe
 
 Parallel work is reasonable only when all of these are true
 
-- The single writer rule stays intact
+- `main` is not writing during the parallel phase
 - Shared contracts such as API, schema, or payload are already pinned
+- Shared assets have one clear owner
 - Verification can also stay separate
 - `main` already knows the integration point
 
@@ -48,27 +87,30 @@ Hard role caps in this kit
 
 - `explorer` up to `3`
 - `reviewer` up to `2`
-- code-writing agents up to `1`
+- code-writing agents up to `4`, but only on `Route C`
 
-That single writer slot can be used by
+Recommended Route C topology
 
-- `main`, when `main` edits directly
-- one delegated `worker`, when implementation is handed off
+- `worker_feature_1`
+- `worker_feature_2`
+- `worker_feature_3`
+- `worker_shared`
 
 Good example
 
-- Explorer A maps the files
-- Explorer B narrows the test scope
-- `main` edits `/ui/profile/*` while all other agents stay read-only
-- Reviewer checks the result after the write slice closes
+- `main` freezes payload shape, state names, and write sets
+- `worker_shared` updates common types and shared helpers
+- feature workers edit separate feature directories
+- reviewer checks contracts, regressions, and scope ownership at the end
 
 Bad example
 
-- `main` edits a form UI
-- Worker B edits the same form payload and validation
-- This breaks the single writer rule before the code overlap problem even starts
+- `worker_feature_1` edits a shared type file
+- `worker_feature_2` edits the same shared type file differently
+- `main` keeps writing while both workers are active
+- This creates contract drift even when the changed feature files are separate
 
-## 5. What Every Handoff Should Include
+## 6. What Every Handoff Should Include
 
 The more roles you split across, the more the input contract matters
 
@@ -91,7 +133,7 @@ Done means
 - What the reviewer should be able to confirm at the end
 ```
 
-## 6. Lightweight Task Board Beats A Heavy Queue
+## 7. Lightweight Task Board Beats A Heavy Queue
 
 For this kit, a full runtime queue is overkill
 But a lightweight task board is worth it
@@ -101,32 +143,37 @@ Use `STATE.md` to track
 - `current_task`
 - `next_tasks`
 - `blocked_tasks`
+- `route`
 - `writer_slot`
 - `contract_freeze`
+- `write_sets` when `Route C` is active
 
 That gives `main` enough structure to sequence work without pretending this repo is a full scheduler
 
-## 7. Why Explicit Writer Slot Helps
+## 8. Why Explicit Route And Write Sets Help
 
-The single writer rule is stronger when it is visible
+Small and large tasks need different visibility
 
 Recommended values
 
-- `free`
-- `main`
-- `[worker_name]`
+- `route = Route A | Route B | Route C`
+- `writer_slot = free | main | worker_name | parallel`
+- `write_sets = [worker_name = file globs]`
 
-Before write starts
+Before Route C starts
 
-- claim `writer_slot`
+- freeze the contract
+- declare write-set ownership
+- name the shared-assets owner
 
-After write ends
+After Route C ends
 
-- release `writer_slot`
+- collapse back to `writer_slot = free`
+- keep the handoff evidence in `MULTI_AGENT_LOG.md`
 
-That makes accidental `main + worker` writes much harder to hide
+That makes accidental ownership drift much harder to hide
 
-## 8. Why Contract Freeze Should Be Explicit
+## 9. Why Contract Freeze Should Be Explicit
 
 The most common multi-agent breakage is contract drift
 
@@ -137,7 +184,7 @@ The most common multi-agent breakage is contract drift
 
 So `main` should mark `contract_freeze` before handing off the writer slot
 
-## 9. What `reviewer` Should Actually Look For
+## 10. What `reviewer` Should Actually Look For
 
 `reviewer` is not there to finish the implementation
 It is the last risk filter
@@ -147,21 +194,22 @@ Recommended priority order
 1. Contract violations
 2. Regression risk
 3. Missing tests or verification
-4. Scope pollution
+4. Write-set or shared-asset ownership violations
 5. Minor style issues
 
 Style comes last
 If the structure is broken, formatting comments are noise
 
-## 10. What To Do When A Worker Gets Stuck
+## 11. What To Do When A Worker Gets Stuck
 
 - Do not respawn the same worker with the same prompt
 - Check whether the problem is an unclear contract or an oversized slice
 - If the contract is unclear, let `main` pin it again
 - If the slice is too large, cut it in half
+- If the slice crosses shared assets, move that part to `worker_shared`
 - If discovery was too thin, add a short `explorer` pass
 
-## 11. What To Customize Per Repository
+## 12. What To Customize Per Repository
 
 - Real verification commands
 - Generated folders or risky paths that should not be edited
@@ -169,19 +217,21 @@ If the structure is broken, formatting comments are noise
 - Manual approval zones such as deploys, migrations, or external writes
 - Domain worker names
 
-## 12. Recommended Adoption Order
+## 13. Recommended Adoption Order
 
-1. Start with `main`, then decide whether the single writer slot stays in `main` or moves to one `worker`
-2. Add `STATE.md` once tasks stop fitting in your head
-3. Add `explorer` only when discovery cost is consistently high
-4. Allow parallel work only in cases with clearly separate file ranges
-5. When real collisions appear, add repository-specific forbidden patterns
+1. Start with `main`
+2. Add hard-trigger + scorecard gating
+3. Add `STATE.md` once tasks stop fitting in your head
+4. Add `explorer` only when discovery cost is consistently high
+5. Move large work into `Route C` only after contract freeze is reliable
+6. Add `worker_shared` when common types, shared utils, or common components keep causing collisions
+7. When real collisions appear, add repository-specific forbidden patterns
 
-## 13. One-Line Summary
+## 14. One-Line Summary
 
 Multi-agent work is not a free productivity buff
 It is distributed coordination with extra failure modes
 
-Keep slices small
+Gate task size first
 Pin contracts early
 Use reviewer as the last firewall
