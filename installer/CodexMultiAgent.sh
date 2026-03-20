@@ -340,9 +340,17 @@ get_derived_shared_asset_paths() {
     footer_component=$(toml_get_scalar "$context_path" "architecture" "footer_component")
     route_constants=$(toml_get_scalar "$context_path" "architecture" "route_constants")
 
+    if [ "${#shared_assets_a[@]:-0}" -gt 0 ]; then
+        compress_path_like_items ${shared_assets_a[@]+"${shared_assets_a[@]}"}
+        return
+    fi
+
+    if [ "${#shared_assets_b[@]:-0}" -gt 0 ]; then
+        compress_path_like_items ${shared_assets_b[@]+"${shared_assets_b[@]}"}
+        return
+    fi
+
     compress_path_like_items \
-        ${shared_assets_a[@]+"${shared_assets_a[@]}"} \
-        ${shared_assets_b[@]+"${shared_assets_b[@]}"} \
         "$shell_runtime" \
         "$shared_react" \
         "$landing_script" \
@@ -356,7 +364,12 @@ get_derived_do_not_touch_paths() {
     context_path="$1"
     load_context_array do_not_touch_a "$context_path" "paths" "do_not_touch"
     load_context_array do_not_touch_b "$context_path" "editing_rules" "do_not_edit"
-    compress_path_like_items ${do_not_touch_a[@]+"${do_not_touch_a[@]}"} ${do_not_touch_b[@]+"${do_not_touch_b[@]}"}
+    if [ "${#do_not_touch_b[@]:-0}" -gt 0 ]; then
+        compress_path_like_items ${do_not_touch_b[@]+"${do_not_touch_b[@]}"}
+        return
+    fi
+
+    compress_path_like_items ${do_not_touch_a[@]+"${do_not_touch_a[@]}"}
 }
 
 get_derived_hard_triggers() {
@@ -378,6 +391,11 @@ get_derived_hard_triggers() {
 get_derived_approval_zones() {
     context_path="$1"
     load_context_array approval_a "$context_path" "approval" "zones"
+    if [ "${#approval_a[@]:-0}" -gt 0 ]; then
+        merge_context_items ${approval_a[@]+"${approval_a[@]}"}
+        return
+    fi
+
     deploy_method=$(toml_get_scalar "$context_path" "deployment_current" "deploy_method")
     deploy_target=$(toml_get_scalar "$context_path" "deployment_current" "deploy_target")
     execution_mode=$(toml_get_scalar "$context_path" "deployment_target" "final_execution_mode")
@@ -399,6 +417,11 @@ get_derived_approval_zones() {
 get_derived_worker_mapping() {
     context_path="$1"
     load_context_array worker_mapping_a "$context_path" "workers" "mapping"
+    if [ "${#worker_mapping_a[@]:-0}" -gt 0 ]; then
+        merge_context_items ${worker_mapping_a[@]+"${worker_mapping_a[@]}"}
+        return
+    fi
+
     shell_runtime=$(toml_get_scalar "$context_path" "architecture" "shell_runtime")
     shared_react=$(toml_get_scalar "$context_path" "architecture" "shared_react_components")
     route_constants=$(toml_get_scalar "$context_path" "architecture" "route_constants")
@@ -432,9 +455,14 @@ get_derived_worker_mapping() {
 get_derived_reviewer_focus() {
     context_path="$1"
     load_context_array reviewer_focus_a "$context_path" "reviewer" "focus"
+    if [ "${#reviewer_focus_a[@]:-0}" -gt 0 ]; then
+        merge_context_items ${reviewer_focus_a[@]+"${reviewer_focus_a[@]}"}
+        return
+    fi
+
     load_context_array reviewer_focus_b "$context_path" "verification" "manual_checks"
     load_context_array reviewer_focus_c "$context_path" "editing_rules" "notes"
-    merge_context_items ${reviewer_focus_a[@]+"${reviewer_focus_a[@]}"} ${reviewer_focus_b[@]+"${reviewer_focus_b[@]}"} ${reviewer_focus_c[@]+"${reviewer_focus_c[@]}"}
+    merge_context_items ${reviewer_focus_b[@]+"${reviewer_focus_b[@]}"} ${reviewer_focus_c[@]+"${reviewer_focus_c[@]}"}
 }
 
 get_derived_forbidden_patterns() {

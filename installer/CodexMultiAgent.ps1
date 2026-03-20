@@ -388,9 +388,17 @@ function Get-DerivedSharedContracts {
 function Get-DerivedSharedAssetPaths {
     param([hashtable]$Context)
 
+    $explicitSharedAssets = @(Get-ContextArray -Context $Context -Section 'paths' -Key 'shared_assets')
+    if ($explicitSharedAssets.Count -gt 0) {
+        return (Compress-PathLikeItems $explicitSharedAssets)
+    }
+
+    $explicitEditIn = @(Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'edit_in')
+    if ($explicitEditIn.Count -gt 0) {
+        return (Compress-PathLikeItems $explicitEditIn)
+    }
+
     return (Compress-PathLikeItems `
-        (Get-ContextArray -Context $Context -Section 'paths' -Key 'shared_assets') `
-        (Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'edit_in') `
         (Get-ContextString -Context $Context -Section 'architecture' -Key 'shell_runtime') `
         (Get-ContextString -Context $Context -Section 'architecture' -Key 'shared_react_components') `
         (Get-ContextString -Context $Context -Section 'architecture' -Key 'landing_script') `
@@ -403,9 +411,13 @@ function Get-DerivedSharedAssetPaths {
 function Get-DerivedDoNotTouchPaths {
     param([hashtable]$Context)
 
+    $explicitDoNotEdit = @(Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'do_not_edit')
+    if ($explicitDoNotEdit.Count -gt 0) {
+        return (Compress-PathLikeItems $explicitDoNotEdit)
+    }
+
     return (Compress-PathLikeItems `
-        (Get-ContextArray -Context $Context -Section 'paths' -Key 'do_not_touch') `
-        (Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'do_not_edit'))
+        (Get-ContextArray -Context $Context -Section 'paths' -Key 'do_not_touch'))
 }
 
 function Get-DerivedHardTriggers {
@@ -432,8 +444,12 @@ function Get-DerivedHardTriggers {
 function Get-DerivedApprovalZones {
     param([hashtable]$Context)
 
+    $explicitZones = @(Get-ContextArray -Context $Context -Section 'approval' -Key 'zones')
+    if ($explicitZones.Count -gt 0) {
+        return $explicitZones
+    }
+
     $zones = [System.Collections.Generic.List[string]]::new()
-    foreach ($item in (Get-ContextArray -Context $Context -Section 'approval' -Key 'zones')) { $zones.Add($item) }
 
     $deployMethod = Get-ContextString -Context $Context -Section 'deployment_current' -Key 'deploy_method'
     if ($deployMethod) { $zones.Add("Deployment method changes: $deployMethod") }
@@ -462,8 +478,12 @@ function Get-DerivedApprovalZones {
 function Get-DerivedWorkerMappings {
     param([hashtable]$Context)
 
+    $explicitMappings = @(Get-ContextArray -Context $Context -Section 'workers' -Key 'mapping')
+    if ($explicitMappings.Count -gt 0) {
+        return $explicitMappings
+    }
+
     $mappings = [System.Collections.Generic.List[string]]::new()
-    foreach ($item in (Get-ContextArray -Context $Context -Section 'workers' -Key 'mapping')) { $mappings.Add($item) }
 
     $shellRuntime = Get-ContextString -Context $Context -Section 'architecture' -Key 'shell_runtime'
     $routeConstants = Get-ContextString -Context $Context -Section 'architecture' -Key 'route_constants'
@@ -501,8 +521,12 @@ function Get-DerivedWorkerMappings {
 function Get-DerivedReviewerFocus {
     param([hashtable]$Context)
 
+    $explicitFocus = @(Get-ContextArray -Context $Context -Section 'reviewer' -Key 'focus')
+    if ($explicitFocus.Count -gt 0) {
+        return $explicitFocus
+    }
+
     return (Merge-ContextItems `
-        (Get-ContextArray -Context $Context -Section 'reviewer' -Key 'focus') `
         (Get-ContextArray -Context $Context -Section 'verification' -Key 'manual_checks') `
         (Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'notes'))
 }
