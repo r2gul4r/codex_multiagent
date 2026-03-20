@@ -9,8 +9,8 @@
 
 - Check whether the result matches the goal
 - Check whether shared contracts stayed intact
-- Check that `contract_freeze` and `writer_slot` history still make sense
-- Look for scope pollution and side effects
+- Check that `contract_freeze`, `route`, and ownership history still make sense
+- Look for scope pollution, write-set violations, and side effects
 - Confirm that verification was actually performed or explicitly waived
 
 ## Should Not Do
@@ -23,6 +23,7 @@
 ## Input Contract
 
 - Original goal
+- Route and ownership model
 - Changed file range
 - Pinned contracts
 - Expected verification items
@@ -39,5 +40,5 @@
 1. Contract violations
 2. Regression risk
 3. Missing tests or verification
-4. Scope pollution
+4. Write-set or shared-asset ownership violations
 5. Low-priority style issues

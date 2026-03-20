@@ -278,6 +278,7 @@ function Install-GlobalKit {
 
     $items = @(
         'README.md',
+        'CHANGELOG.md',
         'AGENTS_TEMPLATE.md',
         'GLOBAL_AGENTS_TEMPLATE.md',
         'STATE_TEMPLATE.md',
@@ -357,6 +358,7 @@ function Apply-ToWorkspace {
         Ensure-Directory -Path $docsRoot
 
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'README.md') -Destination (Join-Path $docsRoot 'README.md') -Force
+        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'CHANGELOG.md') -Destination (Join-Path $docsRoot 'CHANGELOG.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'MULTI_AGENT_GUIDE.md') -Destination (Join-Path $docsRoot 'MULTI_AGENT_GUIDE.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'GLOBAL_AGENTS_TEMPLATE.md') -Destination (Join-Path $docsRoot 'GLOBAL_AGENTS_TEMPLATE.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'STATE_TEMPLATE.md') -Destination (Join-Path $docsRoot 'STATE_TEMPLATE.md') -Force
