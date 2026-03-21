@@ -646,15 +646,15 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('- Error log path: `ERROR_LOG.md`')
         $lines.Add('- Verification commands')
         $lines.Add('- Manual approval zones')
-        $lines.Add('- Worker ownership mapping when Route C is used')
+        $lines.Add('- Worker ownership mapping when Route B is used')
         $lines.Add('')
         $lines.Add('## Repository Overrides')
         $lines.Add('')
         $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
-        $lines.Add('- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route C is active')
+        $lines.Add('- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active')
         $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran')
         $lines.Add('- Add repository-specific verification commands, hard triggers, approval zones, and worker ownership here')
-        $lines.Add('- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules')
+        $lines.Add('- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules')
     }
 
     return ($lines -join "`n") + "`n"
@@ -676,16 +676,17 @@ function New-DefaultState {
     $lines.Add('## Route')
     $lines.Add('')
     $lines.Add('- route: `Route A`')
-    $lines.Add('- reason: `placeholder - classify the first task before editing`')
+    $lines.Add('- reason: `placeholder - classify the first task as Route A or Route B before editing`')
     $lines.Add('')
     $lines.Add('## Writer Slot')
     $lines.Add('')
     $lines.Add('- owner: `main`')
     $lines.Add('- write_set: `n/a`')
     $lines.Add('- write_sets:')
-    $lines.Add('  - `worker_shared`: `n/a`')
-    $lines.Add('  - `worker_feature`: `n/a`')
-    $lines.Add('- note: `Single-lane local task; no worker split is needed for this scope.`')
+    $lines.Add('  - `main`: `n/a`')
+    $lines.Add('  - `worker`: `n/a`')
+    $lines.Add('  - `reviewer`: `n/a`')
+    $lines.Add('- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
@@ -769,16 +770,16 @@ function New-WorkspaceAgentsFromContext {
     $lines.Add('## Repository Overrides')
     $lines.Add('')
     $lines.Add('- Role caps inherited from global defaults stay fixed')
-    $lines.Add('  `explorer 3`, `reviewer 2`, `worker up to 4 on Route C`')
-    $lines.Add(('- Keep `{0}` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route C is active' -f $taskBoardPath))
+    $lines.Add('  `explorer 3`, `reviewer 2`, `worker up to 4 on Route B`')
+    $lines.Add(('- Keep `{0}` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active' -f $taskBoardPath))
     $lines.Add(('- If multiple roles are used, append real participation to `{0}` before reporting that they ran' -f $multiAgentLogPath))
     if ($TemplateName -eq 'minimal') {
         $lines.Add('- Keep changes small')
-        $lines.Add('- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules')
+        $lines.Add('- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules')
     }
     else {
         $lines.Add('- Add repository-specific worker ownership, hard triggers, and approval zones here as they become clear')
-        $lines.Add('- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules')
+        $lines.Add('- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules')
     }
 
     Add-MarkdownSection -Lines $lines -Title 'Reviewer Focus' -Items $reviewerFocus
@@ -819,16 +820,17 @@ function New-WorkspaceStateFromContext {
     $lines.Add('## Route')
     $lines.Add('')
     $lines.Add('- route: `Route A`')
-    $lines.Add('- reason: `placeholder - classify the first task before editing`')
+    $lines.Add('- reason: `placeholder - classify the first task as Route A or Route B before editing`')
     $lines.Add('')
     $lines.Add('## Writer Slot')
     $lines.Add('')
     $lines.Add('- owner: `main`')
     $lines.Add('- write_set: `n/a`')
     $lines.Add('- write_sets:')
-    $lines.Add('  - `worker_shared`: `n/a`')
-    $lines.Add('  - `worker_feature`: `n/a`')
-    $lines.Add('- note: `Single-lane local task; no worker split is needed for this scope.`')
+    $lines.Add('  - `main`: `n/a`')
+    $lines.Add('  - `worker`: `n/a`')
+    $lines.Add('  - `reviewer`: `n/a`')
+    $lines.Add('- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
@@ -1067,12 +1069,12 @@ function Get-ConfigDeveloperInstructionsLines {
         '- If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.',
         '',
         'Delegation rules:',
-        '- On Route A, stay in one write-capable lane and spawn no subagents.',
-        '- On Route B, keep one write-capable lane in main and always spawn at least one read-only reviewer.',
+        '- On Route A, stay in one write-capable lane and spawn no subagents or reviewer calls.',
+        '- On Route B, keep main planner-only and always spawn at least one worker plus one reviewer.',
         '- Assign exactly one write set to each worker.',
-        '- Promote Route B to Route C when work extracts a shared component, replaces page-specific implementations with a shared renderer, or unifies 2+ pages onto one shared implementation.',
-        '- On Route C, keep main planner-only and always spawn at least one worker plus one reviewer.',
-        '- Do not close Route B or Route C without the required reviewer pass.',
+        '- Promote Route A to Route B when work extracts a shared component, replaces page-specific implementations with a shared renderer, or unifies 2+ pages onto one shared implementation.',
+        '- On Route B, keep main planner-only and always spawn at least one worker plus one reviewer.',
+        '- Do not close Route B without the required reviewer pass.',
         '- Do not skip route or reason logging when AGENTS.md requires it.',
         '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.',
         '',

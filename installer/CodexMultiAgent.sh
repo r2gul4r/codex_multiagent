@@ -301,13 +301,13 @@ generate_default_workspace_agents() {
         printf -- '- Error log path: `ERROR_LOG.md`\n'
         printf -- '- Verification commands\n'
         printf -- '- Manual approval zones\n'
-        printf -- '- Worker ownership mapping when Route C is used\n'
+        printf -- '- Worker ownership mapping when Route B is used\n'
         printf '\n## Repository Overrides\n\n'
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
-        printf -- '- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route C is active\n'
+        printf -- '- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active\n'
         printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran\n'
         printf -- '- Add repository-specific verification commands, hard triggers, approval zones, and worker ownership here\n'
-        printf -- '- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules\n'
+        printf -- '- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules\n'
     fi
 }
 
@@ -322,14 +322,15 @@ generate_default_state() {
     printf -- '- verification_target: `n/a`\n'
     printf '\n## Route\n\n'
     printf -- '- route: `Route A`\n'
-    printf -- '- reason: `placeholder - classify the first task before editing`\n'
+    printf -- '- reason: `placeholder - classify the first task as Route A or Route B before editing`\n'
     printf '\n## Writer Slot\n\n'
     printf -- '- owner: `main`\n'
     printf -- '- write_set: `n/a`\n'
     printf -- '- write_sets:\n'
-    printf '  - `worker_shared`: `n/a`\n'
-    printf '  - `worker_feature`: `n/a`\n'
-    printf -- '- note: `Single-lane local task; no worker split is needed for this scope.`\n'
+    printf '  - `main`: `n/a`\n'
+    printf '  - `worker`: `n/a`\n'
+    printf '  - `reviewer`: `n/a`\n'
+    printf -- '- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
     printf '\n## Contract Freeze\n\n'
     printf -- '- contract_freeze: `n/a`\n'
     printf '\n## Seed\n\n'
@@ -737,15 +738,15 @@ generate_workspace_agents_from_context() {
 
         printf '\n## Repository Overrides\n\n'
         printf -- '- Role caps inherited from global defaults stay fixed\n'
-        printf '  `explorer 3`, `reviewer 2`, `worker up to 4 on Route C`\n'
-        printf -- '- Keep `%s` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route C is active\n' "$task_board_path"
+        printf '  `explorer 3`, `reviewer 2`, `worker up to 4 on Route B`\n'
+        printf -- '- Keep `%s` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active\n' "$task_board_path"
         printf -- '- If multiple roles are used, append real participation to `%s` before reporting that they ran\n' "$multi_agent_log_path"
         if [ "$template_name" = "minimal" ]; then
             printf -- '- Keep changes small\n'
-            printf -- '- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules\n'
+            printf -- '- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules\n'
         else
             printf -- '- Add repository-specific worker ownership, hard triggers, and approval zones here as they become clear\n'
-            printf -- '- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules\n'
+            printf -- '- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules\n'
         fi
 
         write_markdown_section 'Reviewer Focus' ${reviewer_focus[@]+"${reviewer_focus[@]}"}
@@ -770,14 +771,15 @@ generate_workspace_state_from_context() {
         printf -- '- verification_target: `n/a`\n'
         printf '\n## Route\n\n'
         printf -- '- route: `Route A`\n'
-        printf -- '- reason: `placeholder - classify the first task before editing`\n'
+        printf -- '- reason: `placeholder - classify the first task as Route A or Route B before editing`\n'
         printf '\n## Writer Slot\n\n'
         printf -- '- owner: `main`\n'
         printf -- '- write_set: `n/a`\n'
         printf -- '- write_sets:\n'
-        printf '  - `worker_shared`: `n/a`\n'
-        printf '  - `worker_feature`: `n/a`\n'
-        printf -- '- note: `Single-lane local task; no worker split is needed for this scope.`\n'
+        printf '  - `main`: `n/a`\n'
+        printf '  - `worker`: `n/a`\n'
+        printf '  - `reviewer`: `n/a`\n'
+        printf -- '- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
         printf '\n## Contract Freeze\n\n'
         printf -- '- contract_freeze: `n/a`\n'
         printf '\n## Seed\n\n'
@@ -1106,12 +1108,12 @@ Spawn requirements:
 - If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.
 
 Delegation rules:
-- On Route A, stay in one write-capable lane and spawn no subagents.
-- On Route B, keep one write-capable lane in main and always spawn at least one read-only reviewer.
+- On Route A, stay in one write-capable lane and spawn no subagents or reviewer calls.
+- On Route B, keep main planner-only and always spawn at least one worker plus one reviewer.
 - Assign exactly one write set to each worker.
-- Promote Route B to Route C when work extracts a shared component, replaces page-specific implementations with a shared renderer, or unifies 2+ pages onto one shared implementation.
-- On Route C, keep main planner-only and always spawn at least one worker plus one reviewer.
-- Do not close Route B or Route C without the required reviewer pass.
+- Promote Route A to Route B when work extracts a shared component, replaces page-specific implementations with a shared renderer, or unifies 2+ pages onto one shared implementation.
+- On Route B, keep main planner-only and always spawn at least one worker plus one reviewer.
+- Do not close Route B without the required reviewer pass.
 - Do not skip route or reason logging when AGENTS.md requires it.
 - Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.
 

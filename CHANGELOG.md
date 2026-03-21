@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.14 - 2026-03-22
+
+### Changed
+
+- 저장소 라우트 모델을 `Route A` / `Route B` 2단계로 정리
+- `Route A` 를 main-only, no-subagent route 로 재정의
+- `Route B` 를 delegated route 로 재정의하고 old 대형 작업 의미를 흡수
+- `AGENTS.md`, `README.md`, `MULTI_AGENT_GUIDE.md`, `profiles/*`, `codex_skills/*`, `docs/OUROBOROS_LITE_PORT.md`, `examples/*` 를 새 라우트 모델에 맞게 정렬
+
 ## v0.1.13 - 2026-03-22
 
 ### Added
@@ -35,7 +44,7 @@
 
 ### Changed
 
-- 전역 규칙에 `route/reason` 선기록, `Route A/B` 승격 규칙, `Route C` 최소 worker/reviewer 요구를 추가
+- 전역 규칙에 `route/reason` 선기록, `Route A/B` 승격 규칙, delegated route 최소 worker/reviewer 요구를 추가
 - 작업공간 오버라이드 설치 시 `WORKSPACE_CONTEXT.toml` 을 우선 읽어 맞춤형 `AGENTS.md` 와 초기 `STATE.md` 를 생성하도록 installer 를 확장
 - `WORKSPACE_CONTEXT_TEMPLATE.toml` 예시 파일과 관련 문서를 추가
 - macOS GitHub Actions 검증에 `WORKSPACE_CONTEXT.toml` 기반 workspace 생성 경로를 추가
@@ -45,8 +54,8 @@
 
 ### Changed
 
-- 전역/저장소 AGENTS 템플릿에 `하드 트리거 + 점수제 + Route A/B/C` 작업 크기 게이트 추가
-- `main` 직접 수정은 `Route A/B`, 큰 작업은 `Route C planner-only` 로 정리
+- 전역/저장소 AGENTS 템플릿에 `하드 트리거 + 점수제 + Route A/Route B` 작업 크기 게이트 추가
+- `main` 직접 수정은 `Route A`, 큰 작업은 `Route B delegated planner-only` 로 정리
 - 작업공간 오버라이드 템플릿과 `STATE_TEMPLATE.md` 에 `route` 와 `write_sets` 개념 추가
 - 운영 가이드와 예시를 route 기반 멀티에이전트 모델로 갱신
 

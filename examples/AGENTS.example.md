@@ -7,9 +7,9 @@ Adjust the paths and commands to match the real repository
 ## Operating Goal
 
 - Default to `Route A` in `main`
-- Use `Route C` only when hard triggers or scorecard justify planner-only orchestration
+- Use `Route B` only when hard triggers or scorecard justify delegated orchestration
 - Pin API, schema, and route contracts before workers start
-- Max concurrent role caps are `explorer 3`, `reviewer 2`, `worker 4 on Route C`
+- Max concurrent role caps are `explorer 3`, `reviewer 2`, `worker 4 on Route B`
 
 ## Roles
 
@@ -29,8 +29,8 @@ Adjust the paths and commands to match the real repository
 ## Repository-Specific Rules
 
 - `explorer` and `reviewer` are read-only
-- `main` may write on `Route A/B` only
-- On `Route C`, only worker roles make write changes
+- `main` may write on `Route A` only
+- On `Route B`, only worker roles make write changes
 - Keep `STATE.md` updated with `current_task`, `route`, `writer_slot`, `contract_freeze`, and `write_sets`
 - If both `apps/web` and `apps/api` are touched, request payload contracts must be pinned first
 - If a migration file is involved, do not parallelize
@@ -48,7 +48,7 @@ Adjust the paths and commands to match the real repository
 - One `worker_shared` owns shared types and common utilities
 - Feature workers edit separate file ranges
 - Up to two `reviewer` agents split final checking by concern if needed
-- `main` does not write during `Route C`
+- `main` does not write during `Route B`
 
 ## Parallel Work That Is Not Safe
 

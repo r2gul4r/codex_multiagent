@@ -1,6 +1,6 @@
 ---
 name: ouroboros-run
-description: Enter implementation from a frozen seed using the repository's existing Route A/B/C system. Use when the user invokes `ooo run` or asks to build from the spec, start implementation from `SEED.yaml`, or execute the agreed contract without introducing separate polling or orchestration layers.
+description: Enter implementation from a frozen seed using the repository's existing Route A/B system. Use when the user invokes `ooo run` or asks to build from the spec, start implementation from `SEED.yaml`, or execute the agreed contract without introducing separate polling or orchestration layers.
 ---
 
 # `ooo run`
@@ -19,12 +19,11 @@ ooo run <seed-path>
 1. Re-read `STATE.md` and confirm the current request still matches the active seed and task.
 2. Read the seed from the provided path, or default to `SEED.yaml` in the workspace root.
 3. If no valid seed exists, stop and return to `ooo seed`.
-4. Reclassify the task using the repository Route A/B/C rules before editing implementation files.
+4. Reclassify the task using the repository Route A/B rules before editing implementation files.
 5. Update `STATE.md` with the active task, route, reason, phase, and ownership before further writes.
 6. Execute implementation through the selected route:
-   - Route A: keep one tight write slice and one writer
-   - Route B: keep one writer and plan for the required reviewer pass before closing
-   - Route C: keep `main` planner-only, freeze contracts/write sets in `STATE.md`, and delegate implementation to workers
+   - Route A: keep one tight write slice, one writer, and no subagent calls
+   - Route B: keep `main` planner-only, freeze contracts/write sets in `STATE.md`, and delegate implementation to workers and reviewer
 7. Stop after implementation is complete and hand off to `ooo evaluate` for verification and final close-out.
 
 ## Guardrails
@@ -33,7 +32,7 @@ ooo run <seed-path>
 - Do not skip `STATE.md` route logging.
 - Do not start background jobs, polling loops, or separate orchestration runtimes.
 - Do not bypass Route B reviewer requirements.
-- Do not let `main` write implementation files on Route C.
+- Do not let `main` write implementation files on Route B.
 - Do not close the task until the required verification path is complete.
 
 ## Handoff

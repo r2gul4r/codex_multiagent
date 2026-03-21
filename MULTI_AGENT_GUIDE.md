@@ -26,7 +26,7 @@ Hard trigger first
 - Medium-or-higher regression risk
 - A clearly necessary reviewer pass
 
-If any hard trigger exists, treat the task as `Route C`
+If any hard trigger exists, treat the task as `Route B`
 
 If no hard trigger exists, score these at `1` point each
 
@@ -41,13 +41,9 @@ If no hard trigger exists, score these at `1` point each
 Route selection
 
 - `Route A`
-  - `0-1` points
-  - `main` may edit directly
+  - `0-3` points
+  - `main` may edit directly in a main-only slice
 - `Route B`
-  - `2-3` points
-  - `main` remains the only writer
-  - at least one read-only `reviewer` pass is mandatory before close
-- `Route C`
   - `4+` points, or any hard trigger
   - `main` becomes planner-only
   - workers implement and reviewer validates
@@ -55,14 +51,11 @@ Route selection
 Before any write begins
 
 - record the exact `route` and concrete `reason` in `STATE.md`
-- do not use hedge labels such as `Route C-equivalent` or `single-agent fallback`
-- on `Route A`, keep one tight slice and one write-capable lane
-- on `Route B`, keep one write-capable lane and read-only support only
-- on `Route B`, a read-only `reviewer` pass is mandatory before the task is closed
-- on `Route B`, if a second write-capable lane would help, promote to `Route C`
-- on `Route C`, `main` must stop writing implementation files and delegate to at least one `worker`
-- on `Route C`, a `reviewer` pass is mandatory before the task is closed
-- on `Route C`, if shared assets and feature files are both touched, use `worker_shared` plus at least one feature worker
+- do not use hedge labels such as `Route B-equivalent` or `single-agent fallback`
+- on `Route A`, keep one tight slice, one write-capable lane, and no subagent calls
+- on `Route B`, `main` must stop writing implementation files and delegate to at least one `worker`
+- on `Route B`, a `reviewer` pass is mandatory before the task is closed
+- on `Route B`, if shared assets and feature files are both touched, use `worker_shared` plus at least one feature worker
 
 ## 3. What Makes A Safe Slice
 
@@ -100,9 +93,9 @@ Hard role caps in this kit
 
 - `explorer` up to `3`
 - `reviewer` up to `2`
-- code-writing agents up to `4`, but only on `Route C`
+- code-writing agents up to `4`, but only on `Route B`
 
-Recommended Route C topology
+Recommended Route B topology
 
 - `worker_feature_1`
 - `worker_feature_2`
@@ -159,7 +152,7 @@ Use `STATE.md` to track
 - `route`
 - `writer_slot`
 - `contract_freeze`
-- `write_sets` when `Route C` is active
+- `write_sets` when `Route B` is active
 - `reviewer_target` when a reviewer is assigned
 
 That gives `main` enough structure to sequence work without pretending this repo is a full scheduler
@@ -170,20 +163,20 @@ Small and large tasks need different visibility
 
 Recommended values
 
-- `route = Route A | Route B | Route C`
+- `route = Route A | Route B`
 - `reason = hard trigger name | concrete score summary`
 - `writer_slot = free | main | worker_name | parallel`
 - `write_sets = [worker_name = file globs]`
 - `reviewer_target = reviewer | reviewer_name`
 
-Before Route C starts
+Before Route B starts
 
 - freeze the contract
 - declare write-set ownership
 - name the shared-assets owner
 - name the reviewer target
 
-After Route C ends
+After Route B ends
 
 - collapse back to `writer_slot = free`
 - keep the handoff evidence in `MULTI_AGENT_LOG.md`
@@ -240,7 +233,7 @@ If the structure is broken, formatting comments are noise
 2. Add hard-trigger + scorecard gating
 3. Add `STATE.md` once tasks stop fitting in your head
 4. Add `explorer` only when discovery cost is consistently high
-5. Move large work into `Route C` only after contract freeze is reliable
+5. Move large work into `Route B` only after contract freeze is reliable
 6. Add `worker_shared` when common types, shared utils, or common components keep causing collisions
 7. When real collisions appear, add repository-specific forbidden patterns
 

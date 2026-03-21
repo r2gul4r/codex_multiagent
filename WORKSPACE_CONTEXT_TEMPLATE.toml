@@ -37,4 +37,4 @@ mapping = ["worker_shared = src/components/common/**, src/shared/**, src/types/*
 focus = ["Contract integrity", "Regression risk", "Verification gaps"]
 
 [forbidden]
-patterns = ["Mechanical split by org chart only", "Direct edits to generated output", "Skipping reviewer on Route B or Route C"]
+patterns = ["Mechanical split by org chart only", "Direct edits to generated output", "Skipping reviewer on Route B"]

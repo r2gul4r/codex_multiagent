@@ -7,7 +7,7 @@
 ## 목표
 
 - `interview -> seed -> run -> evaluate`를 하나의 운영 모델로 도입한다
-- 현재 저장소의 `AGENTS.md`, `STATE.md`, Route A/B/C 규칙을 최상위 오케스트레이션 계층으로 유지한다
+- 현재 저장소의 `AGENTS.md`, `STATE.md`, Route A/B 규칙을 최상위 오케스트레이션 계층으로 유지한다
 - Codex app 환경에서 병목이 되는 장기 polling, 중첩 오케스트레이션, 툴 종속 문구를 제거한다
 - 이후 `~/.codex/skills` / `~/.codex/rules` 자산으로 포팅할 수 있는 초안을 남긴다
 
@@ -28,9 +28,9 @@
 
 ### 2. 오케스트레이션 계층은 하나만 둔다
 
-- 현재 저장소에서 최상위 조정자는 `STATE.md` + Route A/B/C 규칙이다
+- 현재 저장소에서 최상위 조정자는 `STATE.md` + Route A/B 규칙이다
 - `ooo run`은 별도 장기 실행 엔진이 아니라, 현재 route 체계로 진입시키는 진입점이다
-- Route C에서는 현재 저장소 규칙이 우선이며, Ouroboros-lite가 별도 planner/runtime처럼 행동하면 안 된다
+- Route B에서는 현재 저장소 규칙이 우선이며, Ouroboros-lite가 별도 planner/runtime처럼 행동하면 안 된다
 
 ### 3. 병목은 phase 경계로 막는다
 
@@ -101,7 +101,7 @@ When the user types `ooo <command>`, treat it as a workflow command, not casual 
 |-----------|---------|
 | `ooo interview ...` | enter requirement-clarification phase |
 | `ooo seed` | freeze the current requirement set into a seed |
-| `ooo run` | enter implementation through current Route A/B/C rules |
+| `ooo run` | enter implementation through current Route A/B rules |
 | `ooo evaluate` | run verification against the frozen seed |
 
 If the request is unrelated to the workflow, handle it normally.
@@ -185,7 +185,7 @@ out_of_scope:
 
 - seed가 만들어지면 implementation 전까지 변경하지 않는다
 - scope가 바뀌면 기존 seed를 수정하는 대신 새 seed revision을 만든다
-- Route A/B/C 선택 전, seed가 contract freeze의 입력이 된다
+- Route A/B 선택 전, seed가 contract freeze의 입력이 된다
 
 우리 환경용 차이점:
 
@@ -202,7 +202,7 @@ out_of_scope:
 
 1. seed 존재 확인
 2. `STATE.md` current task와 seed가 맞는지 확인
-3. Route A/B/C 재분류
+3. Route A/B 재분류
 4. route에 맞는 writer/reviewer 규칙 적용
 5. 구현 수행
 6. 완료 후 `ooo evaluate` 단계로 넘김
@@ -211,7 +211,7 @@ out_of_scope:
 
 - background polling loop 금지
 - 장시간 실행 엔진을 메인 스레드에 묶지 않는다
-- Route C에서는 repository route rules가 절대 우선이다
+- Route B에서는 repository route rules가 절대 우선이다
 - `ooo run`이 별도 planner/runtime로 승격되면 안 된다
 
 즉, `ooo run`은 "오케스트레이터 자체"가 아니라 "현재 multi-agent 체계로 들어가는 전환기"다.
@@ -232,14 +232,14 @@ out_of_scope:
    - out-of-scope 침범 여부
    - frozen contract 위반 여부
 3. Optional reviewer escalation
-   - Route B/C reviewer 결과 반영
+   - Route B reviewer 결과 반영
    - high-risk 변경만 추가 심사
 
 규칙:
 
 - 실행과 평가는 분리한다
 - "대충 됨"이 아니라 seed 기준으로 pass/fail을 말한다
-- Route B/C에서는 reviewer 결과를 evaluation에 합친다
+- Route B에서는 reviewer 결과를 evaluation에 합친다
 
 ## 병목 방지 규칙
 
@@ -255,7 +255,7 @@ out_of_scope:
 
 ### C. route 체계가 상위 계층이다
 
-- `ooo run`이 Route C worker 배치를 덮어쓰지 않는다
+- `ooo run`이 Route B worker 배치를 덮어쓰지 않는다
 - Ouroboros-lite는 repository route selection에 복무해야 한다
 
 ### D. 평가를 실행 뒤로 분리한다
@@ -308,4 +308,4 @@ out_of_scope:
 따라서 현재 저장소의 정답은:
 
 > "원본의 철학과 command surface는 거의 그대로 가져오되,
-> 실행 엔진과 session orchestration은 현재 저장소의 Route A/B/C 체계에 종속시킨다."
+> 실행 엔진과 session orchestration은 현재 저장소의 Route A/B 체계에 종속시킨다."

@@ -41,13 +41,15 @@ out_of_scope:
 goal: "Add Ouroboros-lite workflow support to the repository without introducing background orchestration or MCP-only dependencies."
 
 constraints:
-  - "Keep the existing Route A/B/C system as the top-level orchestration layer."
+  - "Keep the existing Route A/Route B system as the top-level orchestration layer."
+  - "Route A is main-only with no subagent calls."
+  - "Route B is the delegated route with worker/reviewer use."
   - "Do not require Codex CLI-only features."
   - "Do not introduce polling-based workflow steps."
 
 acceptance_criteria:
   - "`ooo interview`, `ooo seed`, `ooo run`, and `ooo evaluate` each have repository-packaged skill definitions."
-  - "Implementation entry uses the existing Route A/B/C rules."
+  - "Implementation entry uses the existing Route A/Route B rules."
   - "Evaluation explicitly checks compliance against the frozen seed."
 
 verification:

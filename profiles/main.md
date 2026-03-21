@@ -12,8 +12,8 @@
 
 - Reduce the goal to one-line acceptance criteria
 - Keep `STATE.md` current with `current_task`, `route`, `next_tasks`, and `blocked_tasks`
-- Mark `contract_freeze` before `Route C` workers start or before a `Route A/B` handoff
-- On `Route C`, declare `write_sets` and the shared-assets owner before workers start
+- Mark `contract_freeze` before `Route B` workers start or before a `Route A` handoff
+- On `Route B`, declare `write_sets` and the shared-assets owner before workers start
 - Keep worker input short and specific
 - Check for scope collisions before parallelizing
 - Tell reviewer what must be checked
@@ -61,8 +61,8 @@ Task board
 - [current_task / route / next_tasks / blocked_tasks]
 
 Ownership
-- [Route A/B = writer_slot]
-- [Route C = writer_slot=parallel + write_sets + shared-assets owner]
+- [Route A = writer_slot]
+- [Route B = writer_slot=parallel + write_sets + shared-assets owner]
 
 Verification
 - [commands]

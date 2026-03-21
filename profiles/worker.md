@@ -8,8 +8,8 @@
 ## Should Do
 
 - Stay inside the assigned scope or `write_set`
-- On `Route A/B`, claim the `writer_slot` before write work starts and release it after write work ends
-- On `Route C`, edit only the owned `write_set` and do not touch shared assets unless you are the designated owner
+- On `Route B`, claim the `writer_slot` before write work starts and release it after write work ends
+- On `Route B`, edit only the owned `write_set` and do not touch shared assets unless you are the designated owner
 - Preserve pinned shared contracts unless `main` re-opens them
 - Run the required verification or leave a concrete reason why it was not run
 - Escalate blockers back to `main` in the smallest possible form

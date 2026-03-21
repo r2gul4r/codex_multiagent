@@ -38,3 +38,4 @@
 - 2026-03-22 04:51:36 +09:00 | main | Route C combined error-logging and subagent-hygiene task closed after shell and PowerShell runtime verification plus final reviewer pass.
 - 2026-03-22 04:59:29 +09:00 | reviewer_readme_sync | Confirmed the softened Route C wording in `README.md` no longer overstates `worker_shared` usage and matches the implemented behavior.
 - 2026-03-22 04:59:29 +09:00 | main | Route B README sync closed after reviewer pass.
+- 2026-03-22 05:29:44 +09:00 | main | Route C opened to collapse the route model from three routes to two. Planned write sets: `worker_shared -> AGENTS.md, README.md, MULTI_AGENT_GUIDE.md, profiles/*, codex_skills/*, examples/*, WORKSPACE_CONTEXT_TEMPLATE.toml, CHANGELOG.md`, `worker_feature_install -> installer/CodexMultiAgent.sh, installer/CodexMultiAgent.ps1`, `main -> STATE.md, MULTI_AGENT_LOG.md`.

@@ -46,7 +46,7 @@ If one of these is still fuzzy, ask about it directly instead of opening a new s
 - Do not write code.
 - Do not start implementation.
 - Do not spawn long-running orchestration loops.
-- Do not bypass repository Route A/B/C rules.
+- Do not bypass repository Route A/B rules.
 - Do not keep interviewing once the request is already seed-ready.
 
 ## Handoff

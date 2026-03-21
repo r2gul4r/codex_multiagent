@@ -47,7 +47,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 - Use the workspace-configured log path when one is available, and treat the log as append-only.
 - If work is interrupted or paused, keep the entry `open` or `deferred` until a later append marks it resolved.
 - Keep each entry compact and include `time`, `location`, `summary`, `details`, and `status`.
-- This logging rule stays subordinate to the existing Route A/B/C rules, security rules, and reviewer requirements.
+- This logging rule stays subordinate to the existing Route A/B rules, security rules, and reviewer requirements.
 - Do not use this log as a substitute for route logging, security handling, or reviewer escalation.
 
 ## Spec-First Workflow
@@ -55,7 +55,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 - Use `interview -> seed -> run -> evaluate` for non-tiny hotfixes when the work spans multiple files, needs a frozen contract, or could drift without a written spec.
 - Skip spec-first only for tiny local hotfixes that stay in one file and do not need a frozen contract.
 - Treat `interview` as read-only scope clarification, `seed` as contract freeze, `run` as implementation, and `evaluate` as verification.
-- Keep the workflow subordinate to the existing Route A/B/C, security, reviewer, and verification rules.
+- Keep the workflow subordinate to the existing Route A/B, security, reviewer, and verification rules.
 - Do not add background orchestration loops or polling behavior to this workflow.
 - If a tiny hotfix starts growing during execution, the agent must stop, update `STATE.md`, re-select the route, and only then continue with more writes.
 
@@ -87,8 +87,8 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 - Before editing any file other than `STATE.md` or `MULTI_AGENT_LOG.md`, `main` must record the selected `route` and the concrete `reason` in `STATE.md`
 - `reason` must name the hard trigger that fired or the concrete scorecard basis for the selected route
-- Use exact route labels only: `Route A`, `Route B`, or `Route C`
-- Do not use hedge labels such as `Route C-equivalent`, `mostly Route B`, or `single-agent fallback`
+- Use exact route labels only: `Route A` or `Route B`
+- Do not use hedge labels such as `Route B-equivalent`, `mostly Route A`, or `single-agent fallback`
 - If `route` or `reason` is missing, stop and classify the task before writing
 - If the route changes during execution, update `STATE.md` first and only then continue
 
@@ -96,36 +96,25 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 - On `Route A`, keep exactly one write-capable lane and one tight implementation slice
 - On `Route A`, spawn no subagents
-- On `Route A`, if shared assets, `2+` directories, `2+` new files, test changes, or `2+` verification steps appear during execution, stop, update `STATE.md`, and promote the task to `Route B` or `Route C` before more writes
+- On `Route A`, if shared assets, `2+` directories, `2+` new files, test changes, or `2+` verification steps appear during execution, stop, update `STATE.md`, and promote the task to `Route B` before more writes
 - On `Route A`, close the task only if the final scope still matches the original small-slice classification and the relevant verification is recorded
 
 ### Route B
 
-- On `Route B`, keep exactly one write-capable lane; any support roles must stay read-only
-- On `Route B`, do not treat planning or investigation as permission to skip the reviewer requirement once implementation begins
-- On `Route B`, spawn at least one read-only `reviewer`; this is mandatory, not optional
-- On `Route B`, if a second write-capable lane would help, treat that as a promotion signal to `Route C`, not permission to start another writer
-- On `Route B`, if any hard trigger appears or the work separates into shared-assets plus feature slices, stop, update `STATE.md`, and promote the task to `Route C` before more implementation writes
-- On `Route B`, treat shared component extraction, shared renderer replacement, or unifying `2+` pages onto one shared implementation as promotion signals to `Route C`
-- On `Route B`, the required reviewer spawn is part of the route itself, not a discretionary choice by `main`
-- On `Route B`, close the task only after at least one `reviewer` pass
-
-### Route C
-
-- `main` may write directly only on `Route A` and `Route B`
-- On `Route C`, `main` is planner-only and may edit only `STATE.md` and `MULTI_AGENT_LOG.md`
-- On `Route C`, assume worker and reviewer delegation is part of the normal path; do not self-downgrade to a single-agent lane just because the task started as reading or planning
-- On `Route C`, spawn at least one `worker` and at least one `reviewer`; this is route behavior, not a discretionary choice by `main`
-- On `Route C`, implementation files must not be edited until `contract_freeze` and `write_sets` are explicitly recorded in `STATE.md`
-- On `Route C`, `main` must delegate implementation to at least one `worker` and close the task with at least one `reviewer` pass
-- On `Route C`, `main` must not keep implementation in a single-agent fallback lane
-- On `Route C`, if the scope touches both shared assets and feature files, assign a designated `worker_shared` plus at least one feature worker
-- On `Route C`, if the scope naturally separates into `2+` disjoint feature slices, split them across `2+` workers instead of handing one oversized slice to a single worker
-- On `Route C`, treat cross-page componentization, shared UI extraction, or replacing page-specific logic with one shared module as normal reasons to fan out work
-- A single `worker` on `Route C` is allowed only when `main` records in `STATE.md` why the slice cannot be safely split further
-- If `Route C` starts without `write_sets`, stop, shrink the slice, or re-plan before any implementation write
-- If `Route C` starts without a named `reviewer` target, stop and assign one before implementation begins
-- Any Route C run that skips route logging, contract freeze, worker delegation, reviewer assignment, or write-set ownership is considered a process failure in this workspace
+- `main` may write directly only on `Route A`
+- On `Route B`, `main` is planner-only and may edit only `STATE.md` and `MULTI_AGENT_LOG.md`
+- On `Route B`, assume worker and reviewer delegation is part of the normal path; do not self-downgrade to a single-agent lane just because the task started as reading or planning
+- On `Route B`, spawn at least one `worker` and at least one `reviewer`; this is route behavior, not a discretionary choice by `main`
+- On `Route B`, implementation files must not be edited until `contract_freeze` and `write_sets` are explicitly recorded in `STATE.md`
+- On `Route B`, `main` must delegate implementation to at least one `worker` and close the task with at least one `reviewer` pass
+- On `Route B`, `main` must not keep implementation in a single-agent fallback lane
+- On `Route B`, if the scope touches both shared assets and feature files, assign a designated `worker_shared` plus at least one feature worker
+- On `Route B`, if the scope naturally separates into `2+` disjoint feature slices, split them across `2+` workers instead of handing one oversized slice to a single worker
+- On `Route B`, treat cross-page componentization, shared UI extraction, or replacing page-specific logic with one shared module as normal reasons to fan out work
+- A single `worker` on `Route B` is allowed only when `main` records in `STATE.md` why the slice cannot be safely split further
+- If `Route B` starts without `write_sets`, stop, shrink the slice, or re-plan before any implementation write
+- If `Route B` starts without a named `reviewer` target, stop and assign one before implementation begins
+- Any Route B run that skips route logging, contract freeze, worker delegation, reviewer assignment, or write-set ownership is considered a process failure in this workspace
 
 ### State Integrity
 
