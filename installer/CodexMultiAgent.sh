@@ -415,12 +415,12 @@ get_derived_shared_asset_paths() {
     footer_component=$(toml_get_scalar "$context_path" "architecture" "footer_component")
     route_constants=$(toml_get_scalar "$context_path" "architecture" "route_constants")
 
-    if [ "${#shared_assets_a[@]:-0}" -gt 0 ]; then
+    if [ "${#shared_assets_a[@]}" -gt 0 ]; then
         compress_path_like_items ${shared_assets_a[@]+"${shared_assets_a[@]}"}
         return
     fi
 
-    if [ "${#shared_assets_b[@]:-0}" -gt 0 ]; then
+    if [ "${#shared_assets_b[@]}" -gt 0 ]; then
         compress_path_like_items ${shared_assets_b[@]+"${shared_assets_b[@]}"}
         return
     fi
@@ -439,7 +439,7 @@ get_derived_do_not_touch_paths() {
     context_path="$1"
     load_context_array do_not_touch_a "$context_path" "paths" "do_not_touch"
     load_context_array do_not_touch_b "$context_path" "editing_rules" "do_not_edit"
-    if [ "${#do_not_touch_b[@]:-0}" -gt 0 ]; then
+    if [ "${#do_not_touch_b[@]}" -gt 0 ]; then
         compress_path_like_items ${do_not_touch_b[@]+"${do_not_touch_b[@]}"}
         return
     fi
@@ -466,7 +466,7 @@ get_derived_hard_triggers() {
 get_derived_approval_zones() {
     context_path="$1"
     load_context_array approval_a "$context_path" "approval" "zones"
-    if [ "${#approval_a[@]:-0}" -gt 0 ]; then
+    if [ "${#approval_a[@]}" -gt 0 ]; then
         merge_context_items ${approval_a[@]+"${approval_a[@]}"}
         return
     fi
@@ -492,7 +492,7 @@ get_derived_approval_zones() {
 get_derived_worker_mapping() {
     context_path="$1"
     load_context_array worker_mapping_a "$context_path" "workers" "mapping"
-    if [ "${#worker_mapping_a[@]:-0}" -gt 0 ]; then
+    if [ "${#worker_mapping_a[@]}" -gt 0 ]; then
         merge_context_items ${worker_mapping_a[@]+"${worker_mapping_a[@]}"}
         return
     fi
@@ -530,7 +530,7 @@ get_derived_worker_mapping() {
 get_derived_reviewer_focus() {
     context_path="$1"
     load_context_array reviewer_focus_a "$context_path" "reviewer" "focus"
-    if [ "${#reviewer_focus_a[@]:-0}" -gt 0 ]; then
+    if [ "${#reviewer_focus_a[@]}" -gt 0 ]; then
         merge_context_items ${reviewer_focus_a[@]+"${reviewer_focus_a[@]}"}
         return
     fi
@@ -621,11 +621,11 @@ generate_workspace_state_from_context() {
     load_array_from_command shared_contracts get_derived_shared_contracts "$context_path"
     load_array_from_command reviewer_focus get_derived_reviewer_focus "$context_path"
 
-    if [ "${#shared_contracts[@]:-0}" -eq 0 ]; then
+    if [ "${#shared_contracts[@]}" -eq 0 ]; then
         shared_contracts=("n/a")
     fi
 
-    if [ "${#reviewer_focus[@]:-0}" -eq 0 ]; then
+    if [ "${#reviewer_focus[@]}" -eq 0 ]; then
         reviewer_focus=("n/a")
     fi
 
@@ -1007,8 +1007,11 @@ remove_legacy_config_agent_sections() {
         }
         {
             trimmed = trim($0)
-            if (match(trimmed, /^\[agents\.([^\]]+)\]$/, m)) {
-                skip = !keep[m[1]]
+            if (trimmed ~ /^\[agents\.[^]]+\]$/) {
+                section_name = trimmed
+                sub(/^\[agents\./, "", section_name)
+                sub(/\]$/, "", section_name)
+                skip = !keep[section_name]
             } else if (trimmed ~ /^\[.*\]$/) {
                 skip = 0
             }
