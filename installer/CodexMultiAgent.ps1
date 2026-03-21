@@ -985,8 +985,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.',
         '',
         'Execution bias:',
-        '- Assume you are allowed to use subagents when the task matches the patterns above.',
-        '- Do not ask the user for permission to spawn subagents when AGENTS.md route rules already imply reviewer or worker delegation.'
+        '- Assume you are allowed to use subagents when the task matches the patterns above.'
     )
 }
 

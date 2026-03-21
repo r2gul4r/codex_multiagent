@@ -921,7 +921,6 @@ Delegation rules:
 
 Execution bias:
 - Assume you are allowed to use subagents when the task matches the patterns above.
-- Do not ask the user for permission to spawn subagents when AGENTS.md route rules already imply reviewer or worker delegation.
 EOF
 }
 
