@@ -18,6 +18,7 @@ GLOBAL_CONFIG_PATH="${GLOBAL_HOME}/config.toml"
 GLOBAL_CUSTOM_AGENTS_ROOT="${GLOBAL_HOME}/agents"
 GLOBAL_RULES_ROOT="${GLOBAL_HOME}/rules"
 LOCAL_README="${LOCAL_KIT_ROOT}/README.md"
+MANAGED_AGENT_FILES=("default.toml" "worker.toml" "explorer.toml" "reviewer.toml")
 
 usage() {
     cat <<'EOF'
@@ -44,6 +45,24 @@ copy_directory_contents() {
     if [ -d "$src" ]; then
         cp -R "$src"/. "$dest"/
     fi
+}
+
+get_backup_stamp() {
+    date +"%Y%m%d-%H%M%S"
+}
+
+backup_path_if_exists() {
+    path="$1"
+    backup_root="$2"
+    name="$3"
+
+    if [ ! -e "$path" ]; then
+        return
+    fi
+
+    target="${backup_root}/${name}"
+    ensure_directory "$(dirname "$target")"
+    cp -R "$path" "$target"
 }
 
 remove_stale_installer_artifacts() {
@@ -673,6 +692,7 @@ should_overwrite_file() {
 
 install_codex_custom_agents() {
     source_kit_root="$1"
+    backup_root="$2"
     source_agents_root="${source_kit_root}/codex_agents"
 
     if [ ! -d "$source_agents_root" ]; then
@@ -680,15 +700,25 @@ install_codex_custom_agents() {
     fi
 
     ensure_directory "$GLOBAL_CUSTOM_AGENTS_ROOT"
+    backup_path_if_exists "$GLOBAL_CUSTOM_AGENTS_ROOT" "$backup_root" "agents"
+
+    find "$GLOBAL_CUSTOM_AGENTS_ROOT" -maxdepth 1 -type f -name '*.toml' | while IFS= read -r existing_file; do
+        base_name=$(basename "$existing_file")
+        keep=0
+        for managed in "${MANAGED_AGENT_FILES[@]}"; do
+            if [ "$base_name" = "$managed" ]; then
+                keep=1
+                break
+            fi
+        done
+        if [ "$keep" -eq 0 ]; then
+            rm -f "$existing_file"
+        fi
+    done
 
     find "$source_agents_root" -maxdepth 1 -type f | while IFS= read -r source_file; do
         target="${GLOBAL_CUSTOM_AGENTS_ROOT}/$(basename "$source_file")"
-
-        if should_overwrite_file "$target"; then
-            cp "$source_file" "$target"
-        else
-            printf 'Skipped subagent config overwrite: %s\n' "$target"
-        fi
+        cp "$source_file" "$target"
     done
 }
 
@@ -854,10 +884,51 @@ ensure_config_section_key_value() {
     mv "$tmp_file" "$file"
 }
 
+remove_legacy_config_agent_sections() {
+    file="$1"
+    shift
+    tmp_file=$(mktemp)
+    if [ ! -f "$file" ]; then
+        return
+    fi
+    awk -v allowed="$(printf '%s\n' "$@" | paste -sd '\t' -)" '
+        BEGIN {
+            split(allowed, items, "\t")
+            for (i in items) {
+                keep[items[i]] = 1
+            }
+        }
+        function trim(s) {
+            sub(/^[[:space:]]+/, "", s)
+            sub(/[[:space:]]+$/, "", s)
+            return s
+        }
+        {
+            trimmed = trim($0)
+            if (match(trimmed, /^\[agents\.([^\]]+)\]$/, m)) {
+                skip = !keep[m[1]]
+            } else if (trimmed ~ /^\[.*\]$/) {
+                skip = 0
+            }
+            if (!skip) {
+                print $0
+            }
+        }
+    ' "$file" > "$tmp_file"
+    mv "$tmp_file" "$file"
+}
+
 install_codex_config() {
+    backup_root="$1"
     ensure_directory "$(dirname "$GLOBAL_CONFIG_PATH")"
+    backup_path_if_exists "$GLOBAL_CONFIG_PATH" "$backup_root" "config.toml"
+    remove_legacy_config_agent_sections "$GLOBAL_CONFIG_PATH" "default" "worker" "explorer" "reviewer"
     ensure_config_array_contains "$GLOBAL_CONFIG_PATH" "project_doc_fallback_filenames" "AGENTS.md"
     ensure_config_section_key_value "$GLOBAL_CONFIG_PATH" "features" "multi_agent" "true"
+    ensure_config_section_key_value "$GLOBAL_CONFIG_PATH" "agents.default" "config_file" "\"./agents/default.toml\""
+    ensure_config_section_key_value "$GLOBAL_CONFIG_PATH" "agents.worker" "config_file" "\"./agents/worker.toml\""
+    ensure_config_section_key_value "$GLOBAL_CONFIG_PATH" "agents.explorer" "config_file" "\"./agents/explorer.toml\""
+    ensure_config_section_key_value "$GLOBAL_CONFIG_PATH" "agents.reviewer" "config_file" "\"./agents/reviewer.toml\""
 }
 
 show_info_banner() {
@@ -966,6 +1037,8 @@ install_global_kit() {
     ensure_directory "$GLOBAL_HOME"
     ensure_directory "$GLOBAL_KIT_ROOT"
     remove_stale_installer_artifacts "${GLOBAL_KIT_ROOT}/installer"
+    backup_root="${GLOBAL_HOME}/backups/$(get_backup_stamp)/global"
+    backup_path_if_exists "$GLOBAL_AGENTS_PATH" "$backup_root" "AGENTS.md"
 
     for item in \
         README.md \
@@ -996,8 +1069,8 @@ install_global_kit() {
     else
         cp "${LOCAL_KIT_ROOT}/AGENTS.md" "$GLOBAL_AGENTS_PATH"
     fi
-    install_codex_config
-    install_codex_custom_agents "$LOCAL_KIT_ROOT"
+    install_codex_config "$backup_root"
+    install_codex_custom_agents "$LOCAL_KIT_ROOT" "$backup_root"
     install_codex_rules "$LOCAL_KIT_ROOT"
 
     printf 'Installed global defaults at %s\n' "$GLOBAL_AGENTS_PATH"
@@ -1020,6 +1093,7 @@ apply_to_workspace() {
     state_relative_path=$(toml_get_scalar "$context_path" "workspace" "task_board_path")
     [ -n "$state_relative_path" ] || state_relative_path="STATE.md"
     state_target="${resolved_workspace}/${state_relative_path}"
+    backup_root="${resolved_workspace}/.codex-backups/$(get_backup_stamp)/workspace"
 
     write_section 'Applying workspace override'
     printf 'Workspace: %s\n' "$resolved_workspace"
@@ -1029,10 +1103,8 @@ apply_to_workspace() {
         printf 'Workspace context: %s\n' "$context_path"
     fi
 
-    if ! should_overwrite_file "$agents_target"; then
-        printf 'Skipped AGENTS.md overwrite\n'
-        return
-    fi
+    backup_path_if_exists "$agents_target" "$backup_root" "AGENTS.md"
+    backup_path_if_exists "$state_target" "$backup_root" "STATE.md"
 
     if [ -f "$context_path" ]; then
         generate_workspace_agents_from_context "$context_path" "$(basename "$resolved_workspace")" "$template_name" "$agents_target"
@@ -1040,13 +1112,11 @@ apply_to_workspace() {
         generate_default_workspace_agents "$(basename "$resolved_workspace")" "$template_name" > "$agents_target"
     fi
 
-    if [ ! -e "$state_target" ]; then
-        ensure_directory "$(dirname "$state_target")"
-        if [ -f "$context_path" ]; then
-            generate_workspace_state_from_context "$context_path" "$(basename "$resolved_workspace")" "$state_target"
-        else
-            generate_default_state "$(basename "$resolved_workspace")" > "$state_target"
-        fi
+    ensure_directory "$(dirname "$state_target")"
+    if [ -f "$context_path" ]; then
+        generate_workspace_state_from_context "$context_path" "$(basename "$resolved_workspace")" "$state_target"
+    else
+        generate_default_state "$(basename "$resolved_workspace")" > "$state_target"
     fi
 
     if [ "$copy_docs" -eq 1 ]; then

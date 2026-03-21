@@ -28,6 +28,7 @@ $GlobalConfigPath = Join-Path $GlobalHome 'config.toml'
 $GlobalCustomAgentsRoot = Join-Path $GlobalHome 'agents'
 $GlobalRulesRoot = Join-Path $GlobalHome 'rules'
 $LocalReadme = Join-Path $LocalKitRoot 'README.md'
+$ManagedAgentFiles = @('default.toml', 'worker.toml', 'explorer.toml', 'reviewer.toml')
 
 function Write-Section {
     param([string]$Text)
@@ -56,6 +57,27 @@ function Copy-DirectoryContents {
         $target = Join-Path $Destination $_.Name
         Copy-Item -LiteralPath $_.FullName -Destination $target -Recurse -Force
     }
+}
+
+function Get-BackupStamp {
+    return (Get-Date -Format 'yyyyMMdd-HHmmss')
+}
+
+function Backup-PathIfExists {
+    param(
+        [string]$Path,
+        [string]$BackupRoot,
+        [string]$Name
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    Ensure-Directory -Path $BackupRoot
+    $target = Join-Path $BackupRoot $Name
+    Ensure-Directory -Path (Split-Path -Parent $target)
+    Copy-Item -LiteralPath $Path -Destination $target -Recurse -Force
 }
 
 function Remove-StaleInstallerArtifacts {
@@ -788,7 +810,10 @@ function New-WorkspaceStateFromContext {
 }
 
 function Install-CodexCustomAgents {
-    param([string]$SourceKitRoot)
+    param(
+        [string]$SourceKitRoot,
+        [string]$BackupRoot
+    )
 
     $sourceAgentsRoot = Join-Path $SourceKitRoot 'codex_agents'
     if (-not (Test-Path -LiteralPath $sourceAgentsRoot -PathType Container)) {
@@ -796,16 +821,17 @@ function Install-CodexCustomAgents {
     }
 
     Ensure-Directory -Path $GlobalCustomAgentsRoot
+    Backup-PathIfExists -Path $GlobalCustomAgentsRoot -BackupRoot $BackupRoot -Name 'agents'
+
+    Get-ChildItem -LiteralPath $GlobalCustomAgentsRoot -Filter *.toml -File -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($ManagedAgentFiles -notcontains $_.Name) {
+            Remove-Item -LiteralPath $_.FullName -Force
+        }
+    }
 
     Get-ChildItem -LiteralPath $sourceAgentsRoot -File | ForEach-Object {
         $target = Join-Path $GlobalCustomAgentsRoot $_.Name
-
-        if (Should-OverwriteFile -Path $target) {
-            Copy-Item -LiteralPath $_.FullName -Destination $target -Force
-        }
-        else {
-            Write-Host "Skipped subagent config overwrite: $target" -ForegroundColor Yellow
-        }
+        Copy-Item -LiteralPath $_.FullName -Destination $target -Force
     }
 }
 
@@ -923,9 +949,43 @@ function Ensure-ConfigSectionKeyValue {
     $Lines.Add("$Key = $ValueLiteral")
 }
 
-function Install-CodexConfig {
-    param([string]$ConfigPath)
+function Remove-LegacyConfigAgentSections {
+    param(
+        [System.Collections.Generic.List[string]]$Lines,
+        [string[]]$AllowedAgents
+    )
 
+    $allowed = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($name in $AllowedAgents) {
+        $allowed.Add($name) | Out-Null
+    }
+
+    $result = [System.Collections.Generic.List[string]]::new()
+    $skip = $false
+    foreach ($line in $Lines) {
+        $trimmed = $line.Trim()
+        if ($trimmed -match '^\[agents\.([^\]]+)\]$') {
+            $skip = -not $allowed.Contains($Matches[1])
+        }
+        elseif ($trimmed.StartsWith('[') -and $trimmed.EndsWith(']')) {
+            $skip = $false
+        }
+
+        if (-not $skip) {
+            $result.Add($line)
+        }
+    }
+
+    return $result.ToArray()
+}
+
+function Install-CodexConfig {
+    param(
+        [string]$ConfigPath,
+        [string]$BackupRoot
+    )
+
+    Backup-PathIfExists -Path $ConfigPath -BackupRoot $BackupRoot -Name 'config.toml'
     $lines = [System.Collections.Generic.List[string]]::new()
     if (Test-Path -LiteralPath $ConfigPath) {
         foreach ($line in (Get-Content -LiteralPath $ConfigPath)) {
@@ -937,8 +997,17 @@ function Install-CodexConfig {
         $lines.Add('')
     }
 
+    $filteredLines = @(Remove-LegacyConfigAgentSections -Lines $lines -AllowedAgents @('default', 'worker', 'explorer', 'reviewer'))
+    $lines = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $filteredLines) {
+        $lines.Add([string]$line)
+    }
     Ensure-ConfigArrayContains -Lines $lines -Key 'project_doc_fallback_filenames' -RequiredValues @('AGENTS.md')
     Ensure-ConfigSectionKeyValue -Lines $lines -Section 'features' -Key 'multi_agent' -ValueLiteral 'true'
+    Ensure-ConfigSectionKeyValue -Lines $lines -Section 'agents.default' -Key 'config_file' -ValueLiteral '"./agents/default.toml"'
+    Ensure-ConfigSectionKeyValue -Lines $lines -Section 'agents.worker' -Key 'config_file' -ValueLiteral '"./agents/worker.toml"'
+    Ensure-ConfigSectionKeyValue -Lines $lines -Section 'agents.explorer' -Key 'config_file' -ValueLiteral '"./agents/explorer.toml"'
+    Ensure-ConfigSectionKeyValue -Lines $lines -Section 'agents.reviewer' -Key 'config_file' -ValueLiteral '"./agents/reviewer.toml"'
 
     Set-Content -LiteralPath $ConfigPath -Value ($lines -join "`n") -Encoding utf8
 }
@@ -1078,6 +1147,8 @@ function Install-GlobalKit {
     Ensure-Directory -Path $GlobalHome
     Ensure-Directory -Path $GlobalKitRoot
     Remove-StaleInstallerArtifacts -InstallerPath (Join-Path $GlobalKitRoot 'installer')
+    $backupRoot = Join-Path (Join-Path (Join-Path $GlobalHome 'backups') (Get-BackupStamp)) 'global'
+    Backup-PathIfExists -Path $GlobalAgentsPath -BackupRoot $backupRoot -Name 'AGENTS.md'
 
     $items = @(
         'README.md',
@@ -1112,8 +1183,8 @@ function Install-GlobalKit {
     else {
         Copy-Item -LiteralPath (Join-Path $LocalKitRoot 'AGENTS.md') -Destination $GlobalAgentsPath -Force
     }
-    Install-CodexConfig -ConfigPath $GlobalConfigPath
-    Install-CodexCustomAgents -SourceKitRoot $LocalKitRoot
+    Install-CodexConfig -ConfigPath $GlobalConfigPath -BackupRoot $backupRoot
+    Install-CodexCustomAgents -SourceKitRoot $LocalKitRoot -BackupRoot $backupRoot
     Install-CodexRules -SourceKitRoot $LocalKitRoot
 
     Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
@@ -1139,6 +1210,7 @@ function Apply-ToWorkspace {
     $agentsTarget = Join-Path $resolvedWorkspace 'AGENTS.md'
     $stateRelativePath = if ($context) { Get-ContextString -Context $context -Section 'workspace' -Key 'task_board_path' -DefaultValue 'STATE.md' } else { 'STATE.md' }
     $stateTarget = Join-Path $resolvedWorkspace $stateRelativePath
+    $backupRoot = Join-Path (Join-Path (Join-Path $resolvedWorkspace '.codex-backups') (Get-BackupStamp)) 'workspace'
 
     Write-Section -Text 'Applying workspace override'
     Write-Host "Workspace: $resolvedWorkspace"
@@ -1148,10 +1220,8 @@ function Apply-ToWorkspace {
         Write-Host "Workspace context: $contextPath"
     }
 
-    if (-not (Should-OverwriteFile -Path $agentsTarget)) {
-        Write-Host 'Skipped AGENTS.md overwrite' -ForegroundColor Yellow
-        return
-    }
+    Backup-PathIfExists -Path $agentsTarget -BackupRoot $backupRoot -Name 'AGENTS.md'
+    Backup-PathIfExists -Path $stateTarget -BackupRoot $backupRoot -Name 'STATE.md'
 
     if ($context) {
         $agentsContent = New-WorkspaceAgentsFromContext -Context $context -WorkspaceName (Split-Path -Leaf $resolvedWorkspace) -TemplateName $TemplateName
@@ -1162,16 +1232,14 @@ function Apply-ToWorkspace {
         Set-Content -LiteralPath $agentsTarget -Value $agentsContent -Encoding utf8
     }
 
-    if (-not (Test-Path -LiteralPath $stateTarget)) {
-        Ensure-Directory -Path (Split-Path -Parent $stateTarget)
-        if ($context) {
-            $stateContent = New-WorkspaceStateFromContext -Context $context -WorkspaceName (Split-Path -Leaf $resolvedWorkspace)
-            Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8
-        }
-        else {
-            $stateContent = New-DefaultState -WorkspaceName (Split-Path -Leaf $resolvedWorkspace)
-            Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8
-        }
+    Ensure-Directory -Path (Split-Path -Parent $stateTarget)
+    if ($context) {
+        $stateContent = New-WorkspaceStateFromContext -Context $context -WorkspaceName (Split-Path -Leaf $resolvedWorkspace)
+        Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8
+    }
+    else {
+        $stateContent = New-DefaultState -WorkspaceName (Split-Path -Leaf $resolvedWorkspace)
+        Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8
     }
 
     if ($CopyDocs) {

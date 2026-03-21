@@ -11,9 +11,9 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 
 이 명령은
 
-- `%USERPROFILE%\.codex\AGENTS.md` 생성 또는 덮어쓰기
+- `%USERPROFILE%\.codex\AGENTS.md`, `config.toml`, installer 관리 대상 `agents/*.toml` 을 백업 후 새 구조 기준으로 재생성
 - `%USERPROFILE%\.codex\config.toml` 의 필요한 키를 patch 해서 `AGENTS.md` 발견 우선순위와 `multi_agent` 기본값을 맞춤
-- `%USERPROFILE%\.codex\agents\*.toml` 서브에이전트 설정 설치
+- `%USERPROFILE%\.codex\agents\*.toml` 서브에이전트 설정 설치 및 레거시 추가 agent 정리
 - `%USERPROFILE%\.codex\rules\*.rules` 기본 command rules 설치
 - 그래서 기존 작업공간이든 새 작업공간이든 공통 기본 규칙 자동 적용
 - 참고용 킷은 `%USERPROFILE%\.codex\multiagent-kit` 에 같이 복사
@@ -32,8 +32,7 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 
 이 명령은
 
-- 지정한 작업공간 루트에 `AGENTS.md` 생성 또는 덮어쓰기
-- `STATE.md` 가 없으면 같이 생성
+- 지정한 작업공간 루트의 `AGENTS.md`, `STATE.md` 를 백업 후 새 구조 기준으로 재생성
 - 전역 기본 규칙 위에 저장소 전용 규칙을 오버라이드로 추가
 - `docs/codex-multiagent/` 참고 문서 복사
 - 작업공간 루트에 `WORKSPACE_CONTEXT.toml` 이 있으면 그 파일을 먼저 읽어 프로젝트에 맞는 `AGENTS.md` 와 초기 `STATE.md` 생성
@@ -46,3 +45,4 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 - 실제 프로젝트 작업은 작업공간 오버라이드까지 적용하는 것을 기본으로 권장
 - 더 짧은 템플릿을 원하면 끝에 `-Template minimal` 추가
 - macOS용 설치 명령은 `README.md` 의 macOS 설치 섹션 참고
+- 전역 설치 백업은 `%USERPROFILE%\.codex\backups\<timestamp>\global`, 작업공간 오버라이드 백업은 `<workspace>\.codex-backups\<timestamp>\workspace` 아래에 남음
