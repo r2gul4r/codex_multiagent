@@ -27,6 +27,8 @@ $GlobalAgentsPath = Join-Path $GlobalHome 'AGENTS.md'
 $GlobalConfigPath = Join-Path $GlobalHome 'config.toml'
 $GlobalCustomAgentsRoot = Join-Path $GlobalHome 'agents'
 $GlobalRulesRoot = Join-Path $GlobalHome 'rules'
+$GlobalSkillsRoot = Join-Path $GlobalHome 'skills'
+$GlobalManagedSkillsManifest = Join-Path $GlobalHome 'installer-managed-skills.manifest'
 $LocalReadme = Join-Path $LocalKitRoot 'README.md'
 $ManagedAgentFiles = @('default.toml', 'worker.toml', 'explorer.toml', 'reviewer.toml')
 
@@ -307,6 +309,47 @@ function Get-DerivedWorkspaceSummary {
     return $summary
 }
 
+function Get-DerivedErrorLogPath {
+    param([hashtable]$Context)
+
+    $errorLogPath = Get-ContextString -Context $Context -Section 'workspace' -Key 'error_log_path'
+    if (-not $errorLogPath) {
+        $errorLogPath = 'ERROR_LOG.md'
+    }
+    return $errorLogPath
+}
+
+function Resolve-WorkspaceRelativePath {
+    param(
+        [string]$WorkspaceRoot,
+        [string]$RelativePath,
+        [string]$PathLabel
+    )
+
+    if ([string]::IsNullOrWhiteSpace($RelativePath)) {
+        throw "$PathLabel cannot be empty"
+    }
+
+    if ([System.IO.Path]::IsPathRooted($RelativePath) -or $RelativePath.StartsWith('~')) {
+        throw "$PathLabel must be workspace-relative: $RelativePath"
+    }
+
+    $root = [System.IO.Path]::GetFullPath($WorkspaceRoot)
+    $normalizedRoot = $root.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    $candidate = [System.IO.Path]::GetFullPath((Join-Path -Path $root -ChildPath $RelativePath))
+
+    $rootPrefix = $normalizedRoot + [System.IO.Path]::DirectorySeparatorChar
+    if ($candidate -eq $normalizedRoot) {
+        throw "$PathLabel must point to a file: $RelativePath"
+    }
+
+    if (-not $candidate.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "$PathLabel escapes workspace root: $RelativePath"
+    }
+
+    return $candidate
+}
+
 function Get-DerivedRepositoryFacts {
     param([hashtable]$Context)
 
@@ -327,6 +370,9 @@ function Get-DerivedRepositoryFacts {
 
     $locale = Get-ContextString -Context $Context -Section 'workspace' -Key 'locale'
     if ($locale) { $facts.Add("Locale: $locale") }
+
+    $errorLogPath = Get-DerivedErrorLogPath -Context $Context
+    if ($errorLogPath) { $facts.Add(('Error log path: `{0}`' -f $errorLogPath)) }
 
     $sourceOfTruth = Get-ContextString -Context $Context -Section 'architecture' -Key 'source_of_truth'
     if ($sourceOfTruth) { $facts.Add("Source of truth: $sourceOfTruth") }
@@ -584,6 +630,7 @@ function New-DefaultWorkspaceAgents {
     if ($TemplateName -eq 'minimal') {
         $lines.Add('## Minimal Repository Rules')
         $lines.Add('')
+        $lines.Add('- Error log path: `ERROR_LOG.md`')
         $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
         $lines.Add('- Keep changes small')
         $lines.Add('- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here')
@@ -596,6 +643,7 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('- Primary source of truth paths')
         $lines.Add('- Shared asset paths')
         $lines.Add('- Do-not-touch or generated paths')
+        $lines.Add('- Error log path: `ERROR_LOG.md`')
         $lines.Add('- Verification commands')
         $lines.Add('- Manual approval zones')
         $lines.Add('- Worker ownership mapping when Route C is used')
@@ -620,48 +668,46 @@ function New-DefaultState {
     $lines.Add('')
     $lines.Add('## Current Task')
     $lines.Add('')
-    $lines.Add('- id: `initial-task`')
-    $lines.Add(('- summary: `Replace with the first concrete task for {0} before execution`' -f $WorkspaceName))
-    $lines.Add('- owner: `main`')
+    $lines.Add(('- task: `Replace with the first concrete task for {0} before execution`' -f $WorkspaceName))
     $lines.Add('- phase: `explore`')
+    $lines.Add('- scope: `n/a`')
+    $lines.Add('- verification_target: `n/a`')
     $lines.Add('')
     $lines.Add('## Route')
     $lines.Add('')
-    $lines.Add('- name: `Route A`')
+    $lines.Add('- route: `Route A`')
     $lines.Add('- reason: `placeholder - classify the first task before editing`')
-    $lines.Add('')
-    $lines.Add('## Next Tasks')
-    $lines.Add('')
-    $lines.Add('- `Replace with the first concrete next step`')
-    $lines.Add('')
-    $lines.Add('## Blocked Tasks')
-    $lines.Add('')
-    $lines.Add('- `없음`')
     $lines.Add('')
     $lines.Add('## Writer Slot')
     $lines.Add('')
-    $lines.Add('- status: `free`')
-    $lines.Add('- target_scope: `n/a`')
+    $lines.Add('- owner: `main`')
+    $lines.Add('- write_set: `n/a`')
     $lines.Add('- write_sets:')
-    $lines.Add('  - `n/a`')
+    $lines.Add('  - `worker_shared`: `n/a`')
+    $lines.Add('  - `worker_feature`: `n/a`')
+    $lines.Add('- note: `Single-lane local task; no worker split is needed for this scope.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
-    $lines.Add('- status: `open`')
-    $lines.Add('- shared_contracts:')
-    $lines.Add('  - `n/a`')
-    $lines.Add('- freeze_owner: `main`')
+    $lines.Add('- contract_freeze: `n/a`')
+    $lines.Add('')
+    $lines.Add('## Seed')
+    $lines.Add('')
+    $lines.Add('- status: `n/a`')
+    $lines.Add('- path: `n/a`')
+    $lines.Add('- revision: `n/a`')
+    $lines.Add('- note: `Use this section to track the active frozen seed once a spec-first task starts.`')
     $lines.Add('')
     $lines.Add('## Reviewer')
     $lines.Add('')
-    $lines.Add('- target: `n/a`')
-    $lines.Add('- focus:')
-    $lines.Add('  - `n/a`')
+    $lines.Add('- reviewer: `n/a`')
+    $lines.Add('- reviewer_target: `n/a`')
+    $lines.Add('- reviewer_focus: `n/a`')
     $lines.Add('')
     $lines.Add('## Last Update')
     $lines.Add('')
-    $lines.Add('- updated_by: `main`')
-    $lines.Add('- updated_at: `[timestamp]`')
+    $lines.Add('- timestamp: `[timestamp]`')
+    $lines.Add('- note: `Template generated by installer.`')
 
     return ($lines -join "`n") + "`n"
 }
@@ -670,13 +716,18 @@ function New-WorkspaceAgentsFromContext {
     param(
         [hashtable]$Context,
         [string]$WorkspaceName,
-        [string]$TemplateName
+        [string]$TemplateName,
+        [string]$WorkspaceRoot
     )
 
     $taskBoardPath = Get-ContextString -Context $Context -Section 'workspace' -Key 'task_board_path' -DefaultValue 'STATE.md'
     $multiAgentLogPath = Get-ContextString -Context $Context -Section 'workspace' -Key 'multi_agent_log_path' -DefaultValue 'MULTI_AGENT_LOG.md'
+    $errorLogPath = Get-DerivedErrorLogPath -Context $Context
     $title = Get-ContextString -Context $Context -Section 'workspace' -Key 'name' -DefaultValue $WorkspaceName
     $summary = Get-DerivedWorkspaceSummary -Context $Context -WorkspaceName $WorkspaceName
+
+    Resolve-WorkspaceRelativePath -WorkspaceRoot $WorkspaceRoot -RelativePath $taskBoardPath -PathLabel 'task_board_path' | Out-Null
+    Resolve-WorkspaceRelativePath -WorkspaceRoot $WorkspaceRoot -RelativePath $errorLogPath -PathLabel 'error_log_path' | Out-Null
 
     $repositoryFacts = @(Get-DerivedRepositoryFacts -Context $Context)
     $requiredRead = @(Get-DerivedRequiredRead -Context $Context)
@@ -702,7 +753,8 @@ function New-WorkspaceAgentsFromContext {
 
     Add-MarkdownSection -Lines $lines -Title 'Repository Facts' -Items ($repositoryFacts + @(
         ('Task board path: `{0}`' -f $taskBoardPath),
-        ('Multi-agent log path: `{0}`' -f $multiAgentLogPath)
+        ('Multi-agent log path: `{0}`' -f $multiAgentLogPath),
+        ('Error log path: `{0}`' -f $errorLogPath)
     ))
     Add-MarkdownSection -Lines $lines -Title 'Required Context Before Editing' -Items $requiredRead
     Add-MarkdownSection -Lines $lines -Title 'Verification Commands' -Items $verificationCommands
@@ -735,6 +787,17 @@ function New-WorkspaceAgentsFromContext {
     return ($lines -join "`r`n") + "`r`n"
 }
 
+function New-DefaultErrorLog {
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add('# ERROR LOG')
+    $lines.Add('')
+    $lines.Add('Append-only log for installer, execution, tool, and verification errors.')
+    $lines.Add('Add new entries with timestamp, location, summary, and details.')
+    $lines.Add('Do not rewrite existing entries; append only.')
+
+    return ($lines -join "`r`n") + "`r`n"
+}
+
 function New-WorkspaceStateFromContext {
     param(
         [hashtable]$Context,
@@ -742,68 +805,52 @@ function New-WorkspaceStateFromContext {
     )
 
     $title = Get-ContextString -Context $Context -Section 'workspace' -Key 'name' -DefaultValue $WorkspaceName
-    $sharedContracts = @(Get-DerivedSharedContracts -Context $Context)
-    $reviewerFocus = @(Get-DerivedReviewerFocus -Context $Context)
-
-    if (@($sharedContracts).Count -eq 0) {
-        $sharedContracts = @('n/a')
-    }
-
-    if (@($reviewerFocus).Count -eq 0) {
-        $reviewerFocus = @('n/a')
-    }
 
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add('# STATE')
     $lines.Add('')
     $lines.Add('## Current Task')
     $lines.Add('')
-    $lines.Add('- id: `initial-task`')
-    $lines.Add(('- summary: `Replace with the first concrete task for {0} before execution`' -f $title))
-    $lines.Add('- owner: `main`')
+    $lines.Add(('- task: `Replace with the first concrete task for {0} before execution`' -f $title))
     $lines.Add('- phase: `explore`')
+    $lines.Add('- scope: `n/a`')
+    $lines.Add('- verification_target: `n/a`')
     $lines.Add('')
     $lines.Add('## Route')
     $lines.Add('')
-    $lines.Add('- name: `Route A`')
+    $lines.Add('- route: `Route A`')
     $lines.Add('- reason: `placeholder - classify the first task before editing`')
-    $lines.Add('')
-    $lines.Add('## Next Tasks')
-    $lines.Add('')
-    $lines.Add('- `Replace with the first concrete next step`')
-    $lines.Add('')
-    $lines.Add('## Blocked Tasks')
-    $lines.Add('')
-    $lines.Add('- `없음`')
     $lines.Add('')
     $lines.Add('## Writer Slot')
     $lines.Add('')
-    $lines.Add('- status: `free`')
-    $lines.Add('- target_scope: `n/a`')
+    $lines.Add('- owner: `main`')
+    $lines.Add('- write_set: `n/a`')
     $lines.Add('- write_sets:')
-    $lines.Add('  - `n/a`')
+    $lines.Add('  - `worker_shared`: `n/a`')
+    $lines.Add('  - `worker_feature`: `n/a`')
+    $lines.Add('- note: `Single-lane local task; no worker split is needed for this scope.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
-    $lines.Add('- status: `open`')
-    $lines.Add('- shared_contracts:')
-    foreach ($contract in $sharedContracts) {
-        $lines.Add(('  - `{0}`' -f $contract))
-    }
-    $lines.Add('- freeze_owner: `main`')
+    $lines.Add('- contract_freeze: `n/a`')
+    $lines.Add('')
+    $lines.Add('## Seed')
+    $lines.Add('')
+    $lines.Add('- status: `n/a`')
+    $lines.Add('- path: `n/a`')
+    $lines.Add('- revision: `n/a`')
+    $lines.Add('- note: `Use this section to track the active frozen seed once a spec-first task starts.`')
     $lines.Add('')
     $lines.Add('## Reviewer')
     $lines.Add('')
-    $lines.Add('- target: `n/a`')
-    $lines.Add('- focus:')
-    foreach ($focus in $reviewerFocus) {
-        $lines.Add(('  - `{0}`' -f $focus))
-    }
+    $lines.Add('- reviewer: `n/a`')
+    $lines.Add('- reviewer_target: `n/a`')
+    $lines.Add('- reviewer_focus: `n/a`')
     $lines.Add('')
     $lines.Add('## Last Update')
     $lines.Add('')
-    $lines.Add('- updated_by: `main`')
-    $lines.Add('- updated_at: `[timestamp]`')
+    $lines.Add('- timestamp: `[timestamp]`')
+    $lines.Add('- note: `Template generated by installer.`')
 
     return ($lines -join "`r`n") + "`r`n"
 }
@@ -832,6 +879,43 @@ function Install-CodexCustomAgents {
         $target = Join-Path $GlobalCustomAgentsRoot $_.Name
         Copy-Item -LiteralPath $_.FullName -Destination $target -Force
     }
+}
+
+function Install-CodexSkills {
+    param(
+        [string]$SourceKitRoot,
+        [string]$BackupRoot
+    )
+
+    $sourceSkillsRoot = Join-Path $SourceKitRoot 'codex_skills'
+    if (-not (Test-Path -LiteralPath $sourceSkillsRoot -PathType Container)) {
+        return
+    }
+
+    Ensure-Directory -Path $GlobalSkillsRoot
+    Backup-PathIfExists -Path $GlobalSkillsRoot -BackupRoot $BackupRoot -Name 'skills'
+    Backup-PathIfExists -Path $GlobalManagedSkillsManifest -BackupRoot $BackupRoot -Name 'installer-managed-skills.manifest'
+
+    $previousManagedSkills = @()
+    if (Test-Path -LiteralPath $GlobalManagedSkillsManifest) {
+        $previousManagedSkills = @(Get-Content -LiteralPath $GlobalManagedSkillsManifest | Where-Object { $_ })
+    }
+
+    $currentManagedSkills = @(
+        Get-ChildItem -LiteralPath $sourceSkillsRoot -Directory | ForEach-Object { $_.Name }
+    )
+
+    foreach ($managedSkillName in $previousManagedSkills) {
+        if ($currentManagedSkills -notcontains $managedSkillName) {
+            $managedSkillPath = Join-Path $GlobalSkillsRoot $managedSkillName
+            if (Test-Path -LiteralPath $managedSkillPath) {
+                Remove-Item -LiteralPath $managedSkillPath -Recurse -Force
+            }
+        }
+    }
+
+    Copy-DirectoryContents -Source $sourceSkillsRoot -Destination $GlobalSkillsRoot
+    Set-Content -LiteralPath $GlobalManagedSkillsManifest -Value $currentManagedSkills -Encoding utf8
 }
 
 function Install-CodexRules {
@@ -950,7 +1034,7 @@ function Ensure-ConfigSectionKeyValue {
 
 function Get-ConfigDeveloperInstructionsLines {
     return @(
-        'Use subagents proactively when doing so improves focus, speed, or result quality.',
+        'Use subagents proactively when the route permits it and doing so improves focus, speed, or result quality.',
         '',
         'Execution requirements:',
         '- Always load and follow the nearest applicable AGENTS.md before implementation.',
@@ -960,9 +1044,15 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.',
         '- Treat investigation, planning, and implementation as separate stages.',
         '- If read-only investigation or planning turns into implementation, re-check the route, update STATE.md, and explicitly enter implementation before writing.',
+        '- Before parallelizing larger tasks, freeze the contract and write sets first.',
+        '',
+        'Error logging:',
+        '- Leave interrupted or paused errors in ERROR_LOG.md as open or deferred until a later append marks them resolved.',
         '',
         'Default behavior:',
         '- For read-heavy or parallelizable work such as codebase exploration, reviews, tracing execution paths, log analysis, test-failure triage, and multi-part research, delegate to built-in subagents without waiting for the user to say "spawn" or "parallelize".',
+        '- Close finished agents promptly once their output is consumed.',
+        '- Prefer spawning reviewers as late as practical unless earlier review is explicitly needed.',
         '- Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, and `reviewer` for read-only close-out checks.',
         '- Keep the main thread focused on requirements, decisions, synthesis, route selection, and final answers.',
         '- Assume the user permits normal subagent use in this workspace; the main thread applies the AGENTS.md route result rather than re-deciding whether spawning is desirable.',
@@ -972,12 +1062,14 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Every explorer-style spawn_agent call must explicitly set model = "gpt-5.4-mini" and reasoning_effort = "medium".',
         '- Every worker-style spawn_agent call must explicitly set model = "gpt-5.4-mini" and reasoning_effort = "medium".',
         '- Every reviewer-style spawn_agent call must explicitly set model = "gpt-5.4-mini" and reasoning_effort = "high".',
+        '- Do not use `fork_context` unless exact thread context is required.',
         '- Do not substitute other models or lower reasoning effort unless the user explicitly overrides this in the current conversation.',
         '- If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.',
         '',
         'Delegation rules:',
         '- On Route A, stay in one write-capable lane and spawn no subagents.',
         '- On Route B, keep one write-capable lane in main and always spawn at least one read-only reviewer.',
+        '- Assign exactly one write set to each worker.',
         '- Promote Route B to Route C when work extracts a shared component, replaces page-specific implementations with a shared renderer, or unifies 2+ pages onto one shared implementation.',
         '- On Route C, keep main planner-only and always spawn at least one worker plus one reviewer.',
         '- Do not close Route B or Route C without the required reviewer pass.',
@@ -1260,6 +1352,7 @@ function Install-GlobalKit {
         'MULTI_AGENT_GUIDE.md',
         'codex_agents',
         'codex_rules',
+        'codex_skills',
         'docs',
         'examples',
         'profiles',
@@ -1287,6 +1380,7 @@ function Install-GlobalKit {
     }
     Install-CodexConfig -ConfigPath $GlobalConfigPath -BackupRoot $backupRoot
     Install-CodexCustomAgents -SourceKitRoot $LocalKitRoot -BackupRoot $backupRoot
+    Install-CodexSkills -SourceKitRoot $LocalKitRoot -BackupRoot $backupRoot
     Install-CodexRules -SourceKitRoot $LocalKitRoot
 
     Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
@@ -1311,7 +1405,9 @@ function Apply-ToWorkspace {
     $context = if (Test-Path -LiteralPath $contextPath) { Read-WorkspaceContext -Path $contextPath } else { $null }
     $agentsTarget = Join-Path $resolvedWorkspace 'AGENTS.md'
     $stateRelativePath = if ($context) { Get-ContextString -Context $context -Section 'workspace' -Key 'task_board_path' -DefaultValue 'STATE.md' } else { 'STATE.md' }
-    $stateTarget = Join-Path $resolvedWorkspace $stateRelativePath
+    $stateTarget = Resolve-WorkspaceRelativePath -WorkspaceRoot $resolvedWorkspace -RelativePath $stateRelativePath -PathLabel 'task_board_path'
+    $errorLogRelativePath = if ($context) { Get-ContextString -Context $context -Section 'workspace' -Key 'error_log_path' -DefaultValue 'ERROR_LOG.md' } else { 'ERROR_LOG.md' }
+    $errorLogTarget = Resolve-WorkspaceRelativePath -WorkspaceRoot $resolvedWorkspace -RelativePath $errorLogRelativePath -PathLabel 'error_log_path'
     $backupRoot = Join-Path (Join-Path (Join-Path $resolvedWorkspace '.codex-backups') (Get-BackupStamp)) 'workspace'
 
     Write-Section -Text 'Applying workspace override'
@@ -1326,7 +1422,7 @@ function Apply-ToWorkspace {
     Backup-PathIfExists -Path $stateTarget -BackupRoot $backupRoot -Name 'STATE.md'
 
     if ($context) {
-        $agentsContent = New-WorkspaceAgentsFromContext -Context $context -WorkspaceName (Split-Path -Leaf $resolvedWorkspace) -TemplateName $TemplateName
+        $agentsContent = New-WorkspaceAgentsFromContext -Context $context -WorkspaceName (Split-Path -Leaf $resolvedWorkspace) -TemplateName $TemplateName -WorkspaceRoot $resolvedWorkspace
         Set-Content -LiteralPath $agentsTarget -Value $agentsContent -Encoding utf8
     }
     else {
@@ -1344,6 +1440,12 @@ function Apply-ToWorkspace {
         Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8
     }
 
+    Ensure-Directory -Path (Split-Path -Parent $errorLogTarget)
+    if (-not (Test-Path -LiteralPath $errorLogTarget)) {
+        $errorLogContent = New-DefaultErrorLog
+        Set-Content -LiteralPath $errorLogTarget -Value $errorLogContent -Encoding utf8
+    }
+
     if ($CopyDocs) {
         $docsRoot = Join-Path $resolvedWorkspace 'docs\codex-multiagent'
         Ensure-Directory -Path $docsRoot
@@ -1358,6 +1460,9 @@ function Apply-ToWorkspace {
         }
         if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_rules')) {
             Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_rules') -Destination (Join-Path $docsRoot 'codex_rules')
+        }
+        if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_skills')) {
+            Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_skills') -Destination (Join-Path $docsRoot 'codex_skills')
         }
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'profiles') -Destination (Join-Path $docsRoot 'profiles')
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'examples') -Destination (Join-Path $docsRoot 'examples')

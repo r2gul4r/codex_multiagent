@@ -41,7 +41,33 @@ Installer global setup copies this file to the user's Codex home as the default 
 - Do not open a browser, call browser automation tools, or inspect external domains just to do a final check unless the user explicitly asks for that kind of verification
 - Do not perform public-runtime, deployed-domain, preview-site, or smoke-URL checks unless the user explicitly asks for them
 
+## Error Logging
+
+- When an execution, installer, tool, or verification error materially affects the work, log it to `ERROR_LOG.md` or the configured workspace path.
+- Use the workspace-configured log path when one is available, and treat the log as append-only.
+- If work is interrupted or paused, keep the entry `open` or `deferred` until a later append marks it resolved.
+- Keep each entry compact and include `time`, `location`, `summary`, `details`, and `status`.
+- This logging rule stays subordinate to the existing Route A/B/C rules, security rules, and reviewer requirements.
+- Do not use this log as a substitute for route logging, security handling, or reviewer escalation.
+
+## Spec-First Workflow
+
+- Use `interview -> seed -> run -> evaluate` for non-tiny hotfixes when the work spans multiple files, needs a frozen contract, or could drift without a written spec.
+- Skip spec-first only for tiny local hotfixes that stay in one file and do not need a frozen contract.
+- Treat `interview` as read-only scope clarification, `seed` as contract freeze, `run` as implementation, and `evaluate` as verification.
+- Keep the workflow subordinate to the existing Route A/B/C, security, reviewer, and verification rules.
+- Do not add background orchestration loops or polling behavior to this workflow.
+- If a tiny hotfix starts growing during execution, the agent must stop, update `STATE.md`, re-select the route, and only then continue with more writes.
+
 ## Multi-Agent Enforcement
+
+### Subagent Hygiene
+
+- When delegation is in use and the route permits it, close finished agents promptly instead of leaving them idle.
+- Spawn reviewers as late as practical unless earlier review is explicitly needed for the task.
+- Give one write set to each worker; do not overlap write ownership unless the route is being reclassified.
+- Avoid `fork_context` unless the exact thread context is required for the work.
+- For larger tasks, freeze the contract and write sets before parallelizing any implementation work.
 
 ### Task Continuity
 

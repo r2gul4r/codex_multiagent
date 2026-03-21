@@ -17,6 +17,8 @@ GLOBAL_AGENTS_PATH="${GLOBAL_HOME}/AGENTS.md"
 GLOBAL_CONFIG_PATH="${GLOBAL_HOME}/config.toml"
 GLOBAL_CUSTOM_AGENTS_ROOT="${GLOBAL_HOME}/agents"
 GLOBAL_RULES_ROOT="${GLOBAL_HOME}/rules"
+GLOBAL_SKILLS_ROOT="${GLOBAL_HOME}/skills"
+GLOBAL_MANAGED_SKILLS_MANIFEST="${GLOBAL_HOME}/installer-managed-skills.manifest"
 LOCAL_README="${LOCAL_KIT_ROOT}/README.md"
 MANAGED_AGENT_FILES=("default.toml" "worker.toml" "explorer.toml" "reviewer.toml")
 
@@ -45,6 +47,54 @@ copy_directory_contents() {
     if [ -d "$src" ]; then
         cp -R "$src"/. "$dest"/
     fi
+}
+
+iter_top_level_sorted_paths() {
+    dir="$1"
+    type="$2"
+
+    (
+        LC_ALL=C
+        paths=()
+
+        for path in "$dir"/.* "$dir"/*; do
+            case "$path" in
+                "$dir"/.|"$dir"/..)
+                    continue
+                    ;;
+            esac
+            case "$type" in
+                file)
+                    [ -f "$path" ] || continue
+                    [ -L "$path" ] && continue
+                    ;;
+                dir)
+                    [ -d "$path" ] || continue
+                    [ -L "$path" ] && continue
+                    ;;
+            esac
+            paths+=("$path")
+        done
+
+        sorted_paths=()
+        for path in "${paths[@]}"; do
+            inserted=0
+            new_sorted_paths=()
+            for existing_path in "${sorted_paths[@]}"; do
+                if [ "$inserted" -eq 0 ] && [[ "$path" < "$existing_path" ]]; then
+                    new_sorted_paths+=("$path")
+                    inserted=1
+                fi
+                new_sorted_paths+=("$existing_path")
+            done
+            if [ "$inserted" -eq 0 ]; then
+                new_sorted_paths+=("$path")
+            fi
+            sorted_paths=("${new_sorted_paths[@]}")
+        done
+
+        printf '%s\0' "${sorted_paths[@]}"
+    )
 }
 
 get_backup_stamp() {
@@ -237,6 +287,7 @@ generate_default_workspace_agents() {
     printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
     if [ "$template_name" = "minimal" ]; then
         printf '\n## Minimal Repository Rules\n\n'
+        printf -- '- Error log path: `ERROR_LOG.md`\n'
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
         printf -- '- Keep changes small\n'
         printf -- '- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here\n'
@@ -247,6 +298,7 @@ generate_default_workspace_agents() {
         printf -- '- Primary source of truth paths\n'
         printf -- '- Shared asset paths\n'
         printf -- '- Do-not-touch or generated paths\n'
+        printf -- '- Error log path: `ERROR_LOG.md`\n'
         printf -- '- Verification commands\n'
         printf -- '- Manual approval zones\n'
         printf -- '- Worker ownership mapping when Route C is used\n'
@@ -264,34 +316,41 @@ generate_default_state() {
 
     printf '# STATE\n\n'
     printf '## Current Task\n\n'
-    printf -- '- id: `initial-task`\n'
-    printf -- '- summary: `Replace with the first concrete task for %s before execution`\n' "$workspace_name"
-    printf -- '- owner: `main`\n'
+    printf -- '- task: `Replace with the first concrete task for %s before execution`\n' "$workspace_name"
     printf -- '- phase: `explore`\n'
+    printf -- '- scope: `n/a`\n'
+    printf -- '- verification_target: `n/a`\n'
     printf '\n## Route\n\n'
-    printf -- '- name: `Route A`\n'
+    printf -- '- route: `Route A`\n'
     printf -- '- reason: `placeholder - classify the first task before editing`\n'
-    printf '\n## Next Tasks\n\n'
-    printf -- '- `Replace with the first concrete next step`\n'
-    printf '\n## Blocked Tasks\n\n'
-    printf -- '- `없음`\n'
     printf '\n## Writer Slot\n\n'
-    printf -- '- status: `free`\n'
-    printf -- '- target_scope: `n/a`\n'
+    printf -- '- owner: `main`\n'
+    printf -- '- write_set: `n/a`\n'
     printf -- '- write_sets:\n'
-    printf '  - `n/a`\n'
+    printf '  - `worker_shared`: `n/a`\n'
+    printf '  - `worker_feature`: `n/a`\n'
+    printf -- '- note: `Single-lane local task; no worker split is needed for this scope.`\n'
     printf '\n## Contract Freeze\n\n'
-    printf -- '- status: `open`\n'
-    printf -- '- shared_contracts:\n'
-    printf '  - `n/a`\n'
-    printf -- '- freeze_owner: `main`\n'
+    printf -- '- contract_freeze: `n/a`\n'
+    printf '\n## Seed\n\n'
+    printf -- '- status: `n/a`\n'
+    printf -- '- path: `n/a`\n'
+    printf -- '- revision: `n/a`\n'
+    printf -- '- note: `Use this section to track the active frozen seed once a spec-first task starts.`\n'
     printf '\n## Reviewer\n\n'
-    printf -- '- target: `n/a`\n'
-    printf -- '- focus:\n'
-    printf '  - `n/a`\n'
+    printf -- '- reviewer: `n/a`\n'
+    printf -- '- reviewer_target: `n/a`\n'
+    printf -- '- reviewer_focus: `n/a`\n'
     printf '\n## Last Update\n\n'
-    printf -- '- updated_by: `main`\n'
-    printf -- '- updated_at: `[timestamp]`\n'
+    printf -- '- timestamp: `[timestamp]`\n'
+    printf -- '- note: `Template generated by installer.`\n'
+}
+
+generate_default_error_log() {
+    printf '# ERROR LOG\n\n'
+    printf 'Append-only log for installer, execution, tool, and verification errors.\n'
+    printf 'Add new entries with timestamp, location, summary, and details.\n'
+    printf 'Do not rewrite existing entries; append only.\n'
 }
 
 merge_context_items() {
@@ -345,6 +404,84 @@ get_derived_workspace_summary() {
     printf '%s\n' "$summary"
 }
 
+get_derived_error_log_path() {
+    context_path="$1"
+
+    error_log_path=$(toml_get_scalar "$context_path" "workspace" "error_log_path")
+    [ -n "$error_log_path" ] || error_log_path="ERROR_LOG.md"
+    printf '%s\n' "$error_log_path"
+}
+
+resolve_workspace_relative_path() {
+    workspace_root="$1"
+    relative_path="$2"
+    path_label="$3"
+
+    if [ -z "$relative_path" ]; then
+        printf '%s cannot be empty\n' "$path_label" >&2
+        return 1
+    fi
+
+    case "$relative_path" in
+        /*|~*|[A-Za-z]:*)
+            printf '%s must be workspace-relative: %s\n' "$path_label" "$relative_path" >&2
+            return 1
+            ;;
+    esac
+
+    case "$relative_path" in
+        */)
+            printf '%s cannot end with /: %s\n' "$path_label" "$relative_path" >&2
+            return 1
+            ;;
+    esac
+
+    leaf=$(basename -- "$relative_path")
+    case "$leaf" in
+        .|..)
+            printf '%s must point to a file: %s\n' "$path_label" "$relative_path" >&2
+            return 1
+            ;;
+    esac
+
+    root=$(CDPATH= cd -- "$workspace_root" && pwd)
+
+    IFS=/ read -r -a path_parts <<< "$relative_path"
+    resolved_parts=()
+    for part in "${path_parts[@]}"; do
+
+        case "$part" in
+            ''|.)
+                continue
+                ;;
+            ..)
+                if [ "${#resolved_parts[@]}" -eq 0 ]; then
+                    printf '%s escapes workspace root: %s\n' "$path_label" "$relative_path" >&2
+                    return 1
+                fi
+                resolved_parts=("${resolved_parts[@]:0:${#resolved_parts[@]}-1}")
+                ;;
+            *)
+                resolved_parts+=("$part")
+                ;;
+        esac
+    done
+
+    if [ "${#resolved_parts[@]}" -eq 0 ]; then
+        printf '%s must point to a file: %s\n' "$path_label" "$relative_path" >&2
+        return 1
+    fi
+
+    resolved_path=$(printf '%s' "${resolved_parts[0]}")
+    idx=1
+    while [ "$idx" -lt "${#resolved_parts[@]}" ]; do
+        resolved_path="${resolved_path}/${resolved_parts[$idx]}"
+        idx=$((idx + 1))
+    done
+
+    printf '%s\n' "$root/$resolved_path"
+}
+
 get_derived_repository_facts() {
     context_path="$1"
 
@@ -354,6 +491,7 @@ get_derived_repository_facts() {
     primary_entry=$(toml_get_scalar "$context_path" "workspace" "primary_entry")
     page_url=$(toml_get_scalar "$context_path" "workspace" "page_url")
     locale=$(toml_get_scalar "$context_path" "workspace" "locale")
+    error_log_path=$(get_derived_error_log_path "$context_path")
     source_of_truth=$(toml_get_scalar "$context_path" "architecture" "source_of_truth")
     shell_runtime=$(toml_get_scalar "$context_path" "architecture" "shell_runtime")
     shared_react=$(toml_get_scalar "$context_path" "architecture" "shared_react_components")
@@ -369,6 +507,7 @@ get_derived_repository_facts() {
         "${primary_entry:+Primary entry: $primary_entry}" \
         "${page_url:+Primary page URL: $page_url}" \
         "${locale:+Locale: $locale}" \
+        "${error_log_path:+Error log path: \`$error_log_path\`}" \
         "${source_of_truth:+Source of truth: $source_of_truth}" \
         "${shell_runtime:+Shell runtime: $shell_runtime}" \
         "${shared_react:+Shared React components: $shared_react}" \
@@ -551,15 +690,19 @@ generate_workspace_agents_from_context() {
     workspace_name="$2"
     template_name="$3"
     agents_target="$4"
+    workspace_root=$(dirname "$agents_target")
 
     title=$(toml_get_scalar "$context_path" "workspace" "name")
     summary=$(get_derived_workspace_summary "$context_path" "$workspace_name")
     task_board_path=$(toml_get_scalar "$context_path" "workspace" "task_board_path")
     multi_agent_log_path=$(toml_get_scalar "$context_path" "workspace" "multi_agent_log_path")
+    error_log_path=$(get_derived_error_log_path "$context_path")
 
     [ -n "$title" ] || title="$workspace_name"
     [ -n "$task_board_path" ] || task_board_path="STATE.md"
     [ -n "$multi_agent_log_path" ] || multi_agent_log_path="MULTI_AGENT_LOG.md"
+    resolve_workspace_relative_path "$workspace_root" "$task_board_path" "task_board_path" >/dev/null
+    resolve_workspace_relative_path "$workspace_root" "$error_log_path" "error_log_path" >/dev/null
 
     load_array_from_command repository_facts get_derived_repository_facts "$context_path"
     load_context_array required_read "$context_path" "required_context" "read"
@@ -581,7 +724,7 @@ generate_workspace_agents_from_context() {
         printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
         printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
 
-        combined_facts=(${repository_facts[@]+"${repository_facts[@]}"} "Task board path: \`$task_board_path\`" "Multi-agent log path: \`$multi_agent_log_path\`")
+        combined_facts=(${repository_facts[@]+"${repository_facts[@]}"} "Task board path: \`$task_board_path\`" "Multi-agent log path: \`$multi_agent_log_path\`" "Error log path: \`$error_log_path\`")
         write_markdown_section 'Repository Facts' ${combined_facts[@]+"${combined_facts[@]}"}
         write_markdown_section 'Required Context Before Editing' ${required_read[@]+"${required_read[@]}"}
         write_markdown_section 'Verification Commands' ${verification_commands[@]+"${verification_commands[@]}"}
@@ -618,52 +761,37 @@ generate_workspace_state_from_context() {
     title=$(toml_get_scalar "$context_path" "workspace" "name")
     [ -n "$title" ] || title="$workspace_name"
 
-    load_array_from_command shared_contracts get_derived_shared_contracts "$context_path"
-    load_array_from_command reviewer_focus get_derived_reviewer_focus "$context_path"
-
-    if [ "${#shared_contracts[@]}" -eq 0 ]; then
-        shared_contracts=("n/a")
-    fi
-
-    if [ "${#reviewer_focus[@]}" -eq 0 ]; then
-        reviewer_focus=("n/a")
-    fi
-
     {
         printf '# STATE\n\n'
         printf '## Current Task\n\n'
-        printf -- '- id: `initial-task`\n'
-        printf -- '- summary: `Replace with the first concrete task for %s before execution`\n' "$title"
-        printf -- '- owner: `main`\n'
+        printf -- '- task: `Replace with the first concrete task for %s before execution`\n' "$title"
         printf -- '- phase: `explore`\n'
+        printf -- '- scope: `n/a`\n'
+        printf -- '- verification_target: `n/a`\n'
         printf '\n## Route\n\n'
-        printf -- '- name: `Route A`\n'
+        printf -- '- route: `Route A`\n'
         printf -- '- reason: `placeholder - classify the first task before editing`\n'
-        printf '\n## Next Tasks\n\n'
-        printf -- '- `Replace with the first concrete next step`\n'
-        printf '\n## Blocked Tasks\n\n'
-        printf -- '- `없음`\n'
         printf '\n## Writer Slot\n\n'
-        printf -- '- status: `free`\n'
-        printf -- '- target_scope: `n/a`\n'
+        printf -- '- owner: `main`\n'
+        printf -- '- write_set: `n/a`\n'
         printf -- '- write_sets:\n'
-        printf '  - `n/a`\n'
+        printf '  - `worker_shared`: `n/a`\n'
+        printf '  - `worker_feature`: `n/a`\n'
+        printf -- '- note: `Single-lane local task; no worker split is needed for this scope.`\n'
         printf '\n## Contract Freeze\n\n'
-        printf -- '- status: `open`\n'
-        printf -- '- shared_contracts:\n'
-        for item in ${shared_contracts[@]+"${shared_contracts[@]}"}; do
-            printf '  - `%s`\n' "$item"
-        done
-        printf -- '- freeze_owner: `main`\n'
+        printf -- '- contract_freeze: `n/a`\n'
+        printf '\n## Seed\n\n'
+        printf -- '- status: `n/a`\n'
+        printf -- '- path: `n/a`\n'
+        printf -- '- revision: `n/a`\n'
+        printf -- '- note: `Use this section to track the active frozen seed once a spec-first task starts.`\n'
         printf '\n## Reviewer\n\n'
-        printf -- '- target: `n/a`\n'
-        printf -- '- focus:\n'
-        for item in ${reviewer_focus[@]+"${reviewer_focus[@]}"}; do
-            printf '  - `%s`\n' "$item"
-        done
+        printf -- '- reviewer: `n/a`\n'
+        printf -- '- reviewer_target: `n/a`\n'
+        printf -- '- reviewer_focus: `n/a`\n'
         printf '\n## Last Update\n\n'
-        printf -- '- updated_by: `main`\n'
-        printf -- '- updated_at: `[timestamp]`\n'
+        printf -- '- timestamp: `[timestamp]`\n'
+        printf -- '- note: `Template generated by installer.`\n'
     } > "$state_target"
 }
 
@@ -701,7 +829,9 @@ install_codex_custom_agents() {
     ensure_directory "$GLOBAL_CUSTOM_AGENTS_ROOT"
     backup_path_if_exists "$GLOBAL_CUSTOM_AGENTS_ROOT" "$backup_root" "agents"
 
-    find "$GLOBAL_CUSTOM_AGENTS_ROOT" -maxdepth 1 -type f -name '*.toml' | while IFS= read -r existing_file; do
+    while IFS= read -r -d '' existing_file; do
+        [ -f "$existing_file" ] || continue
+        [ -L "$existing_file" ] && continue
         base_name=$(basename "$existing_file")
         keep=0
         for managed in "${MANAGED_AGENT_FILES[@]}"; do
@@ -713,12 +843,68 @@ install_codex_custom_agents() {
         if [ "$keep" -eq 0 ]; then
             rm -f "$existing_file"
         fi
-    done
+    done < <(iter_top_level_sorted_paths "$GLOBAL_CUSTOM_AGENTS_ROOT" file)
 
-    find "$source_agents_root" -maxdepth 1 -type f | while IFS= read -r source_file; do
+    while IFS= read -r -d '' source_file; do
+        [ -f "$source_file" ] || continue
+        [ -L "$source_file" ] && continue
         target="${GLOBAL_CUSTOM_AGENTS_ROOT}/$(basename "$source_file")"
         cp "$source_file" "$target"
+    done < <(iter_top_level_sorted_paths "$source_agents_root" file)
+}
+
+install_codex_skills() {
+    source_kit_root="$1"
+    backup_root="$2"
+    source_skills_root="${source_kit_root}/codex_skills"
+
+    if [ ! -d "$source_skills_root" ]; then
+        return
+    fi
+
+    ensure_directory "$GLOBAL_SKILLS_ROOT"
+    backup_path_if_exists "$GLOBAL_SKILLS_ROOT" "$backup_root" "skills"
+    backup_path_if_exists "$GLOBAL_MANAGED_SKILLS_MANIFEST" "$backup_root" "installer-managed-skills.manifest"
+
+    previous_managed_skills=()
+    if [ -f "$GLOBAL_MANAGED_SKILLS_MANIFEST" ]; then
+        while IFS= read -r managed_skill_name; do
+            if [ -n "$managed_skill_name" ]; then
+                previous_managed_skills+=("$managed_skill_name")
+            fi
+        done < "$GLOBAL_MANAGED_SKILLS_MANIFEST"
+    fi
+
+    current_managed_skills=()
+    while IFS= read -r -d '' source_skill_dir; do
+        [ -d "$source_skill_dir" ] || continue
+        current_managed_skills+=("$(basename "$source_skill_dir")")
+    done < <(iter_top_level_sorted_paths "$source_skills_root" dir)
+
+    for managed_skill_name in "${previous_managed_skills[@]}"; do
+        found=0
+        for source_skill_name in "${current_managed_skills[@]}"; do
+            if [ "$managed_skill_name" = "$source_skill_name" ]; then
+                found=1
+                break
+            fi
+        done
+
+        if [ "$found" -eq 0 ]; then
+            rm -rf "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
+        fi
     done
+
+    for source_skill_dir in "${current_managed_skills[@]}"; do
+        copy_directory_contents "${source_skills_root}/${source_skill_dir}" "${GLOBAL_SKILLS_ROOT}/${source_skill_dir}"
+    done
+
+    tmp_manifest=$(mktemp)
+    : > "$tmp_manifest"
+    for managed_skill_name in "${current_managed_skills[@]}"; do
+        printf '%s\n' "$managed_skill_name" >> "$tmp_manifest"
+    done
+    mv "$tmp_manifest" "$GLOBAL_MANAGED_SKILLS_MANIFEST"
 }
 
 install_codex_rules() {
@@ -731,7 +917,9 @@ install_codex_rules() {
 
     ensure_directory "$GLOBAL_RULES_ROOT"
 
-    find "$source_rules_root" -maxdepth 1 -type f | while IFS= read -r source_file; do
+    while IFS= read -r -d '' source_file; do
+        [ -f "$source_file" ] || continue
+        [ -L "$source_file" ] && continue
         target="${GLOBAL_RULES_ROOT}/$(basename "$source_file")"
 
         if should_overwrite_file "$target"; then
@@ -739,7 +927,7 @@ install_codex_rules() {
         else
             printf 'Skipped rules overwrite: %s\n' "$target"
         fi
-    done
+    done < <(iter_top_level_sorted_paths "$source_rules_root" file)
 }
 
 ensure_config_array_contains() {
@@ -885,7 +1073,7 @@ ensure_config_section_key_value() {
 
 get_config_developer_instructions() {
     cat <<'EOF'
-Use subagents proactively when doing so improves focus, speed, or result quality.
+Use subagents proactively when the route permits it and doing so improves focus, speed, or result quality.
 
 Execution requirements:
 - Always load and follow the nearest applicable AGENTS.md before implementation.
@@ -895,9 +1083,15 @@ Execution requirements:
 - Do not continue implementation from an existing STATE.md unless the request is clearly the same task.
 - Treat investigation, planning, and implementation as separate stages.
 - If read-only investigation or planning turns into implementation, re-check the route, update STATE.md, and explicitly enter implementation before writing.
+- Before parallelizing larger tasks, freeze the contract and write sets first.
+
+Error logging:
+- Leave interrupted or paused errors in ERROR_LOG.md as open or deferred until a later append marks them resolved.
 
 Default behavior:
 - For read-heavy or parallelizable work such as codebase exploration, reviews, tracing execution paths, log analysis, test-failure triage, and multi-part research, delegate to built-in subagents without waiting for the user to say "spawn" or "parallelize".
+- Close finished agents promptly once their output is consumed.
+- Prefer spawning reviewers as late as practical unless earlier review is explicitly needed.
 - Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, and `reviewer` for read-only close-out checks.
 - Keep the main thread focused on requirements, decisions, synthesis, route selection, and final answers.
 - Assume the user permits normal subagent use in this workspace; the main thread applies the AGENTS.md route result rather than re-deciding whether spawning is desirable.
@@ -907,12 +1101,14 @@ Spawn requirements:
 - Every explorer-style spawn_agent call must explicitly set model = "gpt-5.4-mini" and reasoning_effort = "medium".
 - Every worker-style spawn_agent call must explicitly set model = "gpt-5.4-mini" and reasoning_effort = "medium".
 - Every reviewer-style spawn_agent call must explicitly set model = "gpt-5.4-mini" and reasoning_effort = "high".
+- Do not use `fork_context` unless exact thread context is required.
 - Do not substitute other models or lower reasoning effort unless the user explicitly overrides this in the current conversation.
 - If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.
 
 Delegation rules:
 - On Route A, stay in one write-capable lane and spawn no subagents.
 - On Route B, keep one write-capable lane in main and always spawn at least one read-only reviewer.
+- Assign exactly one write set to each worker.
 - Promote Route B to Route C when work extracts a shared component, replaces page-specific implementations with a shared renderer, or unifies 2+ pages onto one shared implementation.
 - On Route C, keep main planner-only and always spawn at least one worker plus one reviewer.
 - Do not close Route B or Route C without the required reviewer pass.
@@ -1154,6 +1350,7 @@ install_global_kit() {
         CHANGELOG.md \
         codex_agents \
         codex_rules \
+        codex_skills \
         docs \
         examples \
         profiles \
@@ -1177,6 +1374,7 @@ install_global_kit() {
     fi
     install_codex_config "$backup_root"
     install_codex_custom_agents "$LOCAL_KIT_ROOT" "$backup_root"
+    install_codex_skills "$LOCAL_KIT_ROOT" "$backup_root"
     install_codex_rules "$LOCAL_KIT_ROOT"
 
     printf 'Installed global defaults at %s\n' "$GLOBAL_AGENTS_PATH"
@@ -1198,7 +1396,10 @@ apply_to_workspace() {
     agents_target="${resolved_workspace}/AGENTS.md"
     state_relative_path=$(toml_get_scalar "$context_path" "workspace" "task_board_path")
     [ -n "$state_relative_path" ] || state_relative_path="STATE.md"
-    state_target="${resolved_workspace}/${state_relative_path}"
+    state_target=$(resolve_workspace_relative_path "$resolved_workspace" "$state_relative_path" "task_board_path")
+    error_log_relative_path=$(toml_get_scalar "$context_path" "workspace" "error_log_path")
+    [ -n "$error_log_relative_path" ] || error_log_relative_path="ERROR_LOG.md"
+    error_log_target=$(resolve_workspace_relative_path "$resolved_workspace" "$error_log_relative_path" "error_log_path")
     backup_root="${resolved_workspace}/.codex-backups/$(get_backup_stamp)/workspace"
 
     write_section 'Applying workspace override'
@@ -1225,6 +1426,11 @@ apply_to_workspace() {
         generate_default_state "$(basename "$resolved_workspace")" > "$state_target"
     fi
 
+    ensure_directory "$(dirname "$error_log_target")"
+    if [ ! -e "$error_log_target" ]; then
+        generate_default_error_log > "$error_log_target"
+    fi
+
     if [ "$copy_docs" -eq 1 ]; then
         docs_root="${resolved_workspace}/docs/codex-multiagent"
 
@@ -1242,6 +1448,10 @@ apply_to_workspace() {
 
         if [ -d "${source_kit_root}/codex_rules" ]; then
             copy_directory_contents "${source_kit_root}/codex_rules" "${docs_root}/codex_rules"
+        fi
+
+        if [ -d "${source_kit_root}/codex_skills" ]; then
+            copy_directory_contents "${source_kit_root}/codex_skills" "${docs_root}/codex_skills"
         fi
 
         copy_directory_contents "${source_kit_root}/profiles" "${docs_root}/profiles"
