@@ -891,7 +891,7 @@ Execution requirements:
 - Always load and follow the nearest applicable AGENTS.md before implementation.
 - Prefer workspace AGENTS.md over global AGENTS.md when both exist.
 - Treat AGENTS.md as the source of truth for route selection, delegation, state updates, and verification flow.
-- On each new user request, compare it against the active current_task in STATE.md before continuing.
+- On each new user request, compare it against the active current_task in STATE.md before continuing, even if the work looks like a continuation of the same feature.
 - Do not continue implementation from an existing STATE.md unless the request is clearly the same task.
 - Treat investigation, planning, and implementation as separate stages.
 - If read-only investigation or planning turns into implementation, re-check the route, update STATE.md, and explicitly enter implementation before writing.
@@ -900,7 +900,7 @@ Default behavior:
 - For read-heavy or parallelizable work such as codebase exploration, reviews, tracing execution paths, log analysis, test-failure triage, and multi-part research, delegate to built-in subagents without waiting for the user to say "spawn" or "parallelize".
 - Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, and `reviewer` for read-only close-out checks.
 - Keep the main thread focused on requirements, decisions, synthesis, route selection, and final answers.
-- Assume the user permits normal subagent use in this workspace; the main thread decides when to spawn based on AGENTS.md route rules and task decomposition.
+- Assume the user permits normal subagent use in this workspace; the main thread applies the AGENTS.md route result rather than re-deciding whether spawning is desirable.
 
 Spawn requirements:
 - These spawn settings are mandatory. Do not rely on inherited defaults, implicit role defaults, or absent custom agent files.
@@ -911,10 +911,10 @@ Spawn requirements:
 - If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.
 
 Delegation rules:
-- On Route A, stay in one write-capable lane and do not spawn write-capable workers.
-- On Route B, keep one write-capable lane in main and spawn at least one read-only reviewer before close.
+- On Route A, stay in one write-capable lane and spawn no subagents.
+- On Route B, keep one write-capable lane in main and always spawn at least one read-only reviewer.
 - Promote Route B to Route C when work extracts a shared component, replaces page-specific implementations with a shared renderer, or unifies 2+ pages onto one shared implementation.
-- On Route C, keep main planner-only and spawn at least one worker plus one reviewer before close.
+- On Route C, keep main planner-only and always spawn at least one worker plus one reviewer.
 - Do not close Route B or Route C without the required reviewer pass.
 - Do not skip route or reason logging when AGENTS.md requires it.
 - Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.

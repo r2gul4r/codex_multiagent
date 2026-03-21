@@ -46,7 +46,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 ### Task Continuity
 
 - `STATE.md` is mandatory for any non-trivial implementation task in this workspace
-- On each new user request, compare it against the active `current_task` in `STATE.md` before continuing implementation
+- On each new user request, compare it against the active `current_task` in `STATE.md` before continuing implementation, even when the work looks like a continuation of the same feature
 - If the goal, scope, owned files, or verification target materially changed, treat it as a new task: update `Current Task`, re-select the `route`, and record a new concrete `reason` before more writes
 - Do not silently carry over the previous `route` just because `STATE.md` already exists
 
@@ -69,7 +69,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 ### Route A
 
 - On `Route A`, keep exactly one write-capable lane and one tight implementation slice
-- On `Route A`, do not spawn write-capable workers
+- On `Route A`, spawn no subagents
 - On `Route A`, if shared assets, `2+` directories, `2+` new files, test changes, or `2+` verification steps appear during execution, stop, update `STATE.md`, and promote the task to `Route B` or `Route C` before more writes
 - On `Route A`, close the task only if the final scope still matches the original small-slice classification and the relevant verification is recorded
 
@@ -77,10 +77,11 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 - On `Route B`, keep exactly one write-capable lane; any support roles must stay read-only
 - On `Route B`, do not treat planning or investigation as permission to skip the reviewer requirement once implementation begins
-- On `Route B`, spawn at least one read-only `reviewer` before closing the task; this is mandatory, not optional
+- On `Route B`, spawn at least one read-only `reviewer`; this is mandatory, not optional
 - On `Route B`, if a second write-capable lane would help, treat that as a promotion signal to `Route C`, not permission to start another writer
 - On `Route B`, if any hard trigger appears or the work separates into shared-assets plus feature slices, stop, update `STATE.md`, and promote the task to `Route C` before more implementation writes
 - On `Route B`, treat shared component extraction, shared renderer replacement, or unifying `2+` pages onto one shared implementation as promotion signals to `Route C`
+- On `Route B`, the required reviewer spawn is part of the route itself, not a discretionary choice by `main`
 - On `Route B`, close the task only after at least one `reviewer` pass
 
 ### Route C
@@ -88,6 +89,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 - `main` may write directly only on `Route A` and `Route B`
 - On `Route C`, `main` is planner-only and may edit only `STATE.md` and `MULTI_AGENT_LOG.md`
 - On `Route C`, assume worker and reviewer delegation is part of the normal path; do not self-downgrade to a single-agent lane just because the task started as reading or planning
+- On `Route C`, spawn at least one `worker` and at least one `reviewer`; this is route behavior, not a discretionary choice by `main`
 - On `Route C`, implementation files must not be edited until `contract_freeze` and `write_sets` are explicitly recorded in `STATE.md`
 - On `Route C`, `main` must delegate implementation to at least one `worker` and close the task with at least one `reviewer` pass
 - On `Route C`, `main` must not keep implementation in a single-agent fallback lane
