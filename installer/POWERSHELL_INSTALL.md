@@ -12,7 +12,7 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 이 명령은
 
 - `%USERPROFILE%\.codex\AGENTS.md`, `config.toml`, installer 관리 대상 `agents/*.toml` 을 백업 후 새 구조 기준으로 재생성
-- `%USERPROFILE%\.codex\config.toml` 의 필요한 키를 patch 해서 `AGENTS.md` 발견 우선순위와 `multi_agent` 기본값을 맞춤
+- `%USERPROFILE%\.codex\config.toml` 의 필요한 키를 patch 해서 `AGENTS.md` 발견 우선순위, `multi_agent` 기본값, 그리고 `AGENTS.md`를 우선 읽고 집행하는 execution requirements 를 맞춤
 - `%USERPROFILE%\.codex\agents\*.toml` 서브에이전트 설정 설치 및 레거시 추가 agent 정리
 - `%USERPROFILE%\.codex\rules\*.rules` 기본 command rules 설치
 - 그래서 기존 작업공간이든 새 작업공간이든 공통 기본 규칙 자동 적용

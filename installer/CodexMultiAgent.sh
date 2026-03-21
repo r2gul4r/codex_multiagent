@@ -883,6 +883,82 @@ ensure_config_section_key_value() {
     mv "$tmp_file" "$file"
 }
 
+get_config_developer_instructions() {
+    cat <<'EOF'
+Execution requirements:
+- Always load and follow the nearest applicable AGENTS.md before implementation.
+- Prefer workspace AGENTS.md over global AGENTS.md when both exist.
+- Treat AGENTS.md as the source of truth for route selection, delegation, state updates, and verification flow.
+- On each new user request, compare it against the active current_task in STATE.md before continuing.
+- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.
+- If read-only investigation or planning turns into implementation, re-check the route and update STATE.md before writing.
+- Do not skip route or reason logging when AGENTS.md requires it.
+- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.
+EOF
+}
+
+ensure_config_top_level_multiline_value() {
+    file="$1"
+    key="$2"
+    temp_file=$(mktemp)
+
+    if [ -f "$file" ]; then
+        awk -v key="$key" '
+            BEGIN { skip = 0 }
+            {
+                trimmed = $0
+                sub(/^[[:space:]]+/, "", trimmed)
+
+                if (!skip && trimmed ~ ("^" key "[[:space:]]*=")) {
+                    if (trimmed ~ /"""/ && gsub(/"""/, "&", trimmed) == 1) {
+                        skip = 1
+                    }
+                    next
+                }
+
+                if (skip) {
+                    if (trimmed ~ /^"""[[:space:]]*$/) {
+                        skip = 0
+                    }
+                    next
+                }
+
+                print $0
+            }
+        ' "$file" > "$temp_file"
+    else
+        : > "$temp_file"
+    fi
+
+    content_file=$(mktemp)
+    get_config_developer_instructions > "$content_file"
+
+    output_file=$(mktemp)
+    inserted=0
+    {
+        while IFS= read -r line || [ -n "$line" ]; do
+            trimmed="$line"
+            trimmed="${trimmed#"${trimmed%%[![:space:]]*}"}"
+            if [ "$inserted" -eq 0 ] && [[ "$trimmed" == \[*\] ]]; then
+                printf '%s = """\n' "$key"
+                cat "$content_file"
+                printf '"""\n\n'
+                inserted=1
+            fi
+            printf '%s\n' "$line"
+        done < "$temp_file"
+
+        if [ "$inserted" -eq 0 ]; then
+            printf '%s = """\n' "$key"
+            cat "$content_file"
+            printf '"""\n'
+        fi
+    } > "$output_file"
+
+    mv "$output_file" "$file"
+    rm -f "$temp_file" "$content_file"
+}
+
 remove_legacy_config_agent_sections() {
     file="$1"
     shift
@@ -923,6 +999,7 @@ install_codex_config() {
     backup_path_if_exists "$GLOBAL_CONFIG_PATH" "$backup_root" "config.toml"
     remove_legacy_config_agent_sections "$GLOBAL_CONFIG_PATH" "default" "worker" "explorer" "reviewer"
     ensure_config_array_contains "$GLOBAL_CONFIG_PATH" "project_doc_fallback_filenames" "AGENTS.md"
+    ensure_config_top_level_multiline_value "$GLOBAL_CONFIG_PATH" "developer_instructions"
     ensure_config_section_key_value "$GLOBAL_CONFIG_PATH" "features" "multi_agent" "true"
     ensure_config_section_key_value "$GLOBAL_CONFIG_PATH" "agents.default" "config_file" "\"./agents/default.toml\""
     ensure_config_section_key_value "$GLOBAL_CONFIG_PATH" "agents.worker" "config_file" "\"./agents/worker.toml\""

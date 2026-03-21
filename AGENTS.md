@@ -47,6 +47,8 @@ Installer global setup copies this file to the user's Codex home as the default 
 - On each new user request, compare it against the active `current_task` in `STATE.md` before continuing implementation
 - If the goal, scope, owned files, or verification target materially changed, treat it as a new task: update `Current Task`, re-select the `route`, and record a new concrete `reason` before more writes
 - Do not silently carry over the previous `route` just because `STATE.md` already exists
+- If a request starts as read-only investigation or planning, keep that phase read-only until implementation is explicitly entered
+- Before moving from exploration or planning into file edits, re-check the task against `STATE.md`, set the active phase to implementation, and reclassify the `route` when the scope expanded or changed
 - Before editing any file other than `STATE.md` or `MULTI_AGENT_LOG.md`, `main` must record the selected `route` and the concrete `reason` in `STATE.md`
 - `reason` must name the hard trigger that fired or the concrete scorecard basis for the selected route
 - Use exact route labels only: `Route A`, `Route B`, or `Route C`

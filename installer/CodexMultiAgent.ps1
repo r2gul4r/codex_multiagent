@@ -948,6 +948,81 @@ function Ensure-ConfigSectionKeyValue {
     $Lines.Add("$Key = $ValueLiteral")
 }
 
+function Get-ConfigDeveloperInstructionsLines {
+    return @(
+        'Execution requirements:',
+        '- Always load and follow the nearest applicable AGENTS.md before implementation.',
+        '- Prefer workspace AGENTS.md over global AGENTS.md when both exist.',
+        '- Treat AGENTS.md as the source of truth for route selection, delegation, state updates, and verification flow.',
+        '- On each new user request, compare it against the active current_task in STATE.md before continuing.',
+        '- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.',
+        '- If read-only investigation or planning turns into implementation, re-check the route and update STATE.md before writing.',
+        '- Do not skip route or reason logging when AGENTS.md requires it.',
+        '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.'
+    )
+}
+
+function Ensure-ConfigTopLevelMultilineValue {
+    param(
+        [System.Collections.Generic.List[string]]$Lines,
+        [string]$Key,
+        [string[]]$ValueLines
+    )
+
+    $result = [System.Collections.Generic.List[string]]::new()
+    $keyPattern = "^\s*$([regex]::Escape($Key))\s*="
+    $skipMultiline = $false
+
+    foreach ($line in $Lines) {
+        $trimmed = $line.Trim()
+
+        if (-not $skipMultiline -and $line -match $keyPattern) {
+            if ($trimmed.Contains('"""') -and (($trimmed -split '"""').Count -lt 3)) {
+                $skipMultiline = $true
+            }
+            continue
+        }
+
+        if ($skipMultiline) {
+            if ($trimmed -eq '"""') {
+                $skipMultiline = $false
+            }
+            continue
+        }
+
+        $result.Add($line)
+    }
+
+    $insertIndex = 0
+    while ($insertIndex -lt $result.Count) {
+        $trimmed = $result[$insertIndex].Trim()
+        if ($trimmed.StartsWith('[') -and $trimmed.EndsWith(']')) {
+            break
+        }
+        $insertIndex += 1
+    }
+
+    $block = [System.Collections.Generic.List[string]]::new()
+    $block.Add($Key + ' = """')
+    foreach ($valueLine in $ValueLines) {
+        $block.Add($valueLine)
+    }
+    $block.Add('"""')
+
+    if ($insertIndex -gt 0 -and $result[$insertIndex - 1] -ne '') {
+        $block.Add('')
+    }
+
+    for ($i = $block.Count - 1; $i -ge 0; $i--) {
+        $result.Insert($insertIndex, $block[$i])
+    }
+
+    $Lines.Clear()
+    foreach ($line in $result) {
+        $Lines.Add($line)
+    }
+}
+
 function Remove-LegacyConfigAgentSections {
     param(
         [System.Collections.Generic.List[string]]$Lines,
@@ -1002,6 +1077,7 @@ function Install-CodexConfig {
         $lines.Add([string]$line)
     }
     Ensure-ConfigArrayContains -Lines $lines -Key 'project_doc_fallback_filenames' -RequiredValues @('AGENTS.md')
+    Ensure-ConfigTopLevelMultilineValue -Lines $lines -Key 'developer_instructions' -ValueLines (Get-ConfigDeveloperInstructionsLines)
     Ensure-ConfigSectionKeyValue -Lines $lines -Section 'features' -Key 'multi_agent' -ValueLiteral 'true'
     Ensure-ConfigSectionKeyValue -Lines $lines -Section 'agents.default' -Key 'config_file' -ValueLiteral '"./agents/default.toml"'
     Ensure-ConfigSectionKeyValue -Lines $lines -Section 'agents.worker' -Key 'config_file' -ValueLiteral '"./agents/worker.toml"'
