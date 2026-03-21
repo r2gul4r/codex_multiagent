@@ -8,7 +8,7 @@ Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운
 
 ## 최근 패치
 
-- `v0.1.14 - 2026-03-22`
+- `v0.3.0 - 2026-03-22`
 - 저장소 라우트 모델을 `Route A` / `Route B` 2단계로 정리
 - `Route A` 는 main-only, `Route B` 는 delegated route 로 고정
 - `codex_skills/ouroboros-*` spec-first workflow skeleton 추가
