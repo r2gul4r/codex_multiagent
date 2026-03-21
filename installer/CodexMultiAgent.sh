@@ -14,6 +14,7 @@ LOCAL_KIT_ROOT=$(dirname "$INSTALLER_ROOT")
 GLOBAL_HOME="${CODEX_HOME:-${HOME}/.codex}"
 GLOBAL_KIT_ROOT="${GLOBAL_HOME}/multiagent-kit"
 GLOBAL_AGENTS_PATH="${GLOBAL_HOME}/AGENTS.md"
+GLOBAL_CONFIG_PATH="${GLOBAL_HOME}/config.toml"
 GLOBAL_CUSTOM_AGENTS_ROOT="${GLOBAL_HOME}/agents"
 GLOBAL_RULES_ROOT="${GLOBAL_HOME}/rules"
 LOCAL_README="${LOCAL_KIT_ROOT}/README.md"
@@ -657,6 +658,153 @@ install_codex_rules() {
     done
 }
 
+ensure_config_array_contains() {
+    file="$1"
+    key="$2"
+    shift 2
+
+    tmp_file=$(mktemp)
+    if [ -f "$file" ]; then
+        awk -v key="$key" -v values="$(printf '%s\n' "$@" | paste -sd '\t' -)" '
+            BEGIN {
+                split(values, required, "\t")
+            }
+            function trim(s) {
+                sub(/^[[:space:]]+/, "", s)
+                sub(/[[:space:]]+$/, "", s)
+                return s
+            }
+            {
+                if ($0 ~ "^[[:space:]]*" key "[[:space:]]*=") {
+                    found = 1
+                    current = $0
+                    sub(/^[^[]*\[/, "", current)
+                    sub(/\].*$/, "", current)
+                    n = split(current, raw, ",")
+                    count = 0
+                    for (i in required) {
+                        item = required[i]
+                        if (item != "" && !seen[item]++) {
+                            ordered[++count] = item
+                        }
+                    }
+                    for (i = 1; i <= n; i++) {
+                        item = trim(raw[i])
+                        gsub(/^"/, "", item)
+                        gsub(/"$/, "", item)
+                        if (item != "" && !seen[item]++) {
+                            ordered[++count] = item
+                        }
+                    }
+                    printf "%s = [", key
+                    for (i = 1; i <= count; i++) {
+                        printf "%s\"%s\"", (i > 1 ? ", " : ""), ordered[i]
+                    }
+                    print "]"
+                    next
+                }
+                print
+            }
+            END {
+                if (!found) {
+                    printf "%s = [", key
+                    count = 0
+                    for (i in required) {
+                        item = required[i]
+                        if (item != "" && !seen[item]++) {
+                            ordered[++count] = item
+                        }
+                    }
+                    for (i = 1; i <= count; i++) {
+                        printf "%s\"%s\"", (i > 1 ? ", " : ""), ordered[i]
+                    }
+                    print "]"
+                }
+            }
+        ' "$file" > "$tmp_file"
+    else
+        {
+            printf '# Codex Configuration\n\n'
+            printf '%s = [' "$key"
+            idx=0
+            for item in "$@"; do
+                if [ -n "$item" ]; then
+                    idx=$((idx + 1))
+                    [ "$idx" -gt 1 ] && printf ', '
+                    printf '"%s"' "$item"
+                fi
+            done
+            printf ']\n'
+        } > "$tmp_file"
+    fi
+    mv "$tmp_file" "$file"
+}
+
+ensure_config_section_key_value() {
+    file="$1"
+    section="$2"
+    key="$3"
+    value="$4"
+
+    tmp_file=$(mktemp)
+    if [ -f "$file" ]; then
+        awk -v section="$section" -v key="$key" -v value="$value" '
+            function trim(s) {
+                sub(/^[[:space:]]+/, "", s)
+                sub(/[[:space:]]+$/, "", s)
+                return s
+            }
+            {
+                line = $0
+                trimmed = trim(line)
+                if (trimmed == "[" section "]") {
+                    in_section = 1
+                    section_found = 1
+                    print line
+                    next
+                }
+                if (in_section && trimmed ~ /^\[.*\]$/) {
+                    if (!key_found) {
+                        print key " = " value
+                        key_found = 1
+                    }
+                    in_section = 0
+                }
+                if (in_section && trimmed ~ ("^" key "[[:space:]]*=")) {
+                    print key " = " value
+                    key_found = 1
+                    next
+                }
+                print line
+            }
+            END {
+                if (in_section && !key_found) {
+                    print key " = " value
+                } else if (!section_found) {
+                    if (NR > 0) {
+                        print ""
+                    }
+                    print "[" section "]"
+                    print key " = " value
+                }
+            }
+        ' "$file" > "$tmp_file"
+    else
+        {
+            printf '# Codex Configuration\n\n'
+            printf '[%s]\n' "$section"
+            printf '%s = %s\n' "$key" "$value"
+        } > "$tmp_file"
+    fi
+    mv "$tmp_file" "$file"
+}
+
+install_codex_config() {
+    ensure_directory "$(dirname "$GLOBAL_CONFIG_PATH")"
+    ensure_config_array_contains "$GLOBAL_CONFIG_PATH" "project_doc_fallback_filenames" "AGENTS.md"
+    ensure_config_section_key_value "$GLOBAL_CONFIG_PATH" "features" "multi_agent" "true"
+}
+
 show_info_banner() {
     source_root=$(get_source_kit_root)
     if [ "$source_root" = "$GLOBAL_KIT_ROOT" ]; then
@@ -798,10 +946,12 @@ install_global_kit() {
     fi
 
     cp "$global_template" "$GLOBAL_AGENTS_PATH"
+    install_codex_config
     install_codex_custom_agents "$LOCAL_KIT_ROOT"
     install_codex_rules "$LOCAL_KIT_ROOT"
 
     printf 'Installed global defaults at %s\n' "$GLOBAL_AGENTS_PATH"
+    printf 'Patched Codex config at %s\n' "$GLOBAL_CONFIG_PATH"
     printf 'Installed Codex subagent configs at %s\n' "$GLOBAL_CUSTOM_AGENTS_ROOT"
     printf 'Installed Codex command rules at %s\n' "$GLOBAL_RULES_ROOT"
     printf 'Reference kit copied to %s\n' "$GLOBAL_KIT_ROOT"

@@ -24,6 +24,7 @@ $LocalKitRoot = Split-Path -Parent $PSScriptRoot
 $GlobalHome = Join-Path $env:USERPROFILE '.codex'
 $GlobalKitRoot = Join-Path $GlobalHome 'multiagent-kit'
 $GlobalAgentsPath = Join-Path $GlobalHome 'AGENTS.md'
+$GlobalConfigPath = Join-Path $GlobalHome 'config.toml'
 $GlobalCustomAgentsRoot = Join-Path $GlobalHome 'agents'
 $GlobalRulesRoot = Join-Path $GlobalHome 'rules'
 $LocalReadme = Join-Path $LocalKitRoot 'README.md'
@@ -746,6 +747,118 @@ function Install-CodexRules {
     }
 }
 
+function Ensure-ConfigArrayContains {
+    param(
+        [System.Collections.Generic.List[string]]$Lines,
+        [string]$Key,
+        [string[]]$RequiredValues
+    )
+
+    $required = @($RequiredValues | Where-Object { $_ })
+    if ($required.Count -eq 0) {
+        return
+    }
+
+    $pattern = "^\s*$([regex]::Escape($Key))\s*=\s*\[(.*)\]\s*$"
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        if ($Lines[$i] -match $pattern) {
+            $currentItems = [System.Collections.Generic.List[string]]::new()
+            foreach ($match in [regex]::Matches($Matches[1], '"((?:[^"\\]|\\.)*)"')) {
+                $currentItems.Add($match.Groups[1].Value)
+            }
+
+            $merged = [System.Collections.Generic.List[string]]::new()
+            $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+            foreach ($item in ($required + $currentItems.ToArray())) {
+                if ($item -and $seen.Add($item)) {
+                    $merged.Add($item)
+                }
+            }
+
+            $quoted = ($merged | ForEach-Object { '"{0}"' -f $_ }) -join ', '
+            $Lines[$i] = "$Key = [$quoted]"
+            return
+        }
+    }
+
+    $quotedRequired = ($required | ForEach-Object { '"{0}"' -f $_ }) -join ', '
+    $insertIndex = 0
+    while ($insertIndex -lt $Lines.Count -and $Lines[$insertIndex].StartsWith('#')) {
+        $insertIndex += 1
+    }
+    $Lines.Insert($insertIndex, "$Key = [$quotedRequired]")
+}
+
+function Ensure-ConfigSectionKeyValue {
+    param(
+        [System.Collections.Generic.List[string]]$Lines,
+        [string]$Section,
+        [string]$Key,
+        [string]$ValueLiteral
+    )
+
+    $sectionHeader = "[$Section]"
+    $keyPattern = "^\s*$([regex]::Escape($Key))\s*="
+
+    $sectionIndex = -1
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        if ($Lines[$i].Trim() -eq $sectionHeader) {
+            $sectionIndex = $i
+            break
+        }
+    }
+
+    if ($sectionIndex -ge 0) {
+        for ($j = $sectionIndex + 1; $j -lt $Lines.Count; $j++) {
+            $trimmed = $Lines[$j].Trim()
+            if ($trimmed.StartsWith('[') -and $trimmed.EndsWith(']')) {
+                break
+            }
+            if ($Lines[$j] -match $keyPattern) {
+                $Lines[$j] = "$Key = $ValueLiteral"
+                return
+            }
+        }
+
+        $insertIndex = $sectionIndex + 1
+        while ($insertIndex -lt $Lines.Count) {
+            $trimmed = $Lines[$insertIndex].Trim()
+            if ($trimmed.StartsWith('[') -and $trimmed.EndsWith(']')) {
+                break
+            }
+            $insertIndex += 1
+        }
+        $Lines.Insert($insertIndex, "$Key = $ValueLiteral")
+        return
+    }
+
+    if ($Lines.Count -gt 0 -and $Lines[$Lines.Count - 1] -ne '') {
+        $Lines.Add('')
+    }
+    $Lines.Add($sectionHeader)
+    $Lines.Add("$Key = $ValueLiteral")
+}
+
+function Install-CodexConfig {
+    param([string]$ConfigPath)
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    if (Test-Path -LiteralPath $ConfigPath) {
+        foreach ($line in (Get-Content -LiteralPath $ConfigPath)) {
+            $lines.Add($line)
+        }
+    }
+    else {
+        $lines.Add('# Codex Configuration')
+        $lines.Add('')
+    }
+
+    Ensure-ConfigArrayContains -Lines $lines -Key 'project_doc_fallback_filenames' -RequiredValues @('AGENTS.md')
+    Ensure-ConfigSectionKeyValue -Lines $lines -Section 'features' -Key 'multi_agent' -ValueLiteral 'true'
+
+    Set-Content -LiteralPath $ConfigPath -Value ($lines -join "`n") -Encoding utf8
+}
+
 function Show-InfoBanner {
     $sourceRoot = Get-SourceKitRoot
     $sourceLabel = if ($sourceRoot -eq $GlobalKitRoot) { 'global kit' } else { 'local repository copy' }
@@ -919,10 +1032,12 @@ function Install-GlobalKit {
     }
 
     Copy-Item -LiteralPath $globalTemplate -Destination $GlobalAgentsPath -Force
+    Install-CodexConfig -ConfigPath $GlobalConfigPath
     Install-CodexCustomAgents -SourceKitRoot $LocalKitRoot
     Install-CodexRules -SourceKitRoot $LocalKitRoot
 
     Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
+    Write-Host "Patched Codex config at $GlobalConfigPath" -ForegroundColor Green
     Write-Host "Installed Codex subagent configs at $GlobalCustomAgentsRoot" -ForegroundColor Green
     Write-Host "Installed Codex command rules at $GlobalRulesRoot" -ForegroundColor Green
     Write-Host "Reference kit copied to $GlobalKitRoot"
