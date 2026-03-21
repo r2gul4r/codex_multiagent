@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.1.13 - 2026-03-22
+
+### Added
+
+- `codex_skills/ouroboros-interview`, `ouroboros-seed`, `ouroboros-run`, `ouroboros-evaluate` 추가
+- append-only `ERROR_LOG.md` 템플릿 추가
+- `WORKSPACE_CONTEXT_TEMPLATE.toml` 에 `error_log_path` 추가
+- `codex_rules/ouroboros-lite.md` 추가
+- `examples/micro-seed.md` 추가
+
+### Changed
+
+- `AGENTS.md` 에 spec-first workflow, error logging, subagent hygiene 규칙 추가
+- installer 가 `codex_skills` 를 전역 설치와 workspace docs 복사 흐름에 포함하도록 확장
+- shell / PowerShell installer 가 workspace-relative `task_board_path` 와 `error_log_path` 만 허용하도록 보강
+- shell installer 의 top-level iteration 을 deterministic 하게 정리하고 GNU `find -maxdepth` 의존 제거
+- stale managed skill 정리를 manifest 기반으로 바꿔 same-prefix user skill 보존
+- generated developer instructions 를 route-gated subagent hygiene 규칙과 append-only error logging 규칙에 맞게 정렬
+- README 에 workflow, logging, hygiene 변경 사항 반영
+
 ## v0.1.12 - 2026-03-21
 
 ### Changed

@@ -8,11 +8,11 @@ Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운
 
 ## 최근 패치
 
-- `v0.1.11 - 2026-03-21`
-- 전역 규칙에 `route/reason` 선기록, `Route A/B` 승격 규칙, `Route C` 최소 worker/reviewer 요구 추가
-- `WORKSPACE_CONTEXT.toml` 기반 맞춤형 workspace override 생성 지원
-- macOS GitHub Actions에 `WORKSPACE_CONTEXT.toml` 기반 workspace 생성 검증 추가
-- `.gitattributes` 추가로 `md`, `toml`, `yml`, `yaml`, `sh`, `ps1` 파일 LF 고정
+- `v0.1.13 - 2026-03-22`
+- `codex_skills/ouroboros-*` spec-first workflow skeleton 추가
+- append-only `ERROR_LOG.md` 템플릿과 workspace `error_log_path` 지원 추가
+- installer 가 `ERROR_LOG.md` 를 안전한 workspace-relative 경로에만 생성하도록 보강
+- 서브에이전트 hygiene 규칙과 generated developer instructions 정렬
 - 자세한 내용은 [CHANGELOG.md](./CHANGELOG.md) 참고
 
 ---

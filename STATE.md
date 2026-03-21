@@ -2,29 +2,25 @@
 
 ## Current Task
 
-- task: Complete the Ouroboros-lite rollout by aligning shared policy, installer behavior, logging conventions, and README documentation.
+- task: Update the patch notes so the changelog reflects the latest rollout and the README surfaces only the latest patch summary.
 - phase: completed
-- scope: `AGENTS.md`, `README.md`, `ERROR_LOG.md`, `WORKSPACE_CONTEXT_TEMPLATE.toml`, `installer/CodexMultiAgent.sh`, `installer/CodexMultiAgent.ps1`, `codex_skills/*`
-- verification_target: reviewer passes plus shell/PowerShell runtime checks for skill install, state generation, and workspace-safe error log creation
+- scope: `CHANGELOG.md`, `README.md`
+- verification_target: reviewer pass plus manual diff review that the new top changelog entry matches the implemented rollout and the README now shows only the latest patch summary
 
 ## Route
 
-- route: `Route C`
-- reason: Hard triggers: shared contract updates in `AGENTS.md` and shared installer/runtime changes across shell and PowerShell generators. The work required delegated worker/reviewer passes across shared policy and installer write sets.
+- route: `Route B`
+- reason: Shared documentation change across two files with one write-capable lane. The scope is doc-only, but a reviewer pass is still required before close.
 
 ## Writer Slot
 
-- owner: `main` (planner-only)
-- write_set: `STATE.md`, `MULTI_AGENT_LOG.md`
-- write_sets:
-  - `worker_shared`: `AGENTS.md`, `ERROR_LOG.md`, `WORKSPACE_CONTEXT_TEMPLATE.toml`, `README.md`
-  - `worker_feature_install`: `installer/CodexMultiAgent.sh`, `installer/CodexMultiAgent.ps1`
-  - `main`: `STATE.md`, `MULTI_AGENT_LOG.md`
-- note: Shared policy/template and installer/runtime work were handled in separate delegated lanes and closed with reviewer passes.
+- owner: `main`
+- write_set: `README.md`, `CHANGELOG.md`, `STATE.md`
+- note: Single write-capable lane only. The work is limited to patch-note synchronization and does not require worker fan-out.
 
 ## Contract Freeze
 
-- contract_freeze: The implemented contract now includes Ouroboros-lite `interview -> seed -> run -> evaluate`, append-only `ERROR_LOG.md` handling with `open`/`deferred` states, route-gated subagent hygiene rules, installer-managed `codex_skills`, and workspace-relative path validation for generated state and error-log files.
+- contract_freeze: Document the current implemented rollout only: `codex_skills`, append-only `ERROR_LOG.md`, workspace-relative log-path validation, spec-first workflow, and subagent hygiene. Do not claim unimplemented follow-up work.
 
 ## Seed
 
@@ -35,11 +31,11 @@
 
 ## Reviewer
 
-- reviewer: `reviewer_readme_sync`, `reviewer_error_logging`, `reviewer_shell_portability`
-- reviewer_target: `AGENTS.md`, `README.md`, `ERROR_LOG.md`, `installer/CodexMultiAgent.sh`, `installer/CodexMultiAgent.ps1`
-- reviewer_focus: ensure shared policy stays subordinate to Route A/B/C, README matches implementation, installer paths stay workspace-safe, and shell portability changes preserve behavior
+- reviewer: `reviewer_patch_notes_sync`
+- reviewer_target: `README.md`, `CHANGELOG.md`
+- reviewer_focus: ensure the new changelog entry and README summary match the implemented rollout without overstating scope
 
 ## Last Update
 
-- timestamp: `2026-03-22 05:04:31 +09:00`
-- note: The combined rollout is complete. Shared policy, README, installer behavior, error logging, and generated developer instructions are aligned, and no blocker remains from the final review passes.
+- timestamp: `2026-03-22 05:26:49 +09:00`
+- note: Patch-note sync completed. Reviewer confirmed the new `v0.1.13` entry and the compressed README summary match the implemented rollout without overstating scope.
