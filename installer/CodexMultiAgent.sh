@@ -57,22 +57,11 @@ remove_stale_installer_artifacts() {
 }
 
 get_source_kit_root() {
-    if [ -f "${GLOBAL_KIT_ROOT}/GLOBAL_AGENTS_TEMPLATE.md" ]; then
+    if [ -f "${GLOBAL_KIT_ROOT}/AGENTS.md" ]; then
         printf '%s\n' "$GLOBAL_KIT_ROOT"
     else
         printf '%s\n' "$LOCAL_KIT_ROOT"
     fi
-}
-
-get_workspace_template_source() {
-    source_kit_root="$1"
-    template_name="$2"
-
-    case "$template_name" in
-        standard) printf '%s\n' "${source_kit_root}/WORKSPACE_OVERRIDE_TEMPLATE.md" ;;
-        minimal) printf '%s\n' "${source_kit_root}/WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md" ;;
-        *) printf 'Unsupported template: %s\n' "$template_name" >&2; exit 1 ;;
-    esac
 }
 
 get_workspace_context_path() {
@@ -218,6 +207,72 @@ write_markdown_section() {
     for item in "$@"; do
         [ -n "$item" ] && printf -- '- %s\n' "$item"
     done
+}
+
+generate_default_workspace_agents() {
+    workspace_name="$1"
+    template_name="$2"
+
+    printf '# Workspace Override: %s\n\n' "$workspace_name"
+    printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
+    printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+    if [ "$template_name" = "minimal" ]; then
+        printf '\n## Minimal Repository Rules\n\n'
+        printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
+        printf -- '- Keep changes small\n'
+        printf -- '- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here\n'
+        printf -- '- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, and `contract_freeze`\n'
+        printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`\n'
+    else
+        printf '\n## Repository Facts To Fill\n\n'
+        printf -- '- Primary source of truth paths\n'
+        printf -- '- Shared asset paths\n'
+        printf -- '- Do-not-touch or generated paths\n'
+        printf -- '- Verification commands\n'
+        printf -- '- Manual approval zones\n'
+        printf -- '- Worker ownership mapping when Route C is used\n'
+        printf '\n## Repository Overrides\n\n'
+        printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
+        printf -- '- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route C is active\n'
+        printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran\n'
+        printf -- '- Add repository-specific verification commands, hard triggers, approval zones, and worker ownership here\n'
+        printf -- '- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules\n'
+    fi
+}
+
+generate_default_state() {
+    workspace_name="$1"
+
+    printf '# STATE\n\n'
+    printf '## Current Task\n\n'
+    printf -- '- id: `initial-task`\n'
+    printf -- '- summary: `Replace with the first concrete task for %s before execution`\n' "$workspace_name"
+    printf -- '- owner: `main`\n'
+    printf -- '- phase: `explore`\n'
+    printf '\n## Route\n\n'
+    printf -- '- name: `Route A`\n'
+    printf -- '- reason: `placeholder - classify the first task before editing`\n'
+    printf '\n## Next Tasks\n\n'
+    printf -- '- `Replace with the first concrete next step`\n'
+    printf '\n## Blocked Tasks\n\n'
+    printf -- '- `없음`\n'
+    printf '\n## Writer Slot\n\n'
+    printf -- '- status: `free`\n'
+    printf -- '- target_scope: `n/a`\n'
+    printf -- '- write_sets:\n'
+    printf '  - `n/a`\n'
+    printf '\n## Contract Freeze\n\n'
+    printf -- '- status: `open`\n'
+    printf -- '- shared_contracts:\n'
+    printf '  - `n/a`\n'
+    printf -- '- freeze_owner: `main`\n'
+    printf '\n## Reviewer\n\n'
+    printf -- '- target: `n/a`\n'
+    printf -- '- focus:\n'
+    printf '  - `n/a`\n'
+    printf '\n## Last Update\n\n'
+    printf -- '- updated_by: `main`\n'
+    printf -- '- updated_at: `[timestamp]`\n'
 }
 
 merge_context_items() {
@@ -914,16 +969,13 @@ install_global_kit() {
 
     for item in \
         README.md \
-        AGENTS_TEMPLATE.md \
-        GLOBAL_AGENTS_TEMPLATE.md \
-        STATE_TEMPLATE.md \
+        AGENTS.md \
         WORKSPACE_CONTEXT_TEMPLATE.toml \
-        WORKSPACE_OVERRIDE_TEMPLATE.md \
-        WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md \
         MULTI_AGENT_GUIDE.md \
         CHANGELOG.md \
         codex_agents \
         codex_rules \
+        docs \
         examples \
         profiles \
         installer
@@ -939,13 +991,11 @@ install_global_kit() {
         fi
     done
 
-    global_template="${LOCAL_KIT_ROOT}/GLOBAL_AGENTS_TEMPLATE.md"
     if ! should_overwrite_file "$GLOBAL_AGENTS_PATH"; then
         printf 'Skipped global AGENTS.md overwrite\n'
-        return
+    else
+        cp "${LOCAL_KIT_ROOT}/AGENTS.md" "$GLOBAL_AGENTS_PATH"
     fi
-
-    cp "$global_template" "$GLOBAL_AGENTS_PATH"
     install_codex_config
     install_codex_custom_agents "$LOCAL_KIT_ROOT"
     install_codex_rules "$LOCAL_KIT_ROOT"
@@ -966,9 +1016,7 @@ apply_to_workspace() {
     resolved_workspace=$(CDPATH= cd -- "$workspace_path" && pwd)
     source_kit_root=$(get_source_kit_root)
     context_path=$(get_workspace_context_path "$resolved_workspace")
-    template_source=$(get_workspace_template_source "$source_kit_root" "$template_name")
     agents_target="${resolved_workspace}/AGENTS.md"
-    state_template="${source_kit_root}/STATE_TEMPLATE.md"
     state_relative_path=$(toml_get_scalar "$context_path" "workspace" "task_board_path")
     [ -n "$state_relative_path" ] || state_relative_path="STATE.md"
     state_target="${resolved_workspace}/${state_relative_path}"
@@ -989,7 +1037,7 @@ apply_to_workspace() {
     if [ -f "$context_path" ]; then
         generate_workspace_agents_from_context "$context_path" "$(basename "$resolved_workspace")" "$template_name" "$agents_target"
     else
-        cp "$template_source" "$agents_target"
+        generate_default_workspace_agents "$(basename "$resolved_workspace")" "$template_name" > "$agents_target"
     fi
 
     if [ ! -e "$state_target" ]; then
@@ -997,7 +1045,7 @@ apply_to_workspace() {
         if [ -f "$context_path" ]; then
             generate_workspace_state_from_context "$context_path" "$(basename "$resolved_workspace")" "$state_target"
         else
-            cp "$state_template" "$state_target"
+            generate_default_state "$(basename "$resolved_workspace")" > "$state_target"
         fi
     fi
 
@@ -1009,11 +1057,8 @@ apply_to_workspace() {
         cp "${source_kit_root}/README.md" "${docs_root}/README.md"
         cp "${source_kit_root}/CHANGELOG.md" "${docs_root}/CHANGELOG.md"
         cp "${source_kit_root}/MULTI_AGENT_GUIDE.md" "${docs_root}/MULTI_AGENT_GUIDE.md"
-        cp "${source_kit_root}/GLOBAL_AGENTS_TEMPLATE.md" "${docs_root}/GLOBAL_AGENTS_TEMPLATE.md"
-        cp "${source_kit_root}/STATE_TEMPLATE.md" "${docs_root}/STATE_TEMPLATE.md"
         cp "${source_kit_root}/WORKSPACE_CONTEXT_TEMPLATE.toml" "${docs_root}/WORKSPACE_CONTEXT_TEMPLATE.toml"
-        cp "${source_kit_root}/WORKSPACE_OVERRIDE_TEMPLATE.md" "${docs_root}/WORKSPACE_OVERRIDE_TEMPLATE.md"
-        cp "${source_kit_root}/WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md" "${docs_root}/WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md"
+        cp "${source_kit_root}/docs/WORKSPACE_CONTEXT_GUIDE.md" "${docs_root}/WORKSPACE_CONTEXT_GUIDE.md"
 
         if [ -d "${source_kit_root}/codex_agents" ]; then
             copy_directory_contents "${source_kit_root}/codex_agents" "${docs_root}/codex_agents"

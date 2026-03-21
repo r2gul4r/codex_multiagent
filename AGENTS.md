@@ -1,7 +1,7 @@
-# Workspace AGENTS
+# Global AGENTS
 
-This file adds repository-specific rules on top of the global multi-agent defaults.
-Global multi-agent orchestration rules remain in effect unless this file adds a narrower local preference.
+This file is the canonical global multi-agent rule set for the kit.
+Installer global setup copies this file to the user's Codex home as the default AGENTS ruleset.
 
 ## Persona And Communication
 

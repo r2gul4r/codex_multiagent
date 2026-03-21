@@ -8,13 +8,10 @@ on:
       - "installer/**"
       - "codex_agents/**"
       - "codex_rules/**"
+      - "docs/**"
+      - "AGENTS.md"
       - "README.md"
       - "CHANGELOG.md"
-      - "AGENTS_TEMPLATE.md"
-      - "GLOBAL_AGENTS_TEMPLATE.md"
-      - "WORKSPACE_OVERRIDE_TEMPLATE.md"
-      - "WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md"
-      - "STATE_TEMPLATE.md"
       - "WORKSPACE_CONTEXT_TEMPLATE.toml"
   pull_request:
     paths:
@@ -22,13 +19,10 @@ on:
       - "installer/**"
       - "codex_agents/**"
       - "codex_rules/**"
+      - "docs/**"
+      - "AGENTS.md"
       - "README.md"
       - "CHANGELOG.md"
-      - "AGENTS_TEMPLATE.md"
-      - "GLOBAL_AGENTS_TEMPLATE.md"
-      - "WORKSPACE_OVERRIDE_TEMPLATE.md"
-      - "WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md"
-      - "STATE_TEMPLATE.md"
       - "WORKSPACE_CONTEXT_TEMPLATE.toml"
 
 jobs:
@@ -67,6 +61,7 @@ jobs:
           test -f "$WORKSPACE/docs/codex-multiagent/README.md"
           test -f "$WORKSPACE/docs/codex-multiagent/codex_rules/default.rules"
           test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_TEMPLATE.toml"
+          test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_GUIDE.md"
 
       - name: Test local installer workspace with WORKSPACE_CONTEXT
         env:
@@ -83,6 +78,7 @@ jobs:
           grep -q "Routes remain stable unless explicitly changed" "$WORKSPACE/STATE.md"
           grep -q "Contract integrity" "$WORKSPACE/STATE.md"
           test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_TEMPLATE.toml"
+          test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_GUIDE.md"
 
       - name: Test bootstrap installer
         env:

@@ -77,24 +77,11 @@ function Remove-StaleInstallerArtifacts {
 }
 
 function Get-SourceKitRoot {
-    if (Test-Path -LiteralPath (Join-Path $GlobalKitRoot 'GLOBAL_AGENTS_TEMPLATE.md')) {
+    if (Test-Path -LiteralPath (Join-Path $GlobalKitRoot 'AGENTS.md')) {
         return $GlobalKitRoot
     }
 
     return $LocalKitRoot
-}
-
-function Get-WorkspaceTemplateSource {
-    param(
-        [string]$SourceKitRoot,
-        [string]$TemplateName
-    )
-
-    switch ($TemplateName) {
-        'standard' { return (Join-Path $SourceKitRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') }
-        'minimal' { return (Join-Path $SourceKitRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') }
-        default { throw "Unsupported template: $TemplateName" }
-    }
 }
 
 function Get-WorkspaceContextPath {
@@ -561,6 +548,103 @@ function Add-MarkdownSection {
     }
 }
 
+function New-DefaultWorkspaceAgents {
+    param(
+        [string]$WorkspaceName,
+        [string]$TemplateName
+    )
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add("# Workspace Override: $WorkspaceName")
+    $lines.Add('')
+    $lines.Add('This file adds repository-specific rules on top of the global multi-agent defaults.')
+    $lines.Add('Global multi-agent defaults remain in effect unless this file narrows them.')
+    $lines.Add('')
+    if ($TemplateName -eq 'minimal') {
+        $lines.Add('## Minimal Repository Rules')
+        $lines.Add('')
+        $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
+        $lines.Add('- Keep changes small')
+        $lines.Add('- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here')
+        $lines.Add('- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, and `contract_freeze`')
+        $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`')
+    }
+    else {
+        $lines.Add('## Repository Facts To Fill')
+        $lines.Add('')
+        $lines.Add('- Primary source of truth paths')
+        $lines.Add('- Shared asset paths')
+        $lines.Add('- Do-not-touch or generated paths')
+        $lines.Add('- Verification commands')
+        $lines.Add('- Manual approval zones')
+        $lines.Add('- Worker ownership mapping when Route C is used')
+        $lines.Add('')
+        $lines.Add('## Repository Overrides')
+        $lines.Add('')
+        $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
+        $lines.Add('- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route C is active')
+        $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran')
+        $lines.Add('- Add repository-specific verification commands, hard triggers, approval zones, and worker ownership here')
+        $lines.Add('- Let this repository narrow Route A/B/C behavior further only when it truly needs stricter local rules')
+    }
+
+    return ($lines -join "`n") + "`n"
+}
+
+function New-DefaultState {
+    param([string]$WorkspaceName)
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add('# STATE')
+    $lines.Add('')
+    $lines.Add('## Current Task')
+    $lines.Add('')
+    $lines.Add('- id: `initial-task`')
+    $lines.Add(('- summary: `Replace with the first concrete task for {0} before execution`' -f $WorkspaceName))
+    $lines.Add('- owner: `main`')
+    $lines.Add('- phase: `explore`')
+    $lines.Add('')
+    $lines.Add('## Route')
+    $lines.Add('')
+    $lines.Add('- name: `Route A`')
+    $lines.Add('- reason: `placeholder - classify the first task before editing`')
+    $lines.Add('')
+    $lines.Add('## Next Tasks')
+    $lines.Add('')
+    $lines.Add('- `Replace with the first concrete next step`')
+    $lines.Add('')
+    $lines.Add('## Blocked Tasks')
+    $lines.Add('')
+    $lines.Add('- `없음`')
+    $lines.Add('')
+    $lines.Add('## Writer Slot')
+    $lines.Add('')
+    $lines.Add('- status: `free`')
+    $lines.Add('- target_scope: `n/a`')
+    $lines.Add('- write_sets:')
+    $lines.Add('  - `n/a`')
+    $lines.Add('')
+    $lines.Add('## Contract Freeze')
+    $lines.Add('')
+    $lines.Add('- status: `open`')
+    $lines.Add('- shared_contracts:')
+    $lines.Add('  - `n/a`')
+    $lines.Add('- freeze_owner: `main`')
+    $lines.Add('')
+    $lines.Add('## Reviewer')
+    $lines.Add('')
+    $lines.Add('- target: `n/a`')
+    $lines.Add('- focus:')
+    $lines.Add('  - `n/a`')
+    $lines.Add('')
+    $lines.Add('## Last Update')
+    $lines.Add('')
+    $lines.Add('- updated_by: `main`')
+    $lines.Add('- updated_at: `[timestamp]`')
+
+    return ($lines -join "`n") + "`n"
+}
+
 function New-WorkspaceAgentsFromContext {
     param(
         [hashtable]$Context,
@@ -998,15 +1082,12 @@ function Install-GlobalKit {
     $items = @(
         'README.md',
         'CHANGELOG.md',
-        'AGENTS_TEMPLATE.md',
-        'GLOBAL_AGENTS_TEMPLATE.md',
-        'STATE_TEMPLATE.md',
+        'AGENTS.md',
         'WORKSPACE_CONTEXT_TEMPLATE.toml',
-        'WORKSPACE_OVERRIDE_TEMPLATE.md',
-        'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md',
         'MULTI_AGENT_GUIDE.md',
         'codex_agents',
         'codex_rules',
+        'docs',
         'examples',
         'profiles',
         'installer'
@@ -1025,13 +1106,12 @@ function Install-GlobalKit {
         }
     }
 
-    $globalTemplate = Join-Path $LocalKitRoot 'GLOBAL_AGENTS_TEMPLATE.md'
     if (-not (Should-OverwriteFile -Path $GlobalAgentsPath)) {
         Write-Host 'Skipped global AGENTS.md overwrite' -ForegroundColor Yellow
-        return
     }
-
-    Copy-Item -LiteralPath $globalTemplate -Destination $GlobalAgentsPath -Force
+    else {
+        Copy-Item -LiteralPath (Join-Path $LocalKitRoot 'AGENTS.md') -Destination $GlobalAgentsPath -Force
+    }
     Install-CodexConfig -ConfigPath $GlobalConfigPath
     Install-CodexCustomAgents -SourceKitRoot $LocalKitRoot
     Install-CodexRules -SourceKitRoot $LocalKitRoot
@@ -1056,9 +1136,7 @@ function Apply-ToWorkspace {
     $sourceKitRoot = Get-SourceKitRoot
     $contextPath = Get-WorkspaceContextPath -WorkspacePath $resolvedWorkspace
     $context = if (Test-Path -LiteralPath $contextPath) { Read-WorkspaceContext -Path $contextPath } else { $null }
-    $templateSource = Get-WorkspaceTemplateSource -SourceKitRoot $sourceKitRoot -TemplateName $TemplateName
     $agentsTarget = Join-Path $resolvedWorkspace 'AGENTS.md'
-    $stateTemplate = Join-Path $sourceKitRoot 'STATE_TEMPLATE.md'
     $stateRelativePath = if ($context) { Get-ContextString -Context $context -Section 'workspace' -Key 'task_board_path' -DefaultValue 'STATE.md' } else { 'STATE.md' }
     $stateTarget = Join-Path $resolvedWorkspace $stateRelativePath
 
@@ -1080,7 +1158,8 @@ function Apply-ToWorkspace {
         Set-Content -LiteralPath $agentsTarget -Value $agentsContent -Encoding utf8
     }
     else {
-        Copy-Item -LiteralPath $templateSource -Destination $agentsTarget -Force
+        $agentsContent = New-DefaultWorkspaceAgents -WorkspaceName (Split-Path -Leaf $resolvedWorkspace) -TemplateName $TemplateName
+        Set-Content -LiteralPath $agentsTarget -Value $agentsContent -Encoding utf8
     }
 
     if (-not (Test-Path -LiteralPath $stateTarget)) {
@@ -1090,7 +1169,8 @@ function Apply-ToWorkspace {
             Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8
         }
         else {
-            Copy-Item -LiteralPath $stateTemplate -Destination $stateTarget -Force
+            $stateContent = New-DefaultState -WorkspaceName (Split-Path -Leaf $resolvedWorkspace)
+            Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8
         }
     }
 
@@ -1101,11 +1181,8 @@ function Apply-ToWorkspace {
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'README.md') -Destination (Join-Path $docsRoot 'README.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'CHANGELOG.md') -Destination (Join-Path $docsRoot 'CHANGELOG.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'MULTI_AGENT_GUIDE.md') -Destination (Join-Path $docsRoot 'MULTI_AGENT_GUIDE.md') -Force
-        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'GLOBAL_AGENTS_TEMPLATE.md') -Destination (Join-Path $docsRoot 'GLOBAL_AGENTS_TEMPLATE.md') -Force
-        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'STATE_TEMPLATE.md') -Destination (Join-Path $docsRoot 'STATE_TEMPLATE.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_CONTEXT_TEMPLATE.toml') -Destination (Join-Path $docsRoot 'WORKSPACE_CONTEXT_TEMPLATE.toml') -Force
-        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_TEMPLATE.md') -Force
-        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_OVERRIDE_MINIMAL_TEMPLATE.md') -Force
+        Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'docs\WORKSPACE_CONTEXT_GUIDE.md') -Destination (Join-Path $docsRoot 'WORKSPACE_CONTEXT_GUIDE.md') -Force
         if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_agents')) {
             Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_agents') -Destination (Join-Path $docsRoot 'codex_agents')
         }
