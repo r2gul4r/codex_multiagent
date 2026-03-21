@@ -69,6 +69,8 @@ Installer global setup copies this file to the user's Codex home as the default 
 - If `Route C` starts without a named `reviewer` target, stop and assign one before implementation begins
 - If the route changes during execution, update `STATE.md` first and only then continue
 - Any Route C run that skips route logging, contract freeze, worker delegation, reviewer assignment, or write-set ownership is considered a process failure in this workspace
+- `STATE.md` updates may change field values, but must preserve the core sections: `Current Task`, `Route`, `Writer Slot`, `Contract Freeze`, `Reviewer`, and `Last Update`
+- Do not collapse `STATE.md` into ad-hoc notes or delete required sections while a task is active
 
 ## Forbidden Commands
 
