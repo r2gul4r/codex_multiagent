@@ -55,8 +55,6 @@ iter_top_level_sorted_paths() {
 
     (
         LC_ALL=C
-        paths=()
-
         for path in "$dir"/.* "$dir"/*; do
             case "$path" in
                 "$dir"/.|"$dir"/..)
@@ -73,28 +71,12 @@ iter_top_level_sorted_paths() {
                     [ -L "$path" ] && continue
                     ;;
             esac
-            paths+=("$path")
+            printf '%s\n' "$path"
         done
-
-        sorted_paths=()
-        for path in "${paths[@]}"; do
-            inserted=0
-            new_sorted_paths=()
-            for existing_path in "${sorted_paths[@]}"; do
-                if [ "$inserted" -eq 0 ] && [[ "$path" < "$existing_path" ]]; then
-                    new_sorted_paths+=("$path")
-                    inserted=1
-                fi
-                new_sorted_paths+=("$existing_path")
-            done
-            if [ "$inserted" -eq 0 ]; then
-                new_sorted_paths+=("$path")
-            fi
-            sorted_paths=("${new_sorted_paths[@]}")
-        done
-
-        printf '%s\0' "${sorted_paths[@]}"
-    )
+    ) | sort | while IFS= read -r path; do
+        [ -n "$path" ] || continue
+        printf '%s\0' "$path"
+    done
 }
 
 get_backup_stamp() {
@@ -868,44 +850,25 @@ install_codex_skills() {
     backup_path_if_exists "$GLOBAL_SKILLS_ROOT" "$backup_root" "skills"
     backup_path_if_exists "$GLOBAL_MANAGED_SKILLS_MANIFEST" "$backup_root" "installer-managed-skills.manifest"
 
-    previous_managed_skills=()
+    tmp_manifest=$(mktemp)
+    : > "$tmp_manifest"
+
+    while IFS= read -r -d '' source_skill_dir; do
+        [ -d "$source_skill_dir" ] || continue
+        managed_skill_name=$(basename "$source_skill_dir")
+        printf '%s\n' "$managed_skill_name" >> "$tmp_manifest"
+        copy_directory_contents "$source_skill_dir" "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
+    done < <(iter_top_level_sorted_paths "$source_skills_root" dir)
+
     if [ -f "$GLOBAL_MANAGED_SKILLS_MANIFEST" ]; then
         while IFS= read -r managed_skill_name; do
-            if [ -n "$managed_skill_name" ]; then
-                previous_managed_skills+=("$managed_skill_name")
+            [ -n "$managed_skill_name" ] || continue
+            if ! grep -Fxq "$managed_skill_name" "$tmp_manifest"; then
+                rm -rf "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
             fi
         done < "$GLOBAL_MANAGED_SKILLS_MANIFEST"
     fi
 
-    current_managed_skills=()
-    while IFS= read -r -d '' source_skill_dir; do
-        [ -d "$source_skill_dir" ] || continue
-        current_managed_skills+=("$(basename "$source_skill_dir")")
-    done < <(iter_top_level_sorted_paths "$source_skills_root" dir)
-
-    for managed_skill_name in "${previous_managed_skills[@]}"; do
-        found=0
-        for source_skill_name in "${current_managed_skills[@]}"; do
-            if [ "$managed_skill_name" = "$source_skill_name" ]; then
-                found=1
-                break
-            fi
-        done
-
-        if [ "$found" -eq 0 ]; then
-            rm -rf "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
-        fi
-    done
-
-    for source_skill_dir in "${current_managed_skills[@]}"; do
-        copy_directory_contents "${source_skills_root}/${source_skill_dir}" "${GLOBAL_SKILLS_ROOT}/${source_skill_dir}"
-    done
-
-    tmp_manifest=$(mktemp)
-    : > "$tmp_manifest"
-    for managed_skill_name in "${current_managed_skills[@]}"; do
-        printf '%s\n' "$managed_skill_name" >> "$tmp_manifest"
-    done
     mv "$tmp_manifest" "$GLOBAL_MANAGED_SKILLS_MANIFEST"
 }
 

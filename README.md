@@ -17,6 +17,13 @@ Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운
 
 ---
 
+## Acknowledgements
+
+이 킷의 spec-first workflow와 일부 skill/rule 설계는 [Q00/ouroboros](https://github.com/Q00/ouroboros)에서 참고하고 포팅했다.
+다만 이 저장소는 Ouroboros 전체 런타임을 배포하지 않고, Codex 앱 + 멀티에이전트 워크플로우에 맞게 선택한 아이디어만 재구성한다.
+
+---
+
 ## 설치전 README를 읽어보세요
 
 ## 빠른 시작

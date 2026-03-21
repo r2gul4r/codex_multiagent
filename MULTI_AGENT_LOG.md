@@ -43,3 +43,6 @@
 - 2026-03-22 05:43:50 +09:00 | worker_feature_install | Updated installer-generated AGENTS, STATE, and developer instructions to the same two-route model.
 - 2026-03-22 05:43:50 +09:00 | reviewer_route_collapse | Final review found no blockers and confirmed the active repository content now consistently uses the new `Route A` / `Route B` model.
 - 2026-03-22 05:43:50 +09:00 | main | Route collapse task closed after delegated updates and reviewer validation.
+- 2026-03-22 06:13:00 +09:00 | main | Route B opened to add a concise Ouroboros acknowledgement to `README.md` and then ship it together with the pending macOS installer regression fix.
+- 2026-03-22 06:16:00 +09:00 | worker_docs | Added a short README acknowledgement that this repository adapts selected ideas from `Q00/ouroboros` without claiming to ship the full Ouroboros runtime.
+- 2026-03-22 06:21:00 +09:00 | reviewer_readme_installer | Reviewed `README.md`, `installer/CodexMultiAgent.sh`, and `ERROR_LOG.md`; found no blockers. Residual risk only: streamed `sort` order remains locale-sensitive but non-blocking for current installer behavior.
