@@ -75,8 +75,8 @@ jobs:
           test -f "$WORKSPACE/STATE.md"
           grep -q "# Workspace Override: example-workspace" "$WORKSPACE/AGENTS.md"
           grep -q "Package manager: pnpm" "$WORKSPACE/AGENTS.md"
-          grep -q "Routes remain stable unless explicitly changed" "$WORKSPACE/STATE.md"
-          grep -q "Contract integrity" "$WORKSPACE/STATE.md"
+          grep -q "Route B is delegated with worker and reviewer roles" "$WORKSPACE/STATE.md"
+          grep -q "## Contract Freeze" "$WORKSPACE/STATE.md"
           test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_TEMPLATE.toml"
           test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_GUIDE.md"
 
@@ -110,4 +110,5 @@ jobs:
           test -f "$WORKSPACE/AGENTS.md"
           test -f "$WORKSPACE/STATE.md"
           grep -q "# Workspace Override: example-workspace" "$WORKSPACE/AGENTS.md"
-          grep -q "Routes remain stable unless explicitly changed" "$WORKSPACE/STATE.md"
+          grep -q "Route B is delegated with worker and reviewer roles" "$WORKSPACE/STATE.md"
+          grep -q "## Contract Freeze" "$WORKSPACE/STATE.md"

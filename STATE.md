@@ -2,26 +2,25 @@
 
 ## Current Task
 
-- task: Add an Ouroboros acknowledgement to `README.md`, then commit and push the pending macOS installer regression fix plus docs updates together.
+- task: Fix the failing macOS `apply-workspace` test path that uses `WORKSPACE_CONTEXT.toml`.
 - phase: verification
-- scope: `README.md`, `installer/CodexMultiAgent.sh`, `ERROR_LOG.md`
-- verification_target: `git diff --check`, `bash -n installer/CodexMultiAgent.sh`, targeted shell installer verification, and reviewer confirmation on the README acknowledgement plus commit scope
+- scope: `.github/workflows/macos-codex-installer.yml`
+- verification_target: `git diff --check`, `bash -n installer/CodexMultiAgent.sh`, and a targeted reproduction of the `apply-workspace --include-docs` flow with `WORKSPACE_CONTEXT.toml`
 
 ## Route
 
-- route: `Route B`
-- reason: The task now spans the root docs plus the shell installer scope, requires 2+ verification steps, and needs delegated review before commit/push.
+- route: `Route A`
+- reason: Initial scope is a tight CI regression investigation in the shell installer path. One write-capable lane is enough unless the fix expands beyond the installer/workflow slice.
 
 ## Writer Slot
 
 - owner: `main`
-- write_set: `STATE.md`, `MULTI_AGENT_LOG.md`
-- write_sets: `worker_docs = README.md`
-- note: Route B planner-only lane. The pending installer and error-log edits are already in the worktree; only the README acknowledgement is delegated for new implementation writes.
+- write_set: `.github/workflows/macos-codex-installer.yml`, `ERROR_LOG.md`, `STATE.md`
+- note: Single write-capable lane only. Reproduction showed the installer succeeds and the stale workflow assertions are the actual failing slice.
 
 ## Contract Freeze
 
-- contract_freeze: Keep the bash-3.2-safe installer fix and error-log entries intact. Add only a concise README acknowledgement that this repository adapts ideas from Q00/ouroboros, then commit and push the resulting scope together.
+- contract_freeze: Keep the installer behavior untouched. Update only the stale macOS workflow assertions so they match the current generated `STATE.md` template.
 
 ## Seed
 
@@ -32,11 +31,11 @@
 
 ## Reviewer
 
-- reviewer: `reviewer_readme_installer`
-- reviewer_target: `README.md`, `installer/CodexMultiAgent.sh`
-- reviewer_focus: `Passed. The README acknowledgement is accurate and the installer diff stays limited to the empty-array / set -u regression. Residual risk only: locale-sensitive sort order is non-blocking.`
+- reviewer: `n/a`
+- reviewer_target: `n/a`
+- reviewer_focus: `n/a`
 
 ## Last Update
 
-- timestamp: `2026-03-22 06:22:00 +09:00`
-- note: Delegated README acknowledgement landed, reviewer pass returned with no findings, and the task is ready for commit/push.
+- timestamp: `2026-03-22 06:42:00 +09:00`
+- note: Updated the stale workflow assertions to the current generated `STATE.md` strings and re-ran the WORKSPACE_CONTEXT reproduction successfully.
