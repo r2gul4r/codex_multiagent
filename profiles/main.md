@@ -65,7 +65,7 @@ Ownership
 - [Route C = writer_slot=parallel + write_sets + shared-assets owner]
 
 Verification
-- [commands or manual checks]
+- [commands]
 
 Done means
 - [what counts as finished]

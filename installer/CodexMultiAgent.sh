@@ -535,9 +535,8 @@ get_derived_reviewer_focus() {
         return
     fi
 
-    load_context_array reviewer_focus_b "$context_path" "verification" "manual_checks"
-    load_context_array reviewer_focus_c "$context_path" "editing_rules" "notes"
-    merge_context_items ${reviewer_focus_b[@]+"${reviewer_focus_b[@]}"} ${reviewer_focus_c[@]+"${reviewer_focus_c[@]}"}
+    load_context_array reviewer_focus_b "$context_path" "editing_rules" "notes"
+    merge_context_items ${reviewer_focus_b[@]+"${reviewer_focus_b[@]}"}
 }
 
 get_derived_forbidden_patterns() {

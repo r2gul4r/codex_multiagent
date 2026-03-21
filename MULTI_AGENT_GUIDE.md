@@ -138,7 +138,7 @@ Pinned contracts
 - APIs, schemas, routes, events, or env keys that must not drift
 
 Verification
-- Commands or manual checks
+- Commands
 
 Done means
 - What the reviewer should be able to confirm at the end

@@ -13,7 +13,6 @@ installer 는 이 파일을 읽고 프로젝트에 맞는 `AGENTS.md` 와 초기
 | `editing_rules.edit_in` | 필수 | 보통 수정이 허용되는 경로 | `src/**`, `scripts/**`, `jobs/**` |
 | `editing_rules.do_not_edit` | 필수 | 직접 수정하면 안 되는 경로 | `dist/**`, `generated/**`, `vendor/**` |
 | `verification.commands` 또는 `verification.recommended_commands` | 필수 | 최소 검증 명령 | `pnpm test`, `pytest`, `go test ./...`, `terraform validate` |
-| `verification.manual_checks` | 권장 | 명령만으로 안 잡히는 확인 포인트 | `로그인 흐름`, `배치 결과 샘플 확인` |
 | `workflow.authoring_model` | 권장 | 수정/배포 흐름 설명 | `src만 수정, dist는 산출물` |
 | `triggers.hard` | 권장 | 큰 작업으로 봐야 하는 변경 | `API contract 변경`, `schema 변경`, `shared config 변경` |
 | `approval.zones` | 권장 | 승인 필요 작업 | `deploy`, `db migration`, `external writes`, `prod secret 변경` |
@@ -46,7 +45,6 @@ installer 는 이 파일을 읽고 프로젝트에 맞는 `AGENTS.md` 와 초기
 
 가능하면 아래도 채워줘.
 - workflow.authoring_model
-- verification.manual_checks
 - triggers.hard
 - approval.zones
 - workers.mapping
@@ -70,7 +68,6 @@ installer 는 이 파일을 읽고 프로젝트에 맞는 `AGENTS.md` 와 초기
 
 가능하면 아래도 채워줘.
 - workflow.authoring_model
-- verification.manual_checks
 - triggers.hard
 - approval.zones
 - workers.mapping

@@ -537,7 +537,6 @@ function Get-DerivedReviewerFocus {
     }
 
     return (Merge-ContextItems `
-        (Get-ContextArray -Context $Context -Section 'verification' -Key 'manual_checks') `
         (Get-ContextArray -Context $Context -Section 'editing_rules' -Key 'notes'))
 }
 
