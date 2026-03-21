@@ -956,7 +956,8 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Treat AGENTS.md as the source of truth for route selection, delegation, state updates, and verification flow.',
         '- On each new user request, compare it against the active current_task in STATE.md before continuing.',
         '- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.',
-        '- If read-only investigation or planning turns into implementation, re-check the route and update STATE.md before writing.',
+        '- Treat investigation, planning, and implementation as separate stages.',
+        '- If read-only investigation or planning turns into implementation, re-check the route, update STATE.md, and explicitly enter implementation before writing.',
         '- Do not skip route or reason logging when AGENTS.md requires it.',
         '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.'
     )
