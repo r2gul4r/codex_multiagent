@@ -35,6 +35,12 @@ Installer global setup copies this file to the user's Codex home as the default 
 - Before finishing, run the relevant verification commands available in the repository when feasible and report any gaps
 - Prefer small, reviewable changes over large monolithic edits
 
+## Verification Rules
+
+- Default final verification is code review plus repository verification commands
+- Do not open a browser, call browser automation tools, or inspect external domains just to do a final check unless the user explicitly asks for that kind of verification
+- Do not perform public-runtime, deployed-domain, preview-site, or smoke-URL checks unless the user explicitly asks for them
+
 ## Multi-Agent Enforcement
 
 - `STATE.md` is mandatory for any non-trivial implementation task in this workspace
