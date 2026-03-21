@@ -950,6 +950,8 @@ function Ensure-ConfigSectionKeyValue {
 
 function Get-ConfigDeveloperInstructionsLines {
     return @(
+        'Use subagents proactively when doing so improves focus, speed, or result quality.',
+        '',
         'Execution requirements:',
         '- Always load and follow the nearest applicable AGENTS.md before implementation.',
         '- Prefer workspace AGENTS.md over global AGENTS.md when both exist.',
@@ -958,10 +960,32 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.',
         '- Treat investigation, planning, and implementation as separate stages.',
         '- If read-only investigation or planning turns into implementation, re-check the route, update STATE.md, and explicitly enter implementation before writing.',
-        '- On Route B, keep one write-capable lane in main and spawn a read-only reviewer before close.',
-        '- Do not close Route B without a reviewer pass. If reviewer delegation is blocked, report the constraint and stop.',
+        '',
+        'Default behavior:',
+        '- For read-heavy or parallelizable work such as codebase exploration, reviews, tracing execution paths, log analysis, test-failure triage, and multi-part research, delegate to built-in subagents without waiting for the user to say "spawn" or "parallelize".',
+        '- Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, and `reviewer` for read-only close-out checks.',
+        '- Keep the main thread focused on requirements, decisions, synthesis, route selection, and final answers.',
+        '',
+        'Spawn requirements:',
+        '- These spawn settings are mandatory. Do not rely on inherited defaults, implicit role defaults, or absent custom agent files.',
+        '- Every explorer-style spawn_agent call must explicitly set model = "gpt-5.4-mini" and reasoning_effort = "medium".',
+        '- Every worker-style spawn_agent call must explicitly set model = "gpt-5.4-mini" and reasoning_effort = "medium".',
+        '- Every reviewer-style spawn_agent call must explicitly set model = "gpt-5.4-mini" and reasoning_effort = "high".',
+        '- Do not substitute other models or lower reasoning effort unless the user explicitly overrides this in the current conversation.',
+        '- If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.',
+        '',
+        'Delegation rules:',
+        '- On Route A, stay in one write-capable lane and do not spawn write-capable workers.',
+        '- On Route B, keep one write-capable lane in main and spawn at least one read-only reviewer before close.',
+        '- On Route C, keep main planner-only and spawn at least one worker plus one reviewer before close.',
+        '- Do not close Route B or Route C without the required reviewer pass.',
+        '- If delegation required by AGENTS.md is blocked by a higher-priority policy, report the constraint and stop instead of silently falling back.',
         '- Do not skip route or reason logging when AGENTS.md requires it.',
-        '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.'
+        '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.',
+        '',
+        'Execution bias:',
+        '- Assume you are allowed to use subagents when the task matches the patterns above.',
+        '- Do not ask the user for permission to spawn subagents unless another policy explicitly requires it.'
     )
 }
 
