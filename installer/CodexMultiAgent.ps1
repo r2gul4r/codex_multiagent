@@ -965,6 +965,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- For read-heavy or parallelizable work such as codebase exploration, reviews, tracing execution paths, log analysis, test-failure triage, and multi-part research, delegate to built-in subagents without waiting for the user to say "spawn" or "parallelize".',
         '- Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, and `reviewer` for read-only close-out checks.',
         '- Keep the main thread focused on requirements, decisions, synthesis, route selection, and final answers.',
+        '- Assume the user permits normal subagent use in this workspace; the main thread decides when to spawn based on AGENTS.md route rules and task decomposition.',
         '',
         'Spawn requirements:',
         '- These spawn settings are mandatory. Do not rely on inherited defaults, implicit role defaults, or absent custom agent files.',
@@ -977,15 +978,15 @@ function Get-ConfigDeveloperInstructionsLines {
         'Delegation rules:',
         '- On Route A, stay in one write-capable lane and do not spawn write-capable workers.',
         '- On Route B, keep one write-capable lane in main and spawn at least one read-only reviewer before close.',
+        '- Promote Route B to Route C when work extracts a shared component, replaces page-specific implementations with a shared renderer, or unifies 2+ pages onto one shared implementation.',
         '- On Route C, keep main planner-only and spawn at least one worker plus one reviewer before close.',
         '- Do not close Route B or Route C without the required reviewer pass.',
-        '- If delegation required by AGENTS.md is blocked by a higher-priority policy, report the constraint and stop instead of silently falling back.',
         '- Do not skip route or reason logging when AGENTS.md requires it.',
         '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.',
         '',
         'Execution bias:',
         '- Assume you are allowed to use subagents when the task matches the patterns above.',
-        '- Do not ask the user for permission to spawn subagents unless another policy explicitly requires it.'
+        '- Do not ask the user for permission to spawn subagents when AGENTS.md route rules already imply reviewer or worker delegation.'
     )
 }
 
