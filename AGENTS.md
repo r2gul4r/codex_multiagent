@@ -77,8 +77,10 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 - On `Route B`, keep exactly one write-capable lane; any support roles must stay read-only
 - On `Route B`, do not treat planning or investigation as permission to skip the reviewer requirement once implementation begins
+- On `Route B`, spawn at least one read-only `reviewer` before closing the task; this is mandatory, not optional
 - On `Route B`, if a second write-capable lane would help, treat that as a promotion signal to `Route C`, not permission to start another writer
 - On `Route B`, if any hard trigger appears or the work separates into shared-assets plus feature slices, stop, update `STATE.md`, and promote the task to `Route C` before more implementation writes
+- On `Route B`, if the environment blocks reviewer delegation, stop and report the constraint instead of closing the task without a reviewer pass
 - On `Route B`, close the task only after at least one `reviewer` pass
 
 ### Route C

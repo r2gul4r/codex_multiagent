@@ -45,7 +45,8 @@ Route selection
   - `main` may edit directly
 - `Route B`
   - `2-3` points
-  - `main` may still edit directly, with optional read-only help
+  - `main` remains the only writer
+  - at least one read-only `reviewer` pass is mandatory before close
 - `Route C`
   - `4+` points, or any hard trigger
   - `main` becomes planner-only
@@ -57,6 +58,7 @@ Before any write begins
 - do not use hedge labels such as `Route C-equivalent` or `single-agent fallback`
 - on `Route A`, keep one tight slice and one write-capable lane
 - on `Route B`, keep one write-capable lane and read-only support only
+- on `Route B`, a read-only `reviewer` pass is mandatory before the task is closed
 - on `Route B`, if a second write-capable lane would help, promote to `Route C`
 - on `Route C`, `main` must stop writing implementation files and delegate to at least one `worker`
 - on `Route C`, a `reviewer` pass is mandatory before the task is closed

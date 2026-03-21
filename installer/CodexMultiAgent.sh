@@ -893,6 +893,8 @@ Execution requirements:
 - Do not continue implementation from an existing STATE.md unless the request is clearly the same task.
 - Treat investigation, planning, and implementation as separate stages.
 - If read-only investigation or planning turns into implementation, re-check the route, update STATE.md, and explicitly enter implementation before writing.
+- On Route B, keep one write-capable lane in main and spawn a read-only reviewer before close.
+- Do not close Route B without a reviewer pass. If reviewer delegation is blocked, report the constraint and stop.
 - Do not skip route or reason logging when AGENTS.md requires it.
 - Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.
 EOF
