@@ -37,7 +37,7 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 - 전역 기본 규칙 위에 저장소 전용 규칙을 오버라이드로 추가
 - `docs/codex-multiagent/` 참고 문서 복사
 - 작업공간 루트에 `WORKSPACE_CONTEXT.toml` 이 있으면 그 파일을 먼저 읽어 프로젝트에 맞는 `AGENTS.md` 와 초기 `STATE.md` 생성
-- `WORKSPACE_CONTEXT.toml` 이 없으면 기본 오버라이드 템플릿 fallback 사용
+- `WORKSPACE_CONTEXT.toml` 이 없으면 installer 내장 fallback 규칙으로 생성
 - 실제 프로젝트에 맞춘 설치를 원하면 오버라이드 설치 전에 `WORKSPACE_CONTEXT.toml` 을 먼저 준비해 두는 편이 좋음
 
 ## 참고

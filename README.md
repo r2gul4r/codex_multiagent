@@ -73,7 +73,7 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 이 명령이 하는 일
 
 - 해당 작업공간 루트에 `AGENTS.md` 생성 또는 덮어쓰기
-- `STATE.md` 가 없으면 템플릿 기반으로 생성
+- `STATE.md` 가 없으면 초기 상태 보드로 생성
 - 전역 기본 규칙 위에 저장소 전용 오버라이드 추가
 - `docs/codex-multiagent/` 참고 문서 복사
 
@@ -158,7 +158,7 @@ Codex는 현재 `default`, `worker`, `explorer`, `reviewer` 같은 공식 서브
 
 - 전역 `AGENTS.md` 기본값
 - 전역 `config.toml` patch
-- 저장소별 `AGENTS.md` 오버라이드 템플릿
+- 저장소별 `AGENTS.md` 오버라이드 생성
 - `STATE.md` 기반 경량 task board
 - `route + writer_slot + write_sets` 기반 실행 소유권 흐름
 - `contract_freeze` 기반 공유 계약 고정 절차
