@@ -1,41 +1,41 @@
-﻿# STATE
+# STATE
 
 ## Current Task
 
-- task: Fix the failing macOS `apply-workspace` test path that uses `WORKSPACE_CONTEXT.toml`.
-- phase: verification
-- scope: `.github/workflows/macos-codex-installer.yml`
-- verification_target: `git diff --check`, `bash -n installer/CodexMultiAgent.sh`, and a targeted reproduction of the `apply-workspace --include-docs` flow with `WORKSPACE_CONTEXT.toml`
+- task: Add proper MIT license notice handling for the Ouroboros-derived README acknowledgement and ship the repo update.
+- phase: completed
+- scope: `README.md`, `THIRD_PARTY_NOTICES.md`, `SEED.yaml`, and repo metadata for commit/push`
+- verification_target: `git diff --check` plus a focused reviewer pass that the README points to the preserved MIT text for the Ouroboros-derived portion
 
 ## Route
 
-- route: `Route A`
-- reason: Initial scope is a tight CI regression investigation in the shell installer path. One write-capable lane is enough unless the fix expands beyond the installer/workflow slice.
+- route: `Route B`
+- reason: This is a new task that spans multiple root documentation files plus a frozen seed artifact, so Route A's single-lane tiny-slice rules no longer fit. Main stays planner-only and delegates the coupled docs/legal write slice.
 
 ## Writer Slot
 
 - owner: `main`
-- write_set: `.github/workflows/macos-codex-installer.yml`, `ERROR_LOG.md`, `STATE.md`
-- note: Single write-capable lane only. Reproduction showed the installer succeeds and the stale workflow assertions are the actual failing slice.
+- write_set: `STATE.md`, `MULTI_AGENT_LOG.md`; delegated write_sets: `worker_docs -> SEED.yaml, README.md, THIRD_PARTY_NOTICES.md`
+- note: Single worker is intentional because the seed file, README pointer, and third-party notice are one tightly coupled legal/docs slice that would overlap if split further.
 
 ## Contract Freeze
 
-- contract_freeze: Keep the installer behavior untouched. Update only the stale macOS workflow assertions so they match the current generated `STATE.md` template.
+- contract_freeze: Preserve the existing acknowledgement, add a repository-shipped MIT notice file for the Ouroboros-derived portion, and update README only enough to point readers to that notice without claiming the whole repo is relicensed.
 
 ## Seed
 
-- status: `n/a`
-- path: `n/a`
-- revision: `n/a`
-- note: `Use this section to track the active frozen seed once a spec-first task starts.`
+- status: `done`
+- path: `SEED.yaml`
+- revision: `frozen`
+- note: `Frozen contract was implemented without expanding the write set beyond the three requested files.`
 
 ## Reviewer
 
-- reviewer: `n/a`
-- reviewer_target: `n/a`
-- reviewer_focus: `n/a`
+- reviewer: `reviewer_legal_docs`
+- reviewer_target: `README.md`, `THIRD_PARTY_NOTICES.md`, `SEED.yaml`
+- reviewer_focus: `Confirm the MIT notice text is preserved, the README wording stays narrowly scoped, and the change does not overclaim license coverage.`
 
 ## Last Update
 
-- timestamp: `2026-03-22 06:42:00 +09:00`
-- note: Updated the stale workflow assertions to the current generated `STATE.md` strings and re-ran the WORKSPACE_CONTEXT reproduction successfully.
+- timestamp: `2026-03-23 14:35:01 +09:00`
+- note: Reviewer found no blocking issues, the diff stayed within the planned write set, and the repo is ready to commit/push.

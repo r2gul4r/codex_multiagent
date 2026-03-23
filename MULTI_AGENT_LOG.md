@@ -46,3 +46,5 @@
 - 2026-03-22 06:13:00 +09:00 | main | Route B opened to add a concise Ouroboros acknowledgement to `README.md` and then ship it together with the pending macOS installer regression fix.
 - 2026-03-22 06:16:00 +09:00 | worker_docs | Added a short README acknowledgement that this repository adapts selected ideas from `Q00/ouroboros` without claiming to ship the full Ouroboros runtime.
 - 2026-03-22 06:21:00 +09:00 | reviewer_readme_installer | Reviewed `README.md`, `installer/CodexMultiAgent.sh`, and `ERROR_LOG.md`; found no blockers. Residual risk only: streamed `sort` order remains locale-sensitive but non-blocking for current installer behavior.
+- 2026-03-23 14:30:39 +09:00 | main | Route B opened for Ouroboros MIT-notice cleanup. Planned write sets: `worker_docs -> SEED.yaml, README.md, THIRD_PARTY_NOTICES.md`, `main -> STATE.md, MULTI_AGENT_LOG.md`, `reviewer_legal_docs -> README.md, THIRD_PARTY_NOTICES.md, SEED.yaml`.
+- 2026-03-23 14:35:01 +09:00 | reviewer_legal_docs | Reviewed `README.md`, `THIRD_PARTY_NOTICES.md`, and `SEED.yaml`; found no blocking issues. MIT text is preserved, README scope stays narrow, and no seed drift was found.
