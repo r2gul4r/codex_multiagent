@@ -144,16 +144,30 @@ Done means
 For this kit, a full runtime queue is overkill
 But a lightweight task board is worth it
 
-Use `STATE.md` to track
+One shared `STATE.md` turns into a collision point once two threads write at the same time.
+The fix is a root board plus per-task state files.
 
-- `current_task`
-- `next_tasks`
+Use the root `STATE.md` to track only compact workspace ownership data
+
+- `active_tasks`
 - `blocked_tasks`
+- `owned_write_sets`
+- `task_state_dir = state/`
 - `route`
 - `writer_slot`
 - `contract_freeze`
-- `write_sets` when `Route B` is active
-- `reviewer_target` when a reviewer is assigned
+- `reviewer_target`
+
+Use `state/TASK-*.md` for the thread-specific detail
+
+- task id
+- owner thread
+- full scope
+- owned write set
+- reviewer target
+- verification notes
+
+That keeps root-board updates limited to registration, blocked or unblocked transitions, write-set ownership claim or release, and closeout
 
 That gives `main` enough structure to sequence work without pretending this repo is a full scheduler
 
@@ -166,8 +180,10 @@ Recommended values
 - `route = Route A | Route B`
 - `reason = hard trigger name | concrete score summary`
 - `writer_slot = free | main | worker_name | parallel`
-- `write_sets = [worker_name = file globs]`
+- `owned_write_sets = [worker_name = file globs]`
 - `reviewer_target = reviewer | reviewer_name`
+- `task_state_dir = state/`
+- `owner_thread = thread identifier or worker name`
 
 Before Route B starts
 
@@ -175,10 +191,12 @@ Before Route B starts
 - declare write-set ownership
 - name the shared-assets owner
 - name the reviewer target
+- create or update the task-state file for each active thread
 
 After Route B ends
 
 - collapse back to `writer_slot = free`
+- close out or archive the task-state file
 - keep the handoff evidence in `MULTI_AGENT_LOG.md`
 
 That makes accidental ownership drift much harder to hide
@@ -231,7 +249,7 @@ If the structure is broken, formatting comments are noise
 
 1. Start with `main`
 2. Add hard-trigger + scorecard gating
-3. Add `STATE.md` once tasks stop fitting in your head
+3. Add a root `STATE.md` board once tasks stop fitting in your head, then split concurrent-thread detail into `state/TASK-*.md`
 4. Add `explorer` only when discovery cost is consistently high
 5. Move large work into `Route B` only after contract freeze is reliable
 6. Add `worker_shared` when common types, shared utils, or common components keep causing collisions

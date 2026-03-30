@@ -9,7 +9,7 @@
 
 - Check whether the result matches the goal
 - Check whether shared contracts stayed intact
-- Check that `contract_freeze`, `route`, and ownership history still make sense
+- Check that `contract_freeze`, `route`, root-board ownership history, and task-state history still make sense
 - Look for scope pollution, write-set violations, and side effects
 - Confirm that verification was actually performed or explicitly waived
 
@@ -26,6 +26,7 @@
 - Route and ownership model
 - Changed file range
 - Pinned contracts
+- Root-board state plus the relevant task-state file
 - Expected verification items
 
 ## Output Contract

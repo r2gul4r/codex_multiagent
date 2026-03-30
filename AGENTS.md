@@ -72,8 +72,10 @@ Installer global setup copies this file to the user's Codex home as the default 
 ### Task Continuity
 
 - `STATE.md` is mandatory for any non-trivial implementation task in this workspace
-- On each new user request, compare it against the active `current_task` in `STATE.md` before continuing implementation, even when the work looks like a continuation of the same feature
-- If the goal, scope, owned files, or verification target materially changed, treat it as a new task: update `Current Task`, re-select the `route`, and record a new concrete `reason` before more writes
+- In workspace overrides that support concurrent threads, treat `STATE.md` as the root board and keep per-task detail in `state/TASK-*.md` files keyed by stable task ids
+- The root-board vocabulary should center on `active_tasks`, `blocked_tasks`, `owned_write_sets`, and `task_state_dir`
+- On each new user request, compare it against the root-board entry in `STATE.md` and, when applicable, the active task-state file for the thread before continuing implementation
+- If the goal, scope, owned files, or verification target materially changed, treat it as a new task: register a new task id on the root board, update the task-state file, re-select the `route`, and record a new concrete `reason` before more writes
 - Do not silently carry over the previous `route` just because `STATE.md` already exists
 
 ### Stage Gates
@@ -105,20 +107,22 @@ Installer global setup copies this file to the user's Codex home as the default 
 - On `Route B`, `main` is planner-only and may edit only `STATE.md` and `MULTI_AGENT_LOG.md`
 - On `Route B`, assume worker and reviewer delegation is part of the normal path; do not self-downgrade to a single-agent lane just because the task started as reading or planning
 - On `Route B`, spawn at least one `worker` and at least one `reviewer`; this is route behavior, not a discretionary choice by `main`
-- On `Route B`, implementation files must not be edited until `contract_freeze` and `write_sets` are explicitly recorded in `STATE.md`
+- On `Route B`, implementation files must not be edited until `contract_freeze` and `owned_write_sets` are explicitly recorded in `STATE.md`
 - On `Route B`, `main` must delegate implementation to at least one `worker` and close the task with at least one `reviewer` pass
 - On `Route B`, `main` must not keep implementation in a single-agent fallback lane
 - On `Route B`, if the scope touches both shared assets and feature files, assign a designated `worker_shared` plus at least one feature worker
 - On `Route B`, if the scope naturally separates into `2+` disjoint feature slices, split them across `2+` workers instead of handing one oversized slice to a single worker
 - On `Route B`, treat cross-page componentization, shared UI extraction, or replacing page-specific logic with one shared module as normal reasons to fan out work
 - A single `worker` on `Route B` is allowed only when `main` records in `STATE.md` why the slice cannot be safely split further
-- If `Route B` starts without `write_sets`, stop, shrink the slice, or re-plan before any implementation write
+- If `Route B` starts without `owned_write_sets`, stop, shrink the slice, or re-plan before any implementation write
 - If `Route B` starts without a named `reviewer` target, stop and assign one before implementation begins
 - Any Route B run that skips route logging, contract freeze, worker delegation, reviewer assignment, or write-set ownership is considered a process failure in this workspace
 
 ### State Integrity
 
 - `STATE.md` updates may change field values, but must preserve the core sections: `Current Task`, `Route`, `Writer Slot`, `Contract Freeze`, `Reviewer`, and `Last Update`
+- Root-board updates are for task registration, blocked or unblocked transitions, write-set ownership claim or release, and task closeout only
+- Detailed execution state belongs in the per-task state file, not in the root board
 - Do not collapse `STATE.md` into ad-hoc notes or delete required sections while a task is active
 
 ## Forbidden Commands

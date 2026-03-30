@@ -266,6 +266,7 @@ generate_default_workspace_agents() {
 
     printf '# Workspace Override: %s\n\n' "$workspace_name"
     printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
+    printf 'Root `STATE.md` is a lightweight task board; keep per-thread detail in `state/TASK-*.md`.\n'
     printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
     if [ "$template_name" = "minimal" ]; then
         printf '\n## Minimal Repository Rules\n\n'
@@ -273,12 +274,15 @@ generate_default_workspace_agents() {
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
         printf -- '- Keep changes small\n'
         printf -- '- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here\n'
-        printf -- '- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, and `contract_freeze`\n'
+        printf -- '- Keep root `STATE.md` updated with board-level `route`, concrete `reason`, `owned_write_sets`, and `contract_freeze` only; use `writer_scope` and `worker_ownership_map` in the Writer Slot section\n'
+        printf -- '- Put per-thread scope, write sets, reviewer notes, and verification detail in `state/TASK-*.md`\n'
+        printf -- '- Use `state/TASK_TEMPLATE.md` as the starter file for new tasks\n'
         printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`\n'
     else
         printf '\n## Repository Facts To Fill\n\n'
         printf -- '- Primary source of truth paths\n'
         printf -- '- Shared asset paths\n'
+        printf -- '- Task state directory: `state/`\n'
         printf -- '- Do-not-touch or generated paths\n'
         printf -- '- Error log path: `ERROR_LOG.md`\n'
         printf -- '- Verification commands\n'
@@ -286,7 +290,9 @@ generate_default_workspace_agents() {
         printf -- '- Worker ownership mapping when Route B is used\n'
         printf '\n## Repository Overrides\n\n'
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
-        printf -- '- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active\n'
+        printf -- '- Keep root `STATE.md` updated with board-level `route`, concrete `reason`, `owned_write_sets`, and `contract_freeze` when Route B is active; use `writer_scope` and `worker_ownership_map` in the Writer Slot section\n'
+        printf -- '- Put task-specific `write_set`, scope, reviewer notes, and verification detail in `state/TASK-*.md`\n'
+        printf -- '- Use `state/TASK_TEMPLATE.md` as the starter file for new tasks\n'
         printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran\n'
         printf -- '- Add repository-specific verification commands, hard triggers, approval zones, and worker ownership here\n'
         printf -- '- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules\n'
@@ -298,21 +304,23 @@ generate_default_state() {
 
     printf '# STATE\n\n'
     printf '## Current Task\n\n'
-    printf -- '- task: `Replace with the first concrete task for %s before execution`\n' "$workspace_name"
-    printf -- '- phase: `explore`\n'
-    printf -- '- scope: `n/a`\n'
-    printf -- '- verification_target: `n/a`\n'
+    printf -- '- active_tasks: `n/a`\n'
+    printf -- '- blocked_tasks: `n/a`\n'
+    printf -- '- owned_write_sets: `n/a`\n'
+    printf -- '- task_state_dir: `state/`\n'
+    printf -- '- status_overview: `n/a`\n'
+    printf -- '- note: `Use root STATE.md for board-level ownership and summaries. Put per-thread detail in state/TASK-*.md files.`\n'
     printf '\n## Route\n\n'
     printf -- '- route: `Route A`\n'
     printf -- '- reason: `placeholder - classify the first task as Route A or Route B before editing`\n'
     printf '\n## Writer Slot\n\n'
     printf -- '- owner: `main`\n'
-    printf -- '- write_set: `n/a`\n'
-    printf -- '- write_sets:\n'
+    printf -- '- writer_scope: `n/a`\n'
+    printf -- '- worker_ownership_map:\n'
     printf '  - `main`: `n/a`\n'
     printf '  - `worker`: `n/a`\n'
     printf '  - `reviewer`: `n/a`\n'
-    printf -- '- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
+    printf -- '- note: `Use owned_write_sets for the root board; use writer_scope and worker_ownership_map for this section. Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
     printf '\n## Contract Freeze\n\n'
     printf -- '- contract_freeze: `n/a`\n'
     printf '\n## Seed\n\n'
@@ -334,6 +342,22 @@ generate_default_error_log() {
     printf 'Append-only log for installer, execution, tool, and verification errors.\n'
     printf 'Add new entries with timestamp, location, summary, and details.\n'
     printf 'Do not rewrite existing entries; append only.\n'
+}
+
+generate_default_task_state_template() {
+    printf '# TASK TEMPLATE\n\n'
+    printf -- '- task_id: `TASK-TEMPLATE`\n'
+    printf -- '- owner_thread: `n/a`\n'
+    printf -- '- scope: `n/a`\n'
+    printf -- '- write_set: `n/a`\n'
+    printf -- '- route: `Route A`\n'
+    printf -- '- contract_freeze: `n/a`\n'
+    printf -- '- reviewer: `n/a`\n'
+    printf -- '- verification: `n/a`\n'
+    printf -- '- last_update: `Template generated by installer.`\n'
+    printf '\n## Usage\n\n'
+    printf -- '- Copy this file to `state/TASK-<id>.md` for each real task.\n'
+    printf -- '- Keep root `STATE.md` as the board and keep task detail here.\n'
 }
 
 merge_context_items() {
@@ -721,7 +745,7 @@ generate_workspace_agents_from_context() {
         printf '\n## Repository Overrides\n\n'
         printf -- '- Role caps inherited from global defaults stay fixed\n'
         printf '  `explorer 3`, `reviewer 2`, `worker up to 4 on Route B`\n'
-        printf -- '- Keep `%s` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active\n' "$task_board_path"
+    printf -- '- Keep `%s` updated with exact `route`, concrete `reason`, `owned_write_sets`, and `contract_freeze` when Route B is active; use `writer_scope` and `worker_ownership_map` in the Writer Slot section\n' "$task_board_path"
         printf -- '- If multiple roles are used, append real participation to `%s` before reporting that they ran\n' "$multi_agent_log_path"
         if [ "$template_name" = "minimal" ]; then
             printf -- '- Keep changes small\n'
@@ -747,21 +771,23 @@ generate_workspace_state_from_context() {
     {
         printf '# STATE\n\n'
         printf '## Current Task\n\n'
-        printf -- '- task: `Replace with the first concrete task for %s before execution`\n' "$title"
-        printf -- '- phase: `explore`\n'
-        printf -- '- scope: `n/a`\n'
-        printf -- '- verification_target: `n/a`\n'
+        printf -- '- active_tasks: `n/a`\n'
+        printf -- '- blocked_tasks: `n/a`\n'
+        printf -- '- owned_write_sets: `n/a`\n'
+        printf -- '- task_state_dir: `state/`\n'
+        printf -- '- status_overview: `n/a`\n'
+        printf -- '- note: `Use root STATE.md for board-level ownership and summaries. Put per-thread detail in state/TASK-*.md files.`\n'
         printf '\n## Route\n\n'
         printf -- '- route: `Route A`\n'
         printf -- '- reason: `placeholder - classify the first task as Route A or Route B before editing`\n'
         printf '\n## Writer Slot\n\n'
         printf -- '- owner: `main`\n'
-        printf -- '- write_set: `n/a`\n'
-        printf -- '- write_sets:\n'
-        printf '  - `main`: `n/a`\n'
-        printf '  - `worker`: `n/a`\n'
-        printf '  - `reviewer`: `n/a`\n'
-        printf -- '- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
+    printf -- '- writer_scope: `n/a`\n'
+    printf -- '- worker_ownership_map:\n'
+    printf '  - `main`: `n/a`\n'
+    printf '  - `worker`: `n/a`\n'
+    printf '  - `reviewer`: `n/a`\n'
+    printf -- '- note: `Use owned_write_sets for the root board; use writer_scope and worker_ownership_map for this section. Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
         printf '\n## Contract Freeze\n\n'
         printf -- '- contract_freeze: `n/a`\n'
         printf '\n## Seed\n\n'
@@ -1044,8 +1070,9 @@ Execution requirements:
 - Always load and follow the nearest applicable AGENTS.md before implementation.
 - Prefer workspace AGENTS.md over global AGENTS.md when both exist.
 - Treat AGENTS.md as the source of truth for route selection, delegation, state updates, and verification flow.
-- On each new user request, compare it against the active current_task in STATE.md before continuing, even if the work looks like a continuation of the same feature.
-- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.
+- On each new user request, compare it against the root task registry in STATE.md and any relevant `state/TASK-*.md` files before continuing, even if the work looks like a continuation of the same feature.
+- Start new tasks from `state/TASK_TEMPLATE.md` instead of stuffing detail back into root STATE.md.
+- Do not continue implementation from an existing STATE.md unless the request clearly matches the same board entry and task-state file.
 - Treat investigation, planning, and implementation as separate stages.
 - If read-only investigation or planning turns into implementation, re-check the route, update STATE.md, and explicitly enter implementation before writing.
 - Before parallelizing larger tasks, freeze the contract and write sets first.
@@ -1362,6 +1389,10 @@ apply_to_workspace() {
     state_relative_path=$(toml_get_scalar "$context_path" "workspace" "task_board_path")
     [ -n "$state_relative_path" ] || state_relative_path="STATE.md"
     state_target=$(resolve_workspace_relative_path "$resolved_workspace" "$state_relative_path" "task_board_path")
+    task_state_relative_path=$(toml_get_scalar "$context_path" "workspace" "task_state_dir")
+    [ -n "$task_state_relative_path" ] || task_state_relative_path="state/"
+    task_state_target=$(resolve_workspace_relative_path "$resolved_workspace" "$task_state_relative_path" "task_state_dir")
+    task_template_target="${task_state_target}/TASK_TEMPLATE.md"
     error_log_relative_path=$(toml_get_scalar "$context_path" "workspace" "error_log_path")
     [ -n "$error_log_relative_path" ] || error_log_relative_path="ERROR_LOG.md"
     error_log_target=$(resolve_workspace_relative_path "$resolved_workspace" "$error_log_relative_path" "error_log_path")
@@ -1377,6 +1408,7 @@ apply_to_workspace() {
 
     backup_path_if_exists "$agents_target" "$backup_root" "AGENTS.md"
     backup_path_if_exists "$state_target" "$backup_root" "STATE.md"
+    backup_path_if_exists "$task_template_target" "$backup_root" "TASK_TEMPLATE.md"
 
     if [ -f "$context_path" ]; then
         generate_workspace_agents_from_context "$context_path" "$(basename "$resolved_workspace")" "$template_name" "$agents_target"
@@ -1385,6 +1417,8 @@ apply_to_workspace() {
     fi
 
     ensure_directory "$(dirname "$state_target")"
+    ensure_directory "$task_state_target"
+    generate_default_task_state_template > "$task_template_target"
     if [ -f "$context_path" ]; then
         generate_workspace_state_from_context "$context_path" "$(basename "$resolved_workspace")" "$state_target"
     else

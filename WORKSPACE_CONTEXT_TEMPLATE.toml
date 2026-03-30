@@ -5,6 +5,7 @@
 name = "example-workspace"
 summary = "Repository-specific context used to generate a workspace override AGENTS.md and initial STATE.md."
 task_board_path = "STATE.md"
+task_state_dir = "state/"
 multi_agent_log_path = "MULTI_AGENT_LOG.md"
 error_log_path = "ERROR_LOG.md"
 

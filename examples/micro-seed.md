@@ -14,6 +14,8 @@ The goal is simple:
 - Make every acceptance criterion testable.
 - Write only what later implementation and evaluation actually need.
 - If scope changes materially, create a new revision instead of silently mutating the old seed.
+- For workspace overrides that run concurrent threads, keep root `STATE.md` entries compact and move per-thread detail into `state/TASK-*.md`.
+- Fresh workspace overrides can include a starter task-state template in `state/` if the installer generates one.
 
 ## Template
 
@@ -44,6 +46,8 @@ constraints:
   - "Keep the existing Route A/Route B system as the top-level orchestration layer."
   - "Route A is main-only with no subagent calls."
   - "Route B is the delegated route with worker/reviewer use."
+  - "Workspace overrides may use a root STATE board plus task-state files for concurrent threads."
+  - "Use active_tasks, blocked_tasks, owned_write_sets, and task_state_dir as the root-board vocabulary."
   - "Do not require Codex CLI-only features."
   - "Do not introduce polling-based workflow steps."
 

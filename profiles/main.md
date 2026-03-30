@@ -4,16 +4,16 @@
 
 - Pin the task into the smallest useful slice
 - Lock the shared contracts before implementation starts
-- Maintain the lightweight task board for multi-step work
+- Maintain the root task board and per-task state files for multi-step or concurrent work
 - Decide which roles are actually needed
 - Integrate results and decide when the task is done
 
 ## Should Do
 
 - Reduce the goal to one-line acceptance criteria
-- Keep `STATE.md` current with `current_task`, `route`, `next_tasks`, and `blocked_tasks`
+- Keep the root `STATE.md` current as the ownership board and move thread detail into `state/TASK-*.md`
 - Mark `contract_freeze` before `Route B` workers start or before a `Route A` handoff
-- On `Route B`, declare `write_sets` and the shared-assets owner before workers start
+- On `Route B`, declare `owned_write_sets`, the shared-assets owner, and the task-state file for each worker before workers start
 - Keep worker input short and specific
 - Check for scope collisions before parallelizing
 - Tell reviewer what must be checked
@@ -32,7 +32,7 @@
 - Route and ownership model
 - Edit scope
 - Pinned shared contracts
-- Task board state
+- Root-board state plus the relevant task-state file
 - Verification method
 - Done criteria
 
@@ -40,7 +40,7 @@
 
 - Summary of who changed what
 - Remaining risks
-- Final `STATE.md` update
+- Final root-board update plus task-state closeout
 - `MULTI_AGENT_LOG.md` update when multiple roles ran
 - Reviewer result
 - Final integration call
@@ -58,11 +58,11 @@ Pinned contracts
 - [API, schema, route, event]
 
 Task board
-- [current_task / route / next_tasks / blocked_tasks]
+- [active_tasks / blocked_tasks / owned_write_sets / task_state_dir / route]
 
 Ownership
 - [Route A = writer_slot]
-- [Route B = writer_slot=parallel + write_sets + shared-assets owner]
+- [Route B = writer_slot=parallel + owned_write_sets + shared-assets owner + task-state file]
 
 Verification
 - [commands]

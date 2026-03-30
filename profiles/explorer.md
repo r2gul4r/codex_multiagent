@@ -9,6 +9,7 @@
 
 - Narrow down the candidate file list quickly
 - Surface existing contracts and constraints
+- Identify the root-board entry and task-state file the implementer is likely to touch
 - Find the tests most relevant to the change
 - Hand implementation over with enough context to move immediately
 
@@ -24,6 +25,7 @@
 - What needs to be found
 - Which contract or constraint needs confirmation
 - Which file range to inspect
+- Which task-state file or root-board entry is relevant, if the workspace is concurrent
 
 ## Output Contract
 

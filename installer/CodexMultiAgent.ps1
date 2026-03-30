@@ -625,6 +625,7 @@ function New-DefaultWorkspaceAgents {
     $lines.Add("# Workspace Override: $WorkspaceName")
     $lines.Add('')
     $lines.Add('This file adds repository-specific rules on top of the global multi-agent defaults.')
+    $lines.Add('Root `STATE.md` is a lightweight task board; keep per-thread detail in `state/TASK-*.md`.')
     $lines.Add('Global multi-agent defaults remain in effect unless this file narrows them.')
     $lines.Add('')
     if ($TemplateName -eq 'minimal') {
@@ -634,7 +635,9 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
         $lines.Add('- Keep changes small')
         $lines.Add('- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here')
-        $lines.Add('- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, and `contract_freeze`')
+        $lines.Add('- Keep root `STATE.md` updated with board-level `route`, concrete `reason`, `owned_write_sets`, and `contract_freeze` only; use `writer_scope` and `worker_ownership_map` in the Writer Slot section')
+        $lines.Add('- Put per-thread scope, write sets, reviewer notes, and verification detail in `state/TASK-*.md`')
+        $lines.Add('- Use `state/TASK_TEMPLATE.md` as the starter file for new tasks')
         $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`')
     }
     else {
@@ -642,6 +645,7 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('')
         $lines.Add('- Primary source of truth paths')
         $lines.Add('- Shared asset paths')
+        $lines.Add('- Task state directory: `state/`')
         $lines.Add('- Do-not-touch or generated paths')
         $lines.Add('- Error log path: `ERROR_LOG.md`')
         $lines.Add('- Verification commands')
@@ -651,7 +655,9 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('## Repository Overrides')
         $lines.Add('')
         $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
-        $lines.Add('- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active')
+        $lines.Add('- Keep root `STATE.md` updated with board-level `route`, concrete `reason`, `owned_write_sets`, and `contract_freeze` when Route B is active; use `writer_scope` and `worker_ownership_map` in the Writer Slot section')
+        $lines.Add('- Put task-specific `write_set`, scope, reviewer notes, and verification detail in `state/TASK-*.md`')
+        $lines.Add('- Use `state/TASK_TEMPLATE.md` as the starter file for new tasks')
         $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran')
         $lines.Add('- Add repository-specific verification commands, hard triggers, approval zones, and worker ownership here')
         $lines.Add('- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules')
@@ -668,10 +674,12 @@ function New-DefaultState {
     $lines.Add('')
     $lines.Add('## Current Task')
     $lines.Add('')
-    $lines.Add(('- task: `Replace with the first concrete task for {0} before execution`' -f $WorkspaceName))
-    $lines.Add('- phase: `explore`')
-    $lines.Add('- scope: `n/a`')
-    $lines.Add('- verification_target: `n/a`')
+    $lines.Add('- active_tasks: `n/a`')
+    $lines.Add('- blocked_tasks: `n/a`')
+    $lines.Add('- owned_write_sets: `n/a`')
+    $lines.Add('- task_state_dir: `state/`')
+    $lines.Add('- status_overview: `n/a`')
+    $lines.Add('- note: `Use root STATE.md for board-level ownership and summaries. Put per-thread detail in state/TASK-*.md files.`')
     $lines.Add('')
     $lines.Add('## Route')
     $lines.Add('')
@@ -681,12 +689,12 @@ function New-DefaultState {
     $lines.Add('## Writer Slot')
     $lines.Add('')
     $lines.Add('- owner: `main`')
-    $lines.Add('- write_set: `n/a`')
-    $lines.Add('- write_sets:')
+    $lines.Add('- writer_scope: `n/a`')
+    $lines.Add('- worker_ownership_map:')
     $lines.Add('  - `main`: `n/a`')
     $lines.Add('  - `worker`: `n/a`')
     $lines.Add('  - `reviewer`: `n/a`')
-    $lines.Add('- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`')
+    $lines.Add('- note: `Use owned_write_sets for the root board; use writer_scope and worker_ownership_map for this section. Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
@@ -771,7 +779,7 @@ function New-WorkspaceAgentsFromContext {
     $lines.Add('')
     $lines.Add('- Role caps inherited from global defaults stay fixed')
     $lines.Add('  `explorer 3`, `reviewer 2`, `worker up to 4 on Route B`')
-    $lines.Add(('- Keep `{0}` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active' -f $taskBoardPath))
+    $lines.Add(('- Keep `{0}` updated with exact `route`, concrete `reason`, `owned_write_sets`, and `contract_freeze` when Route B is active; use `writer_scope` and `worker_ownership_map` in the Writer Slot section' -f $taskBoardPath))
     $lines.Add(('- If multiple roles are used, append real participation to `{0}` before reporting that they ran' -f $multiAgentLogPath))
     if ($TemplateName -eq 'minimal') {
         $lines.Add('- Keep changes small')
@@ -799,6 +807,28 @@ function New-DefaultErrorLog {
     return ($lines -join "`r`n") + "`r`n"
 }
 
+function New-DefaultTaskStateTemplate {
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add('# TASK TEMPLATE')
+    $lines.Add('')
+    $lines.Add('- task_id: `TASK-TEMPLATE`')
+    $lines.Add('- owner_thread: `n/a`')
+    $lines.Add('- scope: `n/a`')
+    $lines.Add('- write_set: `n/a`')
+    $lines.Add('- route: `Route A`')
+    $lines.Add('- contract_freeze: `n/a`')
+    $lines.Add('- reviewer: `n/a`')
+    $lines.Add('- verification: `n/a`')
+    $lines.Add('- last_update: `Template generated by installer.`')
+    $lines.Add('')
+    $lines.Add('## Usage')
+    $lines.Add('')
+    $lines.Add('- Copy this file to `state/TASK-<id>.md` for each real task.')
+    $lines.Add('- Keep root `STATE.md` as the board and keep task detail here.')
+
+    return ($lines -join "`r`n") + "`r`n"
+}
+
 function New-WorkspaceStateFromContext {
     param(
         [hashtable]$Context,
@@ -812,10 +842,12 @@ function New-WorkspaceStateFromContext {
     $lines.Add('')
     $lines.Add('## Current Task')
     $lines.Add('')
-    $lines.Add(('- task: `Replace with the first concrete task for {0} before execution`' -f $title))
-    $lines.Add('- phase: `explore`')
-    $lines.Add('- scope: `n/a`')
-    $lines.Add('- verification_target: `n/a`')
+    $lines.Add('- active_tasks: `n/a`')
+    $lines.Add('- blocked_tasks: `n/a`')
+    $lines.Add('- owned_write_sets: `n/a`')
+    $lines.Add('- task_state_dir: `state/`')
+    $lines.Add('- status_overview: `n/a`')
+    $lines.Add('- note: `Use root STATE.md for board-level ownership and summaries. Put per-thread detail in state/TASK-*.md files.`')
     $lines.Add('')
     $lines.Add('## Route')
     $lines.Add('')
@@ -825,12 +857,12 @@ function New-WorkspaceStateFromContext {
     $lines.Add('## Writer Slot')
     $lines.Add('')
     $lines.Add('- owner: `main`')
-    $lines.Add('- write_set: `n/a`')
-    $lines.Add('- write_sets:')
+    $lines.Add('- writer_scope: `n/a`')
+    $lines.Add('- worker_ownership_map:')
     $lines.Add('  - `main`: `n/a`')
     $lines.Add('  - `worker`: `n/a`')
     $lines.Add('  - `reviewer`: `n/a`')
-    $lines.Add('- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`')
+    $lines.Add('- note: `Use owned_write_sets for the root board; use writer_scope and worker_ownership_map for this section. Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
@@ -1042,8 +1074,9 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Always load and follow the nearest applicable AGENTS.md before implementation.',
         '- Prefer workspace AGENTS.md over global AGENTS.md when both exist.',
         '- Treat AGENTS.md as the source of truth for route selection, delegation, state updates, and verification flow.',
-        '- On each new user request, compare it against the active current_task in STATE.md before continuing, even if the work looks like a continuation of the same feature.',
-        '- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.',
+        '- On each new user request, compare it against the root task registry in STATE.md and any relevant `state/TASK-*.md` files before continuing, even if the work looks like a continuation of the same feature.',
+        '- Start new tasks from `state/TASK_TEMPLATE.md` instead of stuffing detail back into root STATE.md.',
+        '- Do not continue implementation from an existing STATE.md unless the request clearly matches the same board entry and task-state file.',
         '- Treat investigation, planning, and implementation as separate stages.',
         '- If read-only investigation or planning turns into implementation, re-check the route, update STATE.md, and explicitly enter implementation before writing.',
         '- Before parallelizing larger tasks, freeze the contract and write sets first.',
@@ -1408,6 +1441,9 @@ function Apply-ToWorkspace {
     $agentsTarget = Join-Path $resolvedWorkspace 'AGENTS.md'
     $stateRelativePath = if ($context) { Get-ContextString -Context $context -Section 'workspace' -Key 'task_board_path' -DefaultValue 'STATE.md' } else { 'STATE.md' }
     $stateTarget = Resolve-WorkspaceRelativePath -WorkspaceRoot $resolvedWorkspace -RelativePath $stateRelativePath -PathLabel 'task_board_path'
+    $taskStateRelativePath = if ($context) { Get-ContextString -Context $context -Section 'workspace' -Key 'task_state_dir' -DefaultValue 'state/' } else { 'state/' }
+    $taskStateTarget = Resolve-WorkspaceRelativePath -WorkspaceRoot $resolvedWorkspace -RelativePath $taskStateRelativePath -PathLabel 'task_state_dir'
+    $taskTemplateTarget = Join-Path $taskStateTarget 'TASK_TEMPLATE.md'
     $errorLogRelativePath = if ($context) { Get-ContextString -Context $context -Section 'workspace' -Key 'error_log_path' -DefaultValue 'ERROR_LOG.md' } else { 'ERROR_LOG.md' }
     $errorLogTarget = Resolve-WorkspaceRelativePath -WorkspaceRoot $resolvedWorkspace -RelativePath $errorLogRelativePath -PathLabel 'error_log_path'
     $backupRoot = Join-Path (Join-Path (Join-Path $resolvedWorkspace '.codex-backups') (Get-BackupStamp)) 'workspace'
@@ -1422,6 +1458,7 @@ function Apply-ToWorkspace {
 
     Backup-PathIfExists -Path $agentsTarget -BackupRoot $backupRoot -Name 'AGENTS.md'
     Backup-PathIfExists -Path $stateTarget -BackupRoot $backupRoot -Name 'STATE.md'
+    Backup-PathIfExists -Path $taskTemplateTarget -BackupRoot $backupRoot -Name 'TASK_TEMPLATE.md'
 
     if ($context) {
         $agentsContent = New-WorkspaceAgentsFromContext -Context $context -WorkspaceName (Split-Path -Leaf $resolvedWorkspace) -TemplateName $TemplateName -WorkspaceRoot $resolvedWorkspace
@@ -1433,6 +1470,9 @@ function Apply-ToWorkspace {
     }
 
     Ensure-Directory -Path (Split-Path -Parent $stateTarget)
+    Ensure-Directory -Path $taskStateTarget
+    $taskTemplateContent = New-DefaultTaskStateTemplate
+    Set-Content -LiteralPath $taskTemplateTarget -Value $taskTemplateContent -Encoding utf8
     if ($context) {
         $stateContent = New-WorkspaceStateFromContext -Context $context -WorkspaceName (Split-Path -Leaf $resolvedWorkspace)
         Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8

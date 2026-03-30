@@ -8,8 +8,8 @@
 ## Should Do
 
 - Stay inside the assigned scope or `write_set`
-- On `Route B`, claim the `writer_slot` before write work starts and release it after write work ends
-- On `Route B`, edit only the owned `write_set` and do not touch shared assets unless you are the designated owner
+- On `Route B`, claim the root-board ownership entry before write work starts and release it after write work ends
+- On `Route B`, edit only the owned `write_set` and your task-state file, and do not touch shared assets unless you are the designated owner
 - Preserve pinned shared contracts unless `main` re-opens them
 - Run the required verification or leave a concrete reason why it was not run
 - Escalate blockers back to `main` in the smallest possible form
@@ -27,7 +27,7 @@
 - Route and ownership model
 - Edit scope
 - Contracts that must not change
-- Current ownership state
+- Root-board ownership state plus the task-state file you own
 - Verification commands
 
 ## Output Contract
@@ -35,7 +35,7 @@
 - What changed
 - Verification result
 - Remaining risk or blocker
-- Updated ownership result
+- Updated root-board result plus task-state result
 - What reviewer should pay attention to
 
 ## When Blocked

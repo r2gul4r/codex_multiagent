@@ -31,7 +31,10 @@ Adjust the paths and commands to match the real repository
 - `explorer` and `reviewer` are read-only
 - `main` may write on `Route A` only
 - On `Route B`, only worker roles make write changes
-- Keep `STATE.md` updated with `current_task`, `route`, `writer_slot`, `contract_freeze`, and `write_sets`
+- Keep the root `STATE.md` updated as the ownership board
+- Use `active_tasks`, `blocked_tasks`, `owned_write_sets`, and `task_state_dir` as the root-board vocabulary
+- Put thread-specific detail in `state/TASK-*.md` files keyed by stable task ids
+- Root-board updates are for registration, blocked/unblocked transitions, ownership claim/release, and closeout
 - If both `apps/web` and `apps/api` are touched, request payload contracts must be pinned first
 - If a migration file is involved, do not parallelize
 - Do not edit `generated/` or `dist/` directly
@@ -48,6 +51,8 @@ Adjust the paths and commands to match the real repository
 - One `worker_shared` owns shared types and common utilities
 - Feature workers edit separate file ranges
 - Up to two `reviewer` agents split final checking by concern if needed
+- Each worker mainly updates its own task-state file
+- Fresh workspace overrides can also seed a starter task-state template under `state/`
 - `main` does not write during `Route B`
 
 ## Parallel Work That Is Not Safe

@@ -9,7 +9,8 @@ This is the fast-start version for small repositories or personal projects
 - Use a hard-trigger + scorecard gate before switching into `Route B`
 - Before closing `Route B` work, let `reviewer` do one read-only pass
 - Max concurrent role caps are `explorer 3`, `reviewer 2`, `worker 4 on Route B`
-- Keep a small `STATE.md` with `current_task`, `route`, `writer_slot`, and `contract_freeze`
+- Keep a small root `STATE.md` board plus `state/TASK-*.md` files for thread-specific detail
+- Use `active_tasks`, `blocked_tasks`, `owned_write_sets`, and `task_state_dir` as the root-board vocabulary
 
 ## Roles
 
@@ -25,6 +26,8 @@ This is the fast-start version for small repositories or personal projects
 - Default to no parallelization
 - Make an exception only when hard triggers or scorecard move the task into `Route B`
 - If the shared contract starts drifting, collapse back to `main`
+- In the override pattern, each thread should mostly edit its own task-state file
+- A starter task-state template under `state/` is fine if the installer generates one
 
 ## Done Means
 
