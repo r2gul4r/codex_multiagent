@@ -83,6 +83,30 @@ get_backup_stamp() {
     date +"%Y%m%d-%H%M%S"
 }
 
+is_wsl_runtime() {
+    if [ -n "${WSL_DISTRO_NAME:-}" ] || [ -n "${WSL_INTEROP:-}" ]; then
+        return 0
+    fi
+
+    if [ -r /proc/version ] && grep -qiE 'microsoft|wsl' /proc/version; then
+        return 0
+    fi
+
+    return 1
+}
+
+fail_if_wsl_runtime() {
+    if ! is_wsl_runtime; then
+        return
+    fi
+
+    printf 'WSL shell runtime is not supported by this installer on Windows.\n' >&2
+    printf 'It can write Codex settings into the Linux home instead of the Windows Codex home, which can break the desktop app and bounce you back to the new-thread screen.\n' >&2
+    printf 'Run the PowerShell installer from Windows PowerShell instead.\n' >&2
+    printf "Example: Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode InstallGlobal\n" >&2
+    exit 1
+}
+
 backup_path_if_exists() {
     path="$1"
     backup_root="$2"
@@ -1498,6 +1522,8 @@ case "$TEMPLATE" in
         exit 1
         ;;
 esac
+
+fail_if_wsl_runtime
 
 show_info_banner
 
