@@ -17,8 +17,6 @@ GLOBAL_AGENTS_PATH="${GLOBAL_HOME}/AGENTS.md"
 GLOBAL_CONFIG_PATH="${GLOBAL_HOME}/config.toml"
 GLOBAL_CUSTOM_AGENTS_ROOT="${GLOBAL_HOME}/agents"
 GLOBAL_RULES_ROOT="${GLOBAL_HOME}/rules"
-GLOBAL_SKILLS_ROOT="${GLOBAL_HOME}/skills"
-GLOBAL_MANAGED_SKILLS_MANIFEST="${GLOBAL_HOME}/installer-managed-skills.manifest"
 LOCAL_README="${LOCAL_KIT_ROOT}/README.md"
 MANAGED_AGENT_FILES=("default.toml" "worker.toml" "explorer.toml" "reviewer.toml")
 
@@ -336,14 +334,10 @@ generate_default_state() {
     printf '  - `main`: `n/a`\n'
     printf '  - `worker`: `n/a`\n'
     printf '  - `reviewer`: `n/a`\n'
+    printf -- '- shared_assets_owner: `none`\n'
     printf -- '- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
     printf '\n## Contract Freeze\n\n'
     printf -- '- contract_freeze: `n/a`\n'
-    printf '\n## Seed\n\n'
-    printf -- '- status: `n/a`\n'
-    printf -- '- path: `n/a`\n'
-    printf -- '- revision: `n/a`\n'
-    printf -- '- note: `Use this section to track the active frozen seed once a spec-first task starts.`\n'
     printf '\n## Reviewer\n\n'
     printf -- '- reviewer: `n/a`\n'
     printf -- '- reviewer_target: `n/a`\n'
@@ -785,14 +779,10 @@ generate_workspace_state_from_context() {
         printf '  - `main`: `n/a`\n'
         printf '  - `worker`: `n/a`\n'
         printf '  - `reviewer`: `n/a`\n'
+        printf -- '- shared_assets_owner: `none`\n'
         printf -- '- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
         printf '\n## Contract Freeze\n\n'
         printf -- '- contract_freeze: `n/a`\n'
-        printf '\n## Seed\n\n'
-        printf -- '- status: `n/a`\n'
-        printf -- '- path: `n/a`\n'
-        printf -- '- revision: `n/a`\n'
-        printf -- '- note: `Use this section to track the active frozen seed once a spec-first task starts.`\n'
         printf '\n## Reviewer\n\n'
         printf -- '- reviewer: `n/a`\n'
         printf -- '- reviewer_target: `n/a`\n'
@@ -859,41 +849,6 @@ install_codex_custom_agents() {
         target="${GLOBAL_CUSTOM_AGENTS_ROOT}/$(basename "$source_file")"
         cp "$source_file" "$target"
     done < <(iter_top_level_sorted_paths "$source_agents_root" file)
-}
-
-install_codex_skills() {
-    source_kit_root="$1"
-    backup_root="$2"
-    source_skills_root="${source_kit_root}/codex_skills"
-
-    if [ ! -d "$source_skills_root" ]; then
-        return
-    fi
-
-    ensure_directory "$GLOBAL_SKILLS_ROOT"
-    backup_path_if_exists "$GLOBAL_SKILLS_ROOT" "$backup_root" "skills"
-    backup_path_if_exists "$GLOBAL_MANAGED_SKILLS_MANIFEST" "$backup_root" "installer-managed-skills.manifest"
-
-    tmp_manifest=$(mktemp)
-    : > "$tmp_manifest"
-
-    while IFS= read -r -d '' source_skill_dir; do
-        [ -d "$source_skill_dir" ] || continue
-        managed_skill_name=$(basename "$source_skill_dir")
-        printf '%s\n' "$managed_skill_name" >> "$tmp_manifest"
-        copy_directory_contents "$source_skill_dir" "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
-    done < <(iter_top_level_sorted_paths "$source_skills_root" dir)
-
-    if [ -f "$GLOBAL_MANAGED_SKILLS_MANIFEST" ]; then
-        while IFS= read -r managed_skill_name; do
-            [ -n "$managed_skill_name" ] || continue
-            if ! grep -Fxq "$managed_skill_name" "$tmp_manifest"; then
-                rm -rf "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
-            fi
-        done < "$GLOBAL_MANAGED_SKILLS_MANIFEST"
-    fi
-
-    mv "$tmp_manifest" "$GLOBAL_MANAGED_SKILLS_MANIFEST"
 }
 
 install_codex_rules() {
@@ -1339,7 +1294,6 @@ install_global_kit() {
         CHANGELOG.md \
         codex_agents \
         codex_rules \
-        codex_skills \
         docs \
         examples \
         profiles \
@@ -1363,7 +1317,6 @@ install_global_kit() {
     fi
     install_codex_config "$backup_root"
     install_codex_custom_agents "$LOCAL_KIT_ROOT" "$backup_root"
-    install_codex_skills "$LOCAL_KIT_ROOT" "$backup_root"
     install_codex_rules "$LOCAL_KIT_ROOT"
 
     printf 'Installed global defaults at %s\n' "$GLOBAL_AGENTS_PATH"
@@ -1437,10 +1390,6 @@ apply_to_workspace() {
 
         if [ -d "${source_kit_root}/codex_rules" ]; then
             copy_directory_contents "${source_kit_root}/codex_rules" "${docs_root}/codex_rules"
-        fi
-
-        if [ -d "${source_kit_root}/codex_skills" ]; then
-            copy_directory_contents "${source_kit_root}/codex_skills" "${docs_root}/codex_skills"
         fi
 
         copy_directory_contents "${source_kit_root}/profiles" "${docs_root}/profiles"

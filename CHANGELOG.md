@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Ouroboros-lite 철학/skill 포장 문구를 제거하고 Route A / Route B 중심의 멀티에이전트 거버넌스 설명으로 문서를 정리함
+- `README.md`, `THIRD_PARTY_NOTICES.md`, `docs/OUROBOROS_LITE_PORT.md`, `examples/micro-seed.md`를 현재 cleanup 기준에 맞게 정리함
+
 ## v0.3.0 - 2026-03-22
 
 ### Changed

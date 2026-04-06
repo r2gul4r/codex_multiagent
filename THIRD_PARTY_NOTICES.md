@@ -1,4 +1,4 @@
-This notice applies to the Ouroboros-derived portion of this repository.
+This notice preserves historical or reference attribution for any retained MIT-licensed excerpts from Q00/ouroboros.
 
 MIT License
 

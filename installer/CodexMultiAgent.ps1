@@ -27,8 +27,6 @@ $GlobalAgentsPath = Join-Path $GlobalHome 'AGENTS.md'
 $GlobalConfigPath = Join-Path $GlobalHome 'config.toml'
 $GlobalCustomAgentsRoot = Join-Path $GlobalHome 'agents'
 $GlobalRulesRoot = Join-Path $GlobalHome 'rules'
-$GlobalSkillsRoot = Join-Path $GlobalHome 'skills'
-$GlobalManagedSkillsManifest = Join-Path $GlobalHome 'installer-managed-skills.manifest'
 $LocalReadme = Join-Path $LocalKitRoot 'README.md'
 $ManagedAgentFiles = @('default.toml', 'worker.toml', 'explorer.toml', 'reviewer.toml')
 
@@ -686,18 +684,12 @@ function New-DefaultState {
     $lines.Add('  - `main`: `n/a`')
     $lines.Add('  - `worker`: `n/a`')
     $lines.Add('  - `reviewer`: `n/a`')
+    $lines.Add('- shared_assets_owner: `none`')
     $lines.Add('- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
     $lines.Add('- contract_freeze: `n/a`')
-    $lines.Add('')
-    $lines.Add('## Seed')
-    $lines.Add('')
-    $lines.Add('- status: `n/a`')
-    $lines.Add('- path: `n/a`')
-    $lines.Add('- revision: `n/a`')
-    $lines.Add('- note: `Use this section to track the active frozen seed once a spec-first task starts.`')
     $lines.Add('')
     $lines.Add('## Reviewer')
     $lines.Add('')
@@ -830,18 +822,12 @@ function New-WorkspaceStateFromContext {
     $lines.Add('  - `main`: `n/a`')
     $lines.Add('  - `worker`: `n/a`')
     $lines.Add('  - `reviewer`: `n/a`')
+    $lines.Add('- shared_assets_owner: `none`')
     $lines.Add('- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
     $lines.Add('- contract_freeze: `n/a`')
-    $lines.Add('')
-    $lines.Add('## Seed')
-    $lines.Add('')
-    $lines.Add('- status: `n/a`')
-    $lines.Add('- path: `n/a`')
-    $lines.Add('- revision: `n/a`')
-    $lines.Add('- note: `Use this section to track the active frozen seed once a spec-first task starts.`')
     $lines.Add('')
     $lines.Add('## Reviewer')
     $lines.Add('')
@@ -881,43 +867,6 @@ function Install-CodexCustomAgents {
         $target = Join-Path $GlobalCustomAgentsRoot $_.Name
         Copy-Item -LiteralPath $_.FullName -Destination $target -Force
     }
-}
-
-function Install-CodexSkills {
-    param(
-        [string]$SourceKitRoot,
-        [string]$BackupRoot
-    )
-
-    $sourceSkillsRoot = Join-Path $SourceKitRoot 'codex_skills'
-    if (-not (Test-Path -LiteralPath $sourceSkillsRoot -PathType Container)) {
-        return
-    }
-
-    Ensure-Directory -Path $GlobalSkillsRoot
-    Backup-PathIfExists -Path $GlobalSkillsRoot -BackupRoot $BackupRoot -Name 'skills'
-    Backup-PathIfExists -Path $GlobalManagedSkillsManifest -BackupRoot $BackupRoot -Name 'installer-managed-skills.manifest'
-
-    $previousManagedSkills = @()
-    if (Test-Path -LiteralPath $GlobalManagedSkillsManifest) {
-        $previousManagedSkills = @(Get-Content -LiteralPath $GlobalManagedSkillsManifest | Where-Object { $_ })
-    }
-
-    $currentManagedSkills = @(
-        Get-ChildItem -LiteralPath $sourceSkillsRoot -Directory | ForEach-Object { $_.Name }
-    )
-
-    foreach ($managedSkillName in $previousManagedSkills) {
-        if ($currentManagedSkills -notcontains $managedSkillName) {
-            $managedSkillPath = Join-Path $GlobalSkillsRoot $managedSkillName
-            if (Test-Path -LiteralPath $managedSkillPath) {
-                Remove-Item -LiteralPath $managedSkillPath -Recurse -Force
-            }
-        }
-    }
-
-    Copy-DirectoryContents -Source $sourceSkillsRoot -Destination $GlobalSkillsRoot
-    Set-Content -LiteralPath $GlobalManagedSkillsManifest -Value $currentManagedSkills -Encoding utf8
 }
 
 function Install-CodexRules {
@@ -1354,7 +1303,6 @@ function Install-GlobalKit {
         'MULTI_AGENT_GUIDE.md',
         'codex_agents',
         'codex_rules',
-        'codex_skills',
         'docs',
         'examples',
         'profiles',
@@ -1382,7 +1330,6 @@ function Install-GlobalKit {
     }
     Install-CodexConfig -ConfigPath $GlobalConfigPath -BackupRoot $backupRoot
     Install-CodexCustomAgents -SourceKitRoot $LocalKitRoot -BackupRoot $backupRoot
-    Install-CodexSkills -SourceKitRoot $LocalKitRoot -BackupRoot $backupRoot
     Install-CodexRules -SourceKitRoot $LocalKitRoot
 
     Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
@@ -1462,9 +1409,6 @@ function Apply-ToWorkspace {
         }
         if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_rules')) {
             Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_rules') -Destination (Join-Path $docsRoot 'codex_rules')
-        }
-        if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_skills')) {
-            Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_skills') -Destination (Join-Path $docsRoot 'codex_skills')
         }
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'profiles') -Destination (Join-Path $docsRoot 'profiles')
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'examples') -Destination (Join-Path $docsRoot 'examples')

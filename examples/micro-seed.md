@@ -1,63 +1,39 @@
-# Micro Seed Template
+# Route Contract Example
 
-Use this template when the team wants the Ouroboros-lite workflow without the full original runtime payload.
+이 예시는 Route A / Route B 기준으로 작업 범위를 작게 고정하는 방법을 보여준다.
+별도 workflow command surface나 철학-only 포장은 쓰지 않는다.
 
-The goal is simple:
+## 목적
 
-- freeze intent before implementation
-- make `ooo run` consume a stable contract
-- make `ooo evaluate` judge against the same contract
+- 구현 전에 의도와 제약을 고정한다
+- `STATE.md`에 route, writer slot, write set을 남긴다
+- 이후 검증이 같은 계약을 기준으로 판단되게 한다
 
-## Rules
+## 규칙
 
-- Keep it short.
-- Make every acceptance criterion testable.
-- Write only what later implementation and evaluation actually need.
-- If scope changes materially, create a new revision instead of silently mutating the old seed.
+- 짧게 쓴다.
+- 검증 가능한 문장만 넣는다.
+- 구현과 리뷰가 실제로 필요로 하는 정보만 적는다.
+- 범위가 바뀌면 기존 메모를 슬쩍 바꾸지 말고 새 항목으로 다시 적는다.
 
-## Template
-
-Copy this template into `SEED.yaml`; that file is the actual workflow contract for the workflow.
-
-```yaml
-goal: "<primary objective>"
-
-constraints:
-  - "<hard limit or invariant>"
-
-acceptance_criteria:
-  - "<observable success condition>"
-
-verification:
-  - "<command, check, or review condition>"
-
-out_of_scope:
-  - "<explicit non-goal>"
-```
-
-## Example
+## 예시
 
 ```yaml
-goal: "Add Ouroboros-lite workflow support to the repository without introducing background orchestration or MCP-only dependencies."
-
-constraints:
-  - "Keep the existing Route A/Route B system as the top-level orchestration layer."
-  - "Route A is main-only with no subagent calls."
-  - "Route B is the delegated route with worker/reviewer use."
-  - "Do not require Codex CLI-only features."
-  - "Do not introduce polling-based workflow steps."
-
+current_task: "Refine the Route A / Route B documentation layer"
+route: "Route B"
+writer_slot: "parallel"
+write_sets:
+  - "worker_docs: README.md, CHANGELOG.md, THIRD_PARTY_NOTICES.md, docs/**, examples/**"
+contract_freeze:
+  - "Keep Route A and Route B as the only governance model exposed in repository docs."
+  - "Do not reintroduce partial Ouroboros port claims or fake command surfaces."
 acceptance_criteria:
-  - "`ooo interview`, `ooo seed`, `ooo run`, and `ooo evaluate` each have repository-packaged skill definitions."
-  - "Implementation entry uses the existing Route A/Route B rules."
-  - "Evaluation explicitly checks compliance against the frozen seed."
-
+  - "README describes the repository as a Route A / Route B governance kit."
+  - "Docs and examples no longer present the old packaging layer as active guidance."
 verification:
-  - "Review the generated skill files for alignment with the seed contract."
-  - "Run `git diff --check` after edits."
-
+  - "Review the changed docs for residual port-language."
+  - "Run the repository's normal documentation review checks if available."
 out_of_scope:
-  - "Full Ouroboros MCP server integration."
-  - "Lineage/evolution automation."
-  - "Background job monitoring or polling."
+  - "Full Ouroboros integration design."
+  - "New command surface for workflow automation."
 ```

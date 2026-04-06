@@ -50,15 +50,6 @@ Installer global setup copies this file to the user's Codex home as the default 
 - This logging rule stays subordinate to the existing Route A/B rules, security rules, and reviewer requirements.
 - Do not use this log as a substitute for route logging, security handling, or reviewer escalation.
 
-## Spec-First Workflow
-
-- Use `interview -> seed -> run -> evaluate` for non-tiny hotfixes when the work spans multiple files, needs a frozen contract, or could drift without a written spec.
-- Skip spec-first only for tiny local hotfixes that stay in one file and do not need a frozen contract.
-- Treat `interview` as read-only scope clarification, `seed` as contract freeze, `run` as implementation, and `evaluate` as verification.
-- Keep the workflow subordinate to the existing Route A/B, security, reviewer, and verification rules.
-- Do not add background orchestration loops or polling behavior to this workflow.
-- If a tiny hotfix starts growing during execution, the agent must stop, update `STATE.md`, re-select the route, and only then continue with more writes.
-
 ## Multi-Agent Enforcement
 
 ### Subagent Hygiene
