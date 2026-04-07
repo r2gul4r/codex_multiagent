@@ -197,28 +197,38 @@ External-first is useful because:
 - define the common WSL commands the app will call
 - define which artifacts are read after each call
 - define where seeds, state, and logs are expected
+- shell-helper execution note: `docs/SHELL_HELPER_AND_CONTROL_LOOP.md`
+- projection/state-sync note: `docs/PROJECTION_AND_STATE_SYNC.md`
 
 ### Step 3. Map App Requests to Ouroboros Commands
 
 - write down how user intents map to `interview`, `run`, and `evaluate`
 - keep this explicit before trying to automate it
+- first concrete mapping note: `docs/APP_REQUEST_TO_OUROBOROS_MAPPING.md`
 
 ### Step 4. Define the Policy Hook
 
 - define where `Route A/B` attaches during `run`
 - define how worker/reviewer ownership relates to Ouroboros execution slices
+- first concrete hook note: `docs/ROUTE_POLICY_HOOK_IN_RUN.md`
 
 ### Step 5. Consider a Wrapper MCP
 
 - only after shell/file control is stable
+- only after projection/state sync is stable
 - this would be a wrapper for Codex app control, not a replacement for Ouroboros internals
+- first app-side action surface note: `docs/APP_CONTROL_COMMAND_CONTRACT.md`
+- wrapper decision note: `docs/WRAPPER_MCP_DECISION.md`
 
 ## Immediate Next Steps
 
-1. Standardize the WSL command set we expect the app to call
-2. Write a small request-to-command mapping table
-3. Separate a design note for where `Route A/B` hooks into `run`
-4. Decide later whether shell/file control should be upgraded to a wrapper MCP
+1. Refine `docs/APP_REQUEST_TO_OUROBOROS_MAPPING.md` as the first shell/file control surface
+2. Refine `docs/ROUTE_POLICY_HOOK_IN_RUN.md` as the execution-governance hook spec
+3. Refine `docs/APP_VS_ENGINE_OWNERSHIP.md` as the ownership-boundary contract
+4. Refine `docs/APP_CONTROL_COMMAND_CONTRACT.md` as the app-facing action contract
+5. Refine `docs/SHELL_HELPER_AND_CONTROL_LOOP.md` as the manual shell/file control layer
+6. Refine `docs/PROJECTION_AND_STATE_SYNC.md` as the state projection contract
+7. Keep `docs/WRAPPER_MCP_DECISION.md` as the later wrapper decision record after shell/helper and projection are stable
 
 ## Not Doing Yet
 
@@ -235,5 +245,7 @@ The current answer is simple:
 - keep Ouroboros as a WSL external engine
 - use the Codex desktop app as the controller
 - keep the current multi-agent rules as a policy layer above the engine
+- harden shell-helper and projection/state-sync first
+- consider wrapper MCP only if the shell/file path proves it actually needs a richer transport boundary
 
 That gives us a stable path now without prematurely forcing an embedded app design.
