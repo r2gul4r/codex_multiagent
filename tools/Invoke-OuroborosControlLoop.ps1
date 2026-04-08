@@ -20,6 +20,7 @@ param(
     [string]$RuntimeRoot = '~/ouroboros',
     [string]$RuntimeDataRoot = '~/.ouroboros',
     [string]$StatePath,
+    [string]$HelperScriptPath,
     [switch]$SkipProjectionSync,
     [switch]$PrettyJson
 )
@@ -223,8 +224,106 @@ function Get-ContractPropertyValue {
     return $null
 }
 
+function Get-EffectiveStatePath {
+    if (-not [string]::IsNullOrWhiteSpace($StatePath)) {
+        return $StatePath
+    }
+
+    return Join-Path (Split-Path $PSScriptRoot -Parent) 'STATE.md'
+}
+
+function Read-RouteGateMetadata {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "STATE file not found at '$Path'."
+    }
+
+    $text = Get-Content -LiteralPath $Path -Raw
+    $metadata = [ordered]@{
+        state_path   = $Path
+        route        = $null
+        reason       = $null
+        writer_slot  = $null
+    }
+
+    if ($text -match '(?m)^- route:[ \t]*(?<value>[^\r\n]+?)[ \t]*\r?$') {
+        $metadata.route = $matches.value.Trim()
+    }
+    if ($text -match '(?m)^- reason:[ \t]*(?<value>[^\r\n]+?)[ \t]*\r?$') {
+        $metadata.reason = $matches.value.Trim()
+    }
+    if ($text -match '(?m)^- writer_slot:[ \t]*(?<value>[^\r\n]+?)[ \t]*\r?$') {
+        $metadata.writer_slot = $matches.value.Trim()
+    }
+
+    return $metadata
+}
+
+function New-RouteGateFailureResult {
+    param(
+        [Parameter(Mandatory = $true)][string]$Summary,
+        [hashtable]$Metadata,
+        [string[]]$MissingFields
+    )
+
+    $failure = New-HelperFailureResult -Kind 'route_gate_blocked' -Summary $Summary
+
+    $failure.route_gate = [ordered]@{
+        state_path = if ($Metadata) { $Metadata.state_path } else { Get-EffectiveStatePath }
+        route = if ($Metadata) { $Metadata.route } else { $null }
+        reason = if ($Metadata) { $Metadata.reason } else { $null }
+        writer_slot = if ($Metadata) { $Metadata.writer_slot } else { $null }
+        missing_fields = if ($MissingFields) { @($MissingFields) } else { @() }
+    }
+
+    return $failure
+}
+
+function Test-RunSeedRouteGate {
+    if ($Action -ne 'run_seed') {
+        return $null
+    }
+
+    try {
+        $metadata = Read-RouteGateMetadata -Path (Get-EffectiveStatePath)
+    }
+    catch {
+        return New-RouteGateFailureResult -Summary ("Route gate failed: {0}" -f $_.Exception.Message)
+    }
+
+    $missing = @()
+    foreach ($field in @('route', 'reason', 'writer_slot')) {
+        if ([string]::IsNullOrWhiteSpace([string]$metadata[$field])) {
+            $missing += $field
+        }
+    }
+
+    if ($missing.Count -gt 0) {
+        $summary = "Route gate failed: missing required STATE metadata ({0}) before run_seed." -f ($missing -join ', ')
+        return New-RouteGateFailureResult -Summary $summary -Metadata $metadata -MissingFields $missing
+    }
+
+    return $null
+}
+
 function Invoke-HelperAction {
-    $helperScript = Join-Path $PSScriptRoot 'Invoke-OuroborosAction.ps1'
+    $routeGateFailure = Test-RunSeedRouteGate
+    if ($null -ne $routeGateFailure) {
+        return [ordered]@{
+            payload       = $null
+            is_valid      = $false
+            helper_result = $routeGateFailure
+        }
+    }
+
+    $helperScript = if ([string]::IsNullOrWhiteSpace($HelperScriptPath)) {
+        Join-Path $PSScriptRoot 'Invoke-OuroborosAction.ps1'
+    }
+    else {
+        $HelperScriptPath
+    }
+
     $helperArgs = @{
         Action          = $Action
         Goal            = $Goal
@@ -352,7 +451,9 @@ function Get-Summary {
 
     $helperSummaryValue = Get-ContractPropertyValue -Value $HelperResult -Name 'summary'
     $projectionSummaryValue = Get-ContractPropertyValue -Value $ProjectionResult -Name 'summary'
+    $helperStatusValue = Get-ContractPropertyValue -Value $HelperResult -Name 'status'
     $helperSummary = if ($null -ne $helperSummaryValue) { [string]$helperSummaryValue } else { 'helper completed' }
+    $helperStatus = if ($null -ne $helperStatusValue) { [string]$helperStatusValue } else { 'unknown' }
     $projectionSummary = if ($null -ne $projectionSummaryValue) { [string]$projectionSummaryValue } else { $null }
     $projectionStatusValue = Get-ContractPropertyValue -Value $ProjectionResult -Name 'status'
     $projectionStatus = if ($null -ne $projectionStatusValue) { [string]$projectionStatusValue } else { 'unknown' }
@@ -363,6 +464,10 @@ function Get-Summary {
         }
 
         return "$helperSummary Projection sync failed: $projectionSummary"
+    }
+
+    if ($helperStatus -eq 'error' -and $projectionStatus -eq 'skipped') {
+        return $helperSummary
     }
 
     if ($SkipProjectionSync.IsPresent) {
