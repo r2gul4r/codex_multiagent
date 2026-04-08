@@ -14,6 +14,7 @@ param(
     [string]$Action,
 
     [string]$Goal,
+    [string]$InterviewResponse,
     [string]$InterviewId,
     [string]$SeedPath,
     [string]$TargetWorkspace,
@@ -21,6 +22,7 @@ param(
     [string]$RuntimeDataRoot = '~/.ouroboros',
     [string]$StatePath,
     [string]$HelperScriptPath,
+    [switch]$AutoVisibleBridge = $true,
     [switch]$SkipProjectionSync,
     [switch]$PrettyJson
 )
@@ -224,12 +226,72 @@ function Get-ContractPropertyValue {
     return $null
 }
 
+function ConvertTo-BashSingleQuoted {
+    param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value)
+
+    $separator = "'" + '"' + "'" + '"' + "'"
+    $escaped = ($Value -split "'") -join $separator
+    return "'" + $escaped + "'"
+}
+
 function Get-EffectiveStatePath {
     if (-not [string]::IsNullOrWhiteSpace($StatePath)) {
         return $StatePath
     }
 
     return Join-Path (Split-Path $PSScriptRoot -Parent) 'STATE.md'
+}
+
+function Resolve-WslUserPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$PathValue
+    )
+
+    if ([string]::IsNullOrWhiteSpace($PathValue)) {
+        return $PathValue
+    }
+
+    if ($PathValue.StartsWith('/')) {
+        return $PathValue
+    }
+
+    if ([System.IO.Path]::IsPathRooted($PathValue) -or $PathValue -match '^[A-Za-z]:[\\/]|^\\\\') {
+        $command = 'wslpath -a ' + (ConvertTo-BashSingleQuoted -Value $PathValue)
+        $probe = & wsl.exe bash -lc $command 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to convert Windows path to WSL path: $PathValue"
+        }
+
+        return (($probe | ForEach-Object { [string]$_ }) -join "`n").Trim()
+    }
+
+    if ($PathValue.StartsWith('~/') -or $PathValue -eq '~') {
+        $command = 'INPUT_PATH=' + (ConvertTo-BashSingleQuoted -Value $PathValue) + " python3 - <<'PY'
+import os
+print(os.path.expanduser(os.environ['INPUT_PATH']))
+PY"
+        $probe = & wsl.exe bash -lc $command 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to resolve WSL path: $PathValue"
+        }
+
+        return (($probe | ForEach-Object { [string]$_ }) -join "`n").Trim()
+    }
+
+    return $PathValue
+}
+
+function Get-RunTranscriptPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$ResolvedRuntimeDataRoot,
+        [Parameter(Mandatory = $true)][string]$ActionName
+    )
+
+    $safeAction = ($ActionName -replace '[^A-Za-z0-9_.-]', '_')
+    $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssfffZ')
+    $suffix = [guid]::NewGuid().ToString('N').Substring(0, 8)
+    $baseRoot = $ResolvedRuntimeDataRoot.TrimEnd('/')
+    return "$baseRoot/transcripts/ouroboros-transcript-$safeAction-$stamp-$suffix.log"
 }
 
 function Read-RouteGateMetadata {
@@ -327,12 +389,35 @@ function Invoke-HelperAction {
     $helperArgs = @{
         Action          = $Action
         Goal            = $Goal
+        InterviewResponse = $InterviewResponse
         InterviewId     = $InterviewId
         SeedPath        = $SeedPath
         TargetWorkspace = $TargetWorkspace
         RuntimeRoot     = $RuntimeRoot
         RuntimeDataRoot = $RuntimeDataRoot
+        TranscriptPath  = Get-RunTranscriptPath -ResolvedRuntimeDataRoot (Resolve-WslUserPath -PathValue $RuntimeDataRoot) -ActionName $Action
         PrettyJson      = $true
+    }
+
+    $bridgeInfo = $null
+    $transcriptPath = [string]$helperArgs.TranscriptPath
+
+    if ($AutoVisibleBridge.IsPresent) {
+        $bridgeScript = Join-Path $PSScriptRoot 'Open-OuroborosRuntimeBridge.ps1'
+
+        try {
+            $bridgeRaw = & $bridgeScript -RuntimeDataRoot $RuntimeDataRoot -TranscriptPath $transcriptPath -PassThru 2>&1
+            $bridgeText = Convert-OutputToJsonText -Output $bridgeRaw
+            if (-not [string]::IsNullOrWhiteSpace($bridgeText)) {
+                $bridgeInfo = ConvertTo-Hashtable -Value (Read-JsonObject -Text $bridgeText)
+            }
+        }
+        catch {
+            $bridgeInfo = [ordered]@{
+                status  = 'error'
+                summary = $_.Exception.Message
+            }
+        }
     }
 
     try {
@@ -343,6 +428,34 @@ function Invoke-HelperAction {
             payload      = $null
             is_valid     = $false
             helper_result = (New-HelperFailureResult -Kind 'helper_execution_error' -Summary $_.Exception.Message)
+            bridge_info   = $bridgeInfo
+        }
+    }
+    finally {
+        if ($null -ne $bridgeInfo) {
+            $bridgePid = Get-ContractPropertyValue -Value $bridgeInfo -Name 'pid'
+            if ($null -ne $bridgePid) {
+                try {
+                    $bridgeProcess = Get-Process -Id ([int]$bridgePid) -ErrorAction SilentlyContinue
+                    if ($null -ne $bridgeProcess) {
+                        & taskkill.exe /PID ([string][int]$bridgePid) /T /F 2>&1 | Out-Null
+                        Start-Sleep -Milliseconds 250
+                        $stillRunning = Get-Process -Id ([int]$bridgePid) -ErrorAction SilentlyContinue
+                        if ($null -ne $stillRunning) {
+                            throw "Bridge process tree still running after taskkill."
+                        }
+                    }
+                    $bridgeInfo.lifecycle = [ordered]@{
+                        closed = $true
+                    }
+                }
+                catch {
+                    $bridgeInfo.lifecycle = [ordered]@{
+                        closed = $false
+                        error  = $_.Exception.Message
+                    }
+                }
+            }
         }
     }
 
@@ -352,6 +465,7 @@ function Invoke-HelperAction {
             payload      = $null
             is_valid     = $false
             helper_result = (New-HelperFailureResult -Kind 'empty_output' -Summary 'Expected JSON output from helper, but received empty output.')
+            bridge_info   = $bridgeInfo
         }
     }
 
@@ -361,6 +475,7 @@ function Invoke-HelperAction {
             payload      = $payload
             is_valid     = $true
             helper_result = $payload
+            bridge_info   = $bridgeInfo
         }
     }
     catch {
@@ -368,6 +483,7 @@ function Invoke-HelperAction {
             payload      = $null
             is_valid     = $false
             helper_result = (New-HelperFailureResult -Kind 'malformed_json' -Summary $_.Exception.Message -RawOutput $jsonText)
+            bridge_info   = $bridgeInfo
         }
     }
 }
@@ -488,6 +604,7 @@ function Get-Summary {
 try {
     $helperInvocation = Invoke-HelperAction
     $helperResult = ConvertTo-Hashtable -Value $helperInvocation.helper_result
+    $bridgeResult = ConvertTo-Hashtable -Value $helperInvocation.bridge_info
 
     if ($helperInvocation.is_valid) {
         $projectionResult = Invoke-ProjectionSync -HelperResult $helperInvocation.payload
@@ -508,6 +625,7 @@ try {
         summary         = $summary
         helper_result   = $helperResult
         projection_sync = ConvertTo-Hashtable -Value $projectionResult
+        runtime_bridge  = $bridgeResult
     }
 
     if ($PrettyJson) {
@@ -535,6 +653,7 @@ catch {
             status  = 'skipped'
             summary = 'Projection sync was not attempted because the helper flow failed before a valid JSON payload was available.'
         }
+        runtime_bridge  = $null
     }
 
     if ($PrettyJson) {

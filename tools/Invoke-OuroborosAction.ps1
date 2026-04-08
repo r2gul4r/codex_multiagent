@@ -14,11 +14,13 @@ param(
     [string]$Action,
 
     [string]$Goal,
+    [string]$InterviewResponse,
     [string]$InterviewId,
     [string]$SeedPath,
     [string]$TargetWorkspace,
     [string]$RuntimeRoot = '~/ouroboros',
     [string]$RuntimeDataRoot = '~/.ouroboros',
+    [string]$TranscriptPath,
     [switch]$PrettyJson
 )
 
@@ -108,6 +110,16 @@ function Assert-Required {
     if ([string]::IsNullOrWhiteSpace($Value)) {
         throw "$Name is required for action '$Action'"
     }
+}
+
+function Get-BashInputPipeCommand {
+    param([string]$InputText)
+
+    if ([string]::IsNullOrWhiteSpace($InputText)) {
+        return ''
+    }
+
+    return 'INTERVIEW_RESPONSE=' + (ConvertTo-BashSingleQuoted -Value $InputText) + ' python3 -c "import os, sys; text = os.environ[' + "'" + 'INTERVIEW_RESPONSE' + "'" + ']; sys.stdout.write(text); sys.stdout.write(' + "'" + '\n' + "'" + ' if not text.endswith(' + "'" + '\n' + "'" + ') else ' + "'" + '' + "'" + ')" |'
 }
 
 function ConvertTo-Hashtable {
@@ -255,16 +267,37 @@ function Convert-JsonTextToHashtable {
 function Resolve-WslUserPath {
     param([Parameter(Mandatory = $true)][string]$PathValue)
 
-    $command = 'INPUT_PATH=' + (ConvertTo-BashSingleQuoted -Value $PathValue) + " python3 - <<'PY'
+    if ([string]::IsNullOrWhiteSpace($PathValue)) {
+        return $PathValue
+    }
+
+    if ($PathValue.StartsWith('/')) {
+        return $PathValue
+    }
+
+    if ([System.IO.Path]::IsPathRooted($PathValue) -or $PathValue -match '^[A-Za-z]:[\\/]|^\\\\') {
+        $probe = Invoke-WslBash -Command ('wslpath -a ' + (ConvertTo-BashSingleQuoted -Value $PathValue))
+        if ($probe.ExitCode -ne 0) {
+            throw "Failed to convert Windows path to WSL path: $PathValue"
+        }
+
+        return $probe.Stdout.Trim()
+    }
+
+    if ($PathValue.StartsWith('~/') -or $PathValue -eq '~') {
+        $command = 'INPUT_PATH=' + (ConvertTo-BashSingleQuoted -Value $PathValue) + " python3 - <<'PY'
 import os
 print(os.path.expanduser(os.environ['INPUT_PATH']))
 PY"
-    $probe = Invoke-WslBash -Command $command
-    if ($probe.ExitCode -ne 0) {
-        throw "Failed to resolve WSL path: $PathValue"
+        $probe = Invoke-WslBash -Command $command
+        if ($probe.ExitCode -ne 0) {
+            throw "Failed to resolve WSL path: $PathValue"
+        }
+
+        return $probe.Stdout.Trim()
     }
 
-    return $probe.Stdout.Trim()
+    return $PathValue
 }
 
 function Get-WslPathFromWindowsPath {
@@ -318,6 +351,23 @@ function Get-TargetWorkspacePath {
     return $PathValue
 }
 
+function Get-ResolvedTranscriptPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$ResolvedRuntimeDataRoot,
+        [string]$ProvidedTranscriptPath,
+        [Parameter(Mandatory = $true)][string]$ActionName
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($ProvidedTranscriptPath)) {
+        return $ProvidedTranscriptPath
+    }
+
+    $safeAction = ($ActionName -replace '[^A-Za-z0-9_.-]', '_')
+    $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssfffZ')
+    $baseRoot = $ResolvedRuntimeDataRoot.TrimEnd('/')
+    return "$baseRoot/transcripts/ouroboros-transcript-$safeAction-$stamp.log"
+}
+
 function Get-DefaultNextActions {
     switch ($Action) {
         'start_interview'       { return @('inspect_latest_seed', 'resume_interview', 'run_seed') }
@@ -344,6 +394,7 @@ root = Path($(ConvertTo-BashSingleQuoted -Value $ResolvedRuntimeDataRoot))
 data_dir = root / "data"
 seed_dir = root / "seeds"
 log_dir = root / "logs"
+transcript_dir = root / "transcripts"
 
 def latest(directory, pattern):
     if not directory.exists():
@@ -378,6 +429,71 @@ PY
     }
 
     return $payload
+}
+
+function Ensure-InterviewBootstrapState {
+    param(
+        [Parameter(Mandatory = $true)][string]$InterviewId,
+        [Parameter(Mandatory = $true)][string]$InitialContext,
+        [Parameter(Mandatory = $true)][string]$ResolvedRuntimeDataRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($InterviewId) -or [string]::IsNullOrWhiteSpace($InitialContext)) {
+        return $null
+    }
+
+    $command = @"
+INTERVIEW_ID=$(ConvertTo-BashSingleQuoted -Value $InterviewId) \
+INITIAL_CONTEXT=$(ConvertTo-BashSingleQuoted -Value $InitialContext) \
+RUNTIME_DATA_ROOT=$(ConvertTo-BashSingleQuoted -Value $ResolvedRuntimeDataRoot) \
+python3 - <<'PY'
+from datetime import datetime, timezone
+from pathlib import Path
+import json
+import os
+
+interview_id = os.environ["INTERVIEW_ID"]
+initial_context = os.environ["INITIAL_CONTEXT"]
+root = Path(os.environ["RUNTIME_DATA_ROOT"])
+path = root / "data" / f"interview_{interview_id}.json"
+path.parent.mkdir(parents=True, exist_ok=True)
+
+if path.exists():
+    print(json.dumps({
+        "created": False,
+        "path": str(path),
+    }))
+    raise SystemExit(0)
+
+timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+payload = {
+    "interview_id": interview_id,
+    "status": "in_progress",
+    "rounds": [],
+    "initial_context": initial_context,
+    "created_at": timestamp,
+    "updated_at": timestamp,
+    "is_brownfield": False,
+    "codebase_paths": [],
+    "codebase_context": "",
+    "explore_completed": False,
+    "ambiguity_score": None,
+    "ambiguity_breakdown": None,
+}
+path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+print(json.dumps({
+    "created": True,
+    "path": str(path),
+}))
+PY
+"@
+
+    $probe = Invoke-WslBash -Command $command
+    if ($probe.ExitCode -ne 0) {
+        return $null
+    }
+
+    return Convert-JsonTextToHashtable -Text $probe.Stdout
 }
 
 function Get-ChangedFiles {
@@ -497,7 +613,8 @@ function Get-ActionOutputArtifacts {
         [hashtable]$SnapshotAfter,
         [hashtable]$TraceMetadata,
         [string]$FallbackInterviewId,
-        [string]$ResolvedRuntimeDataRoot
+        [string]$ResolvedRuntimeDataRoot,
+        [string]$TranscriptPath
     )
 
     $text = Get-NormalizedLogText -Text (@($Stdout, $Stderr) -join "`n")
@@ -512,6 +629,10 @@ function Get-ActionOutputArtifacts {
     }
     if ($TraceMetadata) {
         $artifacts.runtime_trace = $TraceMetadata
+    }
+    if (-not [string]::IsNullOrWhiteSpace($TranscriptPath)) {
+        $artifacts.transcript_path = $TranscriptPath
+        $artifacts.latest_transcript_path = $TranscriptPath
     }
 
     $paths = [regex]::Matches($text, '(?<!\w)(?:/[^\\\s''"`]+)+\.(?:yaml|yml|json)')
@@ -558,6 +679,11 @@ function Get-ActionOutputArtifacts {
                         $artifacts.seed_path = $seedCandidates[-1]
                     }
                 }
+            }
+
+            if (-not $artifacts.ContainsKey('transcript_path') -and -not [string]::IsNullOrWhiteSpace($TranscriptPath)) {
+                $artifacts.transcript_path = $TranscriptPath
+                $artifacts.latest_transcript_path = $TranscriptPath
             }
         }
         'resume_interview' {
@@ -632,15 +758,34 @@ fi
 "@
 }
 
+function Get-BashTranscriptPrelude {
+    param([string]$TranscriptPath)
+
+    if ([string]::IsNullOrWhiteSpace($TranscriptPath)) {
+        return ''
+    }
+
+    $quotedTranscriptPath = ConvertTo-BashSingleQuoted -Value $TranscriptPath
+    return @"
+TRANSCRIPT_PATH=$quotedTranscriptPath
+TRANSCRIPT_DIR=`$(dirname "`$TRANSCRIPT_PATH")
+mkdir -p "`$TRANSCRIPT_DIR"
+: > "`$TRANSCRIPT_PATH"
+exec > >(tee -a "`$TRANSCRIPT_PATH") 2> >(tee -a "`$TRANSCRIPT_PATH" >&2)
+"@
+}
+
 function Get-RunObservationCommand {
     param(
         [Parameter(Mandatory = $true)][ValidateSet('inspect_run_outputs', 'evaluate_result')][string]$Mode,
         [Parameter(Mandatory = $true)][string]$ResolvedRuntimeDataRoot,
         [string]$ResolvedWorkspacePath,
-        [string]$ResolvedSeedPath
+        [string]$ResolvedSeedPath,
+        [string]$TranscriptPath
     )
 
     $prelude = Get-BashPrelude
+    $transcriptPrelude = Get-BashTranscriptPrelude -TranscriptPath $TranscriptPath
     $workspaceAssignment = ''
     if (-not [string]::IsNullOrWhiteSpace($ResolvedWorkspacePath)) {
         $workspaceAssignment = 'TARGET_WORKSPACE=' + (ConvertTo-BashSingleQuoted -Value $ResolvedWorkspacePath) + ' '
@@ -653,6 +798,7 @@ function Get-RunObservationCommand {
 
     return @"
 $prelude
+$transcriptPrelude
 ${workspaceAssignment}${seedAssignment}python3 - <<'PY'
 from pathlib import Path
 import json
@@ -760,7 +906,9 @@ log_dir = root / "logs"
 latest_interview = latest(data_dir, "interview_*.json")
 latest_seed = Path(target_seed) if target_seed else latest(seed_dir, "*.yaml")
 latest_log = latest(log_dir, "ouroboros.log*")
-log_excerpt = read_tail(latest_log)
+latest_transcript = latest(transcript_dir, "ouroboros-transcript-*.log")
+latest_observation = latest_transcript or latest_log
+log_excerpt = read_tail(latest_observation)
 changed_files = git_changed_files(workspace)
 seed_context = extract_seed_context(latest_seed)
 interview_context = extract_interview_context(latest_interview)
@@ -798,6 +946,7 @@ artifacts = {
     "latest_interview_path": str(latest_interview) if latest_interview else None,
     "latest_seed_path": str(latest_seed) if latest_seed and latest_seed.exists() else None,
     "latest_log_path": str(latest_log) if latest_log else None,
+    "latest_transcript_path": str(latest_transcript) if latest_transcript else None,
     "log_excerpt": log_excerpt,
     "changed_files": changed_files,
     "runtime_trace": runtime_trace,
@@ -854,31 +1003,37 @@ PY
 function Get-ShellCommand {
     param(
         [Parameter(Mandatory = $true)][string]$ResolvedRuntimeRoot,
-        [Parameter(Mandatory = $true)][string]$ResolvedRuntimeDataRoot
+        [Parameter(Mandatory = $true)][string]$ResolvedRuntimeDataRoot,
+        [string]$TranscriptPath
     )
 
     $prelude = Get-BashPrelude
+    $transcriptPrelude = Get-BashTranscriptPrelude -TranscriptPath $TranscriptPath
 
     switch ($Action) {
         'start_interview' {
             Assert-Required -Value $Goal -Name 'Goal'
             return @"
 $prelude
+$transcriptPrelude
 cd $(ConvertTo-BashSingleQuoted -Value $ResolvedRuntimeRoot)
 timeout -k 5s 90s uv run ouroboros init start --llm-backend codex --runtime codex $(ConvertTo-BashSingleQuoted -Value $Goal)
 "@
         }
         'resume_interview' {
             Assert-Required -Value $InterviewId -Name 'InterviewId'
+            $inputPipeCommand = Get-BashInputPipeCommand -InputText $InterviewResponse
             return @"
 $prelude
+$transcriptPrelude
 cd $(ConvertTo-BashSingleQuoted -Value $ResolvedRuntimeRoot)
-timeout -k 5s 90s uv run ouroboros init start --resume $(ConvertTo-BashSingleQuoted -Value $InterviewId) --llm-backend codex --runtime codex
+$inputPipeCommand timeout -k 5s 90s uv run ouroboros init start --resume $(ConvertTo-BashSingleQuoted -Value $InterviewId) --llm-backend codex --runtime codex
 "@
         }
         'inspect_latest_seed' {
             return @"
 $prelude
+$transcriptPrelude
 python3 - <<'PY'
 from pathlib import Path
 import json
@@ -907,13 +1062,14 @@ PY
             $resolvedSeedPath = Get-ResolvedSeedPath -PathValue $SeedPath
             return @"
 $prelude
+$transcriptPrelude
 cd $(ConvertTo-BashSingleQuoted -Value $ResolvedRuntimeRoot)
 timeout -k 5s 90s uv run ouroboros run workflow $(ConvertTo-BashSingleQuoted -Value $resolvedSeedPath) --runtime codex
 "@
         }
         'inspect_run_outputs' {
             $resolvedWorkspace = Get-TargetWorkspacePath -PathValue $TargetWorkspace
-            return Get-RunObservationCommand -Mode 'inspect_run_outputs' -ResolvedRuntimeDataRoot $ResolvedRuntimeDataRoot -ResolvedWorkspacePath $resolvedWorkspace
+            return Get-RunObservationCommand -Mode 'inspect_run_outputs' -ResolvedRuntimeDataRoot $ResolvedRuntimeDataRoot -ResolvedWorkspacePath $resolvedWorkspace -TranscriptPath $TranscriptPath
         }
         'evaluate_result' {
             $resolvedWorkspace = Get-TargetWorkspacePath -PathValue $TargetWorkspace
@@ -921,11 +1077,12 @@ timeout -k 5s 90s uv run ouroboros run workflow $(ConvertTo-BashSingleQuoted -Va
             if (-not [string]::IsNullOrWhiteSpace($SeedPath)) {
                 $resolvedSeedPath = Get-ResolvedSeedPath -PathValue $SeedPath
             }
-            return Get-RunObservationCommand -Mode 'evaluate_result' -ResolvedRuntimeDataRoot $ResolvedRuntimeDataRoot -ResolvedWorkspacePath $resolvedWorkspace -ResolvedSeedPath $resolvedSeedPath
+            return Get-RunObservationCommand -Mode 'evaluate_result' -ResolvedRuntimeDataRoot $ResolvedRuntimeDataRoot -ResolvedWorkspacePath $resolvedWorkspace -ResolvedSeedPath $resolvedSeedPath -TranscriptPath $TranscriptPath
         }
         'list_runtime_artifacts' {
             return @"
 $prelude
+$transcriptPrelude
 python3 - <<'PY'
 from pathlib import Path
 import json
@@ -947,6 +1104,7 @@ PY
         'check_runtime_health' {
             return @"
 $prelude
+$transcriptPrelude
 status_output=`$(codex login status 2>&1)
 status_code=`$?
 python3 - <<'PY' "`$status_code" "`$status_output"
@@ -970,8 +1128,9 @@ exit "`$status_code"
 try {
     $resolvedRuntimeRoot = Resolve-WslUserPath -PathValue $RuntimeRoot
     $resolvedRuntimeDataRoot = Resolve-WslUserPath -PathValue $RuntimeDataRoot
+    $resolvedTranscriptPath = Get-ResolvedTranscriptPath -ResolvedRuntimeDataRoot $resolvedRuntimeDataRoot -ProvidedTranscriptPath $TranscriptPath -ActionName $Action
     $snapshotBefore = Get-LatestRuntimeArtifacts -ResolvedRuntimeDataRoot $resolvedRuntimeDataRoot
-    $shellCommand = Get-ShellCommand -ResolvedRuntimeRoot $resolvedRuntimeRoot -ResolvedRuntimeDataRoot $resolvedRuntimeDataRoot
+    $shellCommand = Get-ShellCommand -ResolvedRuntimeRoot $resolvedRuntimeRoot -ResolvedRuntimeDataRoot $resolvedRuntimeDataRoot -TranscriptPath $resolvedTranscriptPath
     $invocation = Invoke-WslBash -Command $shellCommand
     $snapshotAfter = Get-LatestRuntimeArtifacts -ResolvedRuntimeDataRoot $resolvedRuntimeDataRoot
 
@@ -980,8 +1139,37 @@ try {
     $exitCode = [int]$invocation.ExitCode
     $nextActions = Get-DefaultNextActions
     $traceMetadata = Get-CodexTraceMetadata -Stdout $stdout -Stderr $stderr
-    $outputArtifacts = Get-ActionOutputArtifacts -ActionName $Action -Stdout $stdout -Stderr $stderr -SnapshotBefore $snapshotBefore -SnapshotAfter $snapshotAfter -TraceMetadata $traceMetadata -FallbackInterviewId $InterviewId -ResolvedRuntimeDataRoot $resolvedRuntimeDataRoot
+    $outputArtifacts = Get-ActionOutputArtifacts -ActionName $Action -Stdout $stdout -Stderr $stderr -SnapshotBefore $snapshotBefore -SnapshotAfter $snapshotAfter -TraceMetadata $traceMetadata -FallbackInterviewId $InterviewId -ResolvedRuntimeDataRoot $resolvedRuntimeDataRoot -TranscriptPath $resolvedTranscriptPath
     $result = $null
+
+    if ($Action -eq 'start_interview' -and $exitCode -ne 0) {
+        $errorKind = Get-FailureKind -ActionName $Action -ExitCode $exitCode -Stdout $stdout -Stderr $stderr
+        $capturedInterviewId = if ($outputArtifacts.ContainsKey('interview_id')) { [string]$outputArtifacts.interview_id } else { '' }
+        $capturedInterviewPath = if ($outputArtifacts.ContainsKey('interview_path')) { [string]$outputArtifacts.interview_path } else { '' }
+        $capturedInterviewPathExists = $false
+        if (-not [string]::IsNullOrWhiteSpace($capturedInterviewPath) -and $capturedInterviewPath.StartsWith('/')) {
+            $pathProbe = Invoke-WslBash -Command ("test -f " + (ConvertTo-BashSingleQuoted -Value $capturedInterviewPath))
+            $capturedInterviewPathExists = ($pathProbe.ExitCode -eq 0)
+        }
+        $bootstrapNeeded = (
+            $errorKind -eq 'user_interrupted' -and
+            -not [string]::IsNullOrWhiteSpace($capturedInterviewId) -and
+            (
+                [string]::IsNullOrWhiteSpace($capturedInterviewPath) -or
+                -not $capturedInterviewPathExists
+            )
+        )
+
+        if ($bootstrapNeeded) {
+            $bootstrap = Ensure-InterviewBootstrapState -InterviewId $capturedInterviewId -InitialContext $Goal -ResolvedRuntimeDataRoot $resolvedRuntimeDataRoot
+            if ($bootstrap -and $bootstrap.ContainsKey('path') -and -not [string]::IsNullOrWhiteSpace([string]$bootstrap.path)) {
+                $outputArtifacts.interview_path = [string]$bootstrap.path
+                $outputArtifacts.bootstrap_state = $bootstrap
+                $snapshotAfter = Get-LatestRuntimeArtifacts -ResolvedRuntimeDataRoot $resolvedRuntimeDataRoot
+                $outputArtifacts.runtime_snapshot_after = $snapshotAfter
+            }
+        }
+    }
 
     switch ($Action) {
         'inspect_latest_seed' {
@@ -1137,6 +1325,43 @@ try {
                         $outputArtifacts.interview_path = "{0}/data/interview_{1}.json" -f $resolvedRuntimeDataRoot, $InterviewId
                     }
                 }
+
+                $capturedInterviewId = if ($outputArtifacts.ContainsKey('interview_id')) { [string]$outputArtifacts.interview_id } else { '' }
+                $capturedSeedPath = if ($outputArtifacts.ContainsKey('seed_path')) { [string]$outputArtifacts.seed_path } else { '' }
+                $interviewProgressCaptured = ($Action -in @('start_interview', 'resume_interview')) -and (
+                    (-not [string]::IsNullOrWhiteSpace($capturedInterviewId)) -or
+                    (-not [string]::IsNullOrWhiteSpace($capturedSeedPath))
+                )
+
+                if ($errorKind -eq 'user_interrupted' -and $interviewProgressCaptured) {
+                    $summary = if (-not [string]::IsNullOrWhiteSpace($capturedSeedPath)) {
+                        "Interview action '$Action' advanced and produced a seed, but the runtime is waiting for another response."
+                    }
+                    else {
+                        "Interview action '$Action' advanced and is waiting for another response."
+                    }
+
+                    $artifacts = [ordered]@{
+                        runtime_root      = $resolvedRuntimeRoot
+                        runtime_data_root = $resolvedRuntimeDataRoot
+                        runtime_trace     = $traceMetadata
+                    }
+
+                    foreach ($key in $outputArtifacts.Keys) {
+                        if ($key -ne 'runtime_data_root') {
+                            $artifacts[$key] = $outputArtifacts[$key]
+                        }
+                    }
+
+                    if ($Action -eq 'resume_interview' -and -not [string]::IsNullOrWhiteSpace($InterviewResponse)) {
+                        $artifacts.interview_response = $InterviewResponse
+                    }
+
+                    $result = New-ActionResult -Status 'partial' -Summary $summary `
+                        -Artifacts $artifacts -NextActions $nextActions -Stdout $stdout -Stderr $stderr -ExitCode $exitCode
+                    break
+                }
+
                 $result = New-ActionResult -Status 'error' -Summary "Action '$Action' failed." `
                     -Artifacts $outputArtifacts `
                     -NextActions $nextActions -ErrorKind $errorKind -Stdout $stdout -Stderr $stderr -ExitCode $exitCode
@@ -1157,6 +1382,9 @@ try {
 
             if ($Action -eq 'resume_interview') {
                 $artifacts.interview_id = $InterviewId
+                if (-not [string]::IsNullOrWhiteSpace($InterviewResponse)) {
+                    $artifacts.interview_response = $InterviewResponse
+                }
             }
             elseif ($Action -eq 'run_seed') {
                 $artifacts.seed_path = Get-ResolvedSeedPath -PathValue $SeedPath
