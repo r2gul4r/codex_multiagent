@@ -6,6 +6,8 @@ param(
         'resume_interview',
         'inspect_latest_seed',
         'run_seed',
+        'inspect_run_outputs',
+        'evaluate_result',
         'list_runtime_artifacts',
         'check_runtime_health'
     )]
@@ -108,17 +110,6 @@ function Assert-Required {
     }
 }
 
-function Convert-JsonTextToHashtable {
-    param([string]$Text)
-
-    if ([string]::IsNullOrWhiteSpace($Text)) {
-        return $null
-    }
-
-    $value = $Text | ConvertFrom-Json
-    return ConvertTo-Hashtable -Value $value
-}
-
 function ConvertTo-Hashtable {
     param($Value)
 
@@ -131,7 +122,7 @@ function ConvertTo-Hashtable {
         foreach ($key in $Value.Keys) {
             $table[$key] = ConvertTo-Hashtable -Value $Value[$key]
         }
-        return $table
+        return ,$table
     }
 
     if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
@@ -139,7 +130,7 @@ function ConvertTo-Hashtable {
         foreach ($item in $Value) {
             $items += ,(ConvertTo-Hashtable -Value $item)
         }
-        return $items
+        return ,$items
     }
 
     if ($Value -is [pscustomobject]) {
@@ -147,10 +138,118 @@ function ConvertTo-Hashtable {
         foreach ($property in $Value.PSObject.Properties) {
             $table[$property.Name] = ConvertTo-Hashtable -Value $property.Value
         }
-        return $table
+        return ,$table
     }
 
     return $Value
+}
+
+function Normalize-ContractValue {
+    param(
+        $Value,
+        [string]$Key
+    )
+
+    $listKeys = @('changed_files', 'next_actions', 'interviews', 'seeds')
+
+    if ($listKeys -contains $Key) {
+        if ($null -eq $Value) {
+            return ,([string[]]@())
+        }
+
+        if (($Value -is [hashtable] -or $Value -is [pscustomobject]) -and @($Value.PSObject.Properties).Count -eq 0) {
+            return ,([string[]]@())
+        }
+
+        if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+            return ,([string[]]@($Value))
+        }
+
+        return ,([string[]]@($Value))
+    }
+
+    if ($Value -is [hashtable]) {
+        $table = @{}
+        foreach ($nestedKey in $Value.Keys) {
+            $table[$nestedKey] = Normalize-ContractValue -Value $Value[$nestedKey] -Key $nestedKey
+        }
+        return ,$table
+    }
+
+    if ($Value -is [pscustomobject]) {
+        $table = @{}
+        foreach ($property in $Value.PSObject.Properties) {
+            $table[$property.Name] = Normalize-ContractValue -Value $property.Value -Key $property.Name
+        }
+        return ,$table
+    }
+
+    if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+        $items = @()
+        foreach ($item in $Value) {
+            $items += ,(Normalize-ContractValue -Value $item -Key $null)
+        }
+        return ,$items
+    }
+
+    return $Value
+}
+
+function Normalize-ListContractForJson {
+    param($Value)
+
+    $listKeys = @('changed_files', 'next_actions', 'interviews', 'seeds')
+
+    if ($null -eq $Value) {
+        return $null
+    }
+
+    if ($Value -is [System.Collections.IDictionary]) {
+        foreach ($key in @($Value.Keys)) {
+            $child = $Value[$key]
+
+            if ($listKeys -contains [string]$key) {
+                if ($null -eq $child) {
+                    $Value[$key] = @()
+                    continue
+                }
+
+                if (($child -is [System.Collections.IDictionary] -and @($child.Keys).Count -eq 0) -or
+                    ($child -is [pscustomobject] -and @($child.PSObject.Properties).Count -eq 0)) {
+                    $Value[$key] = @()
+                    continue
+                }
+
+                if ($child -is [System.Collections.IEnumerable] -and -not ($child -is [string])) {
+                    $Value[$key] = @($child)
+                    continue
+                }
+            }
+
+            Normalize-ListContractForJson -Value $child | Out-Null
+        }
+
+        return $Value
+    }
+
+    if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+        foreach ($item in $Value) {
+            Normalize-ListContractForJson -Value $item | Out-Null
+        }
+    }
+
+    return $Value
+}
+
+function Convert-JsonTextToHashtable {
+    param([string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return $null
+    }
+
+    $value = $Text | ConvertFrom-Json
+    return Normalize-ContractValue -Value (ConvertTo-Hashtable -Value $value)
 }
 
 function Resolve-WslUserPath {
@@ -224,7 +323,9 @@ function Get-DefaultNextActions {
         'start_interview'       { return @('inspect_latest_seed', 'resume_interview', 'run_seed') }
         'resume_interview'      { return @('inspect_latest_seed', 'run_seed', 'resume_interview') }
         'inspect_latest_seed'   { return @('run_seed', 'resume_interview') }
-        'run_seed'              { return @('list_runtime_artifacts', 'check_runtime_health') }
+        'run_seed'              { return @('inspect_run_outputs', 'evaluate_result', 'check_runtime_health') }
+        'inspect_run_outputs'   { return @('evaluate_result', 'run_seed', 'check_runtime_health') }
+        'evaluate_result'       { return @('run_seed', 'resume_interview', 'check_runtime_health') }
         'list_runtime_artifacts' { return @('inspect_latest_seed', 'run_seed', 'check_runtime_health') }
         'check_runtime_health'  { return @('start_interview', 'resume_interview', 'run_seed') }
         default                 { return @() }
@@ -242,6 +343,7 @@ import json
 root = Path($(ConvertTo-BashSingleQuoted -Value $ResolvedRuntimeDataRoot))
 data_dir = root / "data"
 seed_dir = root / "seeds"
+log_dir = root / "logs"
 
 def latest(directory, pattern):
     if not directory.exists():
@@ -251,10 +353,12 @@ def latest(directory, pattern):
 
 interview = latest(data_dir, "interview_*.json")
 seed = latest(seed_dir, "*.yaml")
+log = latest(log_dir, "ouroboros.log*")
 print(json.dumps({
     "runtime_data_root": str(root),
     "latest_interview_path": str(interview) if interview else None,
     "latest_seed_path": str(seed) if seed else None,
+    "latest_log_path": str(log) if log else None,
 }))
 PY
 "@
@@ -298,8 +402,8 @@ fi
             continue
         }
 
-        if ($trimmed.Length -gt 3) {
-            $files += $trimmed.Substring(3).Trim()
+        if ($trimmed -match '^(?:\?\?|..)\s+(?<path>.+)$') {
+            $files += $matches.path.Trim()
         }
         else {
             $files += $trimmed
@@ -326,6 +430,8 @@ function Get-FailureKind {
         'start_interview' { return 'interview_generation_failure' }
         'resume_interview' { return 'runtime_exec_failure' }
         'run_seed' { return 'run_failure' }
+        'inspect_run_outputs' { return 'filesystem_failure' }
+        'evaluate_result' { return 'missing_evaluation_surface' }
         default { return 'runtime_exec_failure' }
     }
 }
@@ -526,6 +632,225 @@ fi
 "@
 }
 
+function Get-RunObservationCommand {
+    param(
+        [Parameter(Mandatory = $true)][ValidateSet('inspect_run_outputs', 'evaluate_result')][string]$Mode,
+        [Parameter(Mandatory = $true)][string]$ResolvedRuntimeDataRoot,
+        [string]$ResolvedWorkspacePath,
+        [string]$ResolvedSeedPath
+    )
+
+    $prelude = Get-BashPrelude
+    $workspaceAssignment = ''
+    if (-not [string]::IsNullOrWhiteSpace($ResolvedWorkspacePath)) {
+        $workspaceAssignment = 'TARGET_WORKSPACE=' + (ConvertTo-BashSingleQuoted -Value $ResolvedWorkspacePath) + ' '
+    }
+
+    $seedAssignment = ''
+    if (-not [string]::IsNullOrWhiteSpace($ResolvedSeedPath)) {
+        $seedAssignment = 'TARGET_SEED=' + (ConvertTo-BashSingleQuoted -Value $ResolvedSeedPath) + ' '
+    }
+
+    return @"
+$prelude
+${workspaceAssignment}${seedAssignment}python3 - <<'PY'
+from pathlib import Path
+import json
+import os
+import re
+import subprocess
+
+mode = $(ConvertTo-BashSingleQuoted -Value $Mode)
+root = Path($(ConvertTo-BashSingleQuoted -Value $ResolvedRuntimeDataRoot))
+workspace = os.environ.get("TARGET_WORKSPACE")
+target_seed = os.environ.get("TARGET_SEED")
+
+def latest(directory, pattern):
+    if not directory.exists():
+        return None
+    matches = sorted(directory.glob(pattern), key=lambda path: path.stat().st_mtime, reverse=True)
+    return matches[0] if matches else None
+
+def read_tail(path, line_count=120):
+    if not path or not path.exists():
+        return ""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except Exception:
+        return ""
+    return "\n".join(lines[-line_count:])
+
+def read_text(path):
+    if not path or not path.exists():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return ""
+
+def extract_value(text, pattern):
+    match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+    return match.group("value").strip() if match else None
+
+def extract_seed_context(path):
+    if not path or not path.exists():
+        return {}
+    text = read_text(path)
+    context = {
+        "seed_path": str(path),
+        "seed_id": extract_value(text, r"(?m)^\s*seed_id:\s*(?P<value>[A-Za-z0-9_.-]+)\s*$"),
+        "interview_id": extract_value(text, r"(?m)^\s*interview_id:\s*(?P<value>[A-Za-z0-9_.-]+)\s*$"),
+        "created_at": extract_value(text, r"(?m)^\s*created_at:\s*'?(?P<value>[^'\n]+)'?\s*$"),
+        "version": extract_value(text, r"(?m)^\s*version:\s*(?P<value>[A-Za-z0-9_.-]+)\s*$"),
+    }
+    return {key: value for key, value in context.items() if value is not None}
+
+def extract_interview_context(path):
+    if not path or not path.exists():
+        return {}
+    try:
+        raw = json.loads(read_text(path))
+    except Exception:
+        raw = {}
+    if not isinstance(raw, dict):
+        raw = {}
+    rounds = raw.get("rounds")
+    if not isinstance(rounds, list):
+        rounds = []
+    context = {
+        "interview_path": str(path),
+        "interview_id": raw.get("interview_id") or path.stem.replace("interview_", "", 1),
+        "status": raw.get("status"),
+        "round_count": len(rounds),
+        "created_at": raw.get("created_at"),
+        "updated_at": raw.get("updated_at"),
+    }
+    return {key: value for key, value in context.items() if value is not None and value != ""}
+
+def git_changed_files(path_value):
+    if not path_value:
+        return []
+    path = Path(path_value)
+    if not path.exists() or not (path / ".git").exists():
+        return []
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(path), "status", "--short"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return []
+    if completed.returncode != 0:
+        return []
+    files = []
+    for line in completed.stdout.splitlines():
+        trimmed = line.strip()
+        if not trimmed:
+            continue
+        match = re.match(r'^(?:\?\?|..)\s+(?P<path>.+)$', trimmed)
+        files.append(match.group('path').strip() if match else trimmed)
+    return files
+
+data_dir = root / "data"
+seed_dir = root / "seeds"
+log_dir = root / "logs"
+
+latest_interview = latest(data_dir, "interview_*.json")
+latest_seed = Path(target_seed) if target_seed else latest(seed_dir, "*.yaml")
+latest_log = latest(log_dir, "ouroboros.log*")
+log_excerpt = read_tail(latest_log)
+changed_files = git_changed_files(workspace)
+seed_context = extract_seed_context(latest_seed)
+interview_context = extract_interview_context(latest_interview)
+
+signals = {
+    "has_error": bool(re.search(r"(?i)(\berror\b|traceback|exception|failed|failure|timed out|timeout|EOF when reading a line)", log_excerpt)),
+    "has_success": bool(re.search(r"(?i)(\bcompleted\b|\bsuccess\b|\bpassed\b|\bok\b|generated seed|state saved)", log_excerpt)),
+    "has_interrupt": bool(re.search(r"(?i)(keyboardinterrupt|user interrupted|cancelled)", log_excerpt)),
+    "has_changes": bool(changed_files),
+}
+
+runtime_trace = {}
+for key, pattern in {
+    "session_id": r"(?m)\bsession_id\s*[:=]\s*(?P<value>[A-Za-z0-9_.-]+)",
+    "execution_id": r"(?m)\bexecution_id\s*[:=]\s*(?P<value>[A-Za-z0-9_.-]+)",
+    "interview_id": r"(?m)\binterview_(?P<value>[A-Za-z0-9_.-]+)\.json",
+}.items():
+    value = extract_value(read_text(latest_log), pattern)
+    if value:
+        runtime_trace[key] = value
+
+if "interview_id" not in runtime_trace and interview_context.get("interview_id"):
+    runtime_trace["interview_id"] = interview_context["interview_id"]
+if "interview_id" not in runtime_trace and seed_context.get("interview_id"):
+    runtime_trace["interview_id"] = seed_context["interview_id"]
+
+runtime_context = {
+    "seed": seed_context,
+    "interview": interview_context,
+    "trace": runtime_trace,
+}
+
+artifacts = {
+    "runtime_data_root": str(root),
+    "latest_interview_path": str(latest_interview) if latest_interview else None,
+    "latest_seed_path": str(latest_seed) if latest_seed and latest_seed.exists() else None,
+    "latest_log_path": str(latest_log) if latest_log else None,
+    "log_excerpt": log_excerpt,
+    "changed_files": changed_files,
+    "runtime_trace": runtime_trace,
+    "runtime_context": runtime_context,
+    "runtime_listing": {
+        "interviews": sorted([path.name for path in data_dir.glob("interview_*.json")], reverse=True) if data_dir.exists() else [],
+        "seeds": sorted([path.name for path in seed_dir.glob("*.yaml")], reverse=True) if seed_dir.exists() else [],
+    },
+    "latest_seed": seed_context,
+    "latest_interview": interview_context,
+}
+
+if mode == "inspect_run_outputs":
+    print(json.dumps({
+        "status": "ok",
+        "summary": "Run outputs inspected.",
+        "artifacts": artifacts,
+    }))
+    raise SystemExit(0)
+
+if not latest_interview and not latest_seed and not latest_log:
+    print(json.dumps({
+        "error_kind": "missing_evaluation_surface",
+        "summary": "No runtime artifacts were available for evaluation.",
+    }))
+    raise SystemExit(7)
+
+verdict = "unknown"
+summary = "Evaluation verdict unavailable."
+if signals["has_interrupt"]:
+    verdict = "retry"
+    summary = "Latest run looks interrupted or cancelled."
+elif signals["has_error"] and not signals["has_success"]:
+    verdict = "review" if signals["has_changes"] else "retry"
+    summary = "Latest run shows failure signals without a clean success marker."
+elif signals["has_success"] and not signals["has_error"]:
+    verdict = "accept" if signals["has_changes"] or latest_seed else "review"
+    summary = "Latest run shows success markers."
+elif signals["has_changes"]:
+    verdict = "review"
+    summary = "Workspace changes were detected, but the runtime signal is ambiguous."
+
+print(json.dumps({
+    "status": "ok",
+    "verdict": verdict,
+    "summary": summary,
+    "signals": signals,
+    "artifacts": artifacts,
+}))
+PY
+"@
+}
+
 function Get-ShellCommand {
     param(
         [Parameter(Mandatory = $true)][string]$ResolvedRuntimeRoot,
@@ -585,6 +910,18 @@ $prelude
 cd $(ConvertTo-BashSingleQuoted -Value $ResolvedRuntimeRoot)
 timeout -k 5s 90s uv run ouroboros run workflow $(ConvertTo-BashSingleQuoted -Value $resolvedSeedPath) --runtime codex
 "@
+        }
+        'inspect_run_outputs' {
+            $resolvedWorkspace = Get-TargetWorkspacePath -PathValue $TargetWorkspace
+            return Get-RunObservationCommand -Mode 'inspect_run_outputs' -ResolvedRuntimeDataRoot $ResolvedRuntimeDataRoot -ResolvedWorkspacePath $resolvedWorkspace
+        }
+        'evaluate_result' {
+            $resolvedWorkspace = Get-TargetWorkspacePath -PathValue $TargetWorkspace
+            $resolvedSeedPath = $null
+            if (-not [string]::IsNullOrWhiteSpace($SeedPath)) {
+                $resolvedSeedPath = Get-ResolvedSeedPath -PathValue $SeedPath
+            }
+            return Get-RunObservationCommand -Mode 'evaluate_result' -ResolvedRuntimeDataRoot $ResolvedRuntimeDataRoot -ResolvedWorkspacePath $resolvedWorkspace -ResolvedSeedPath $resolvedSeedPath
         }
         'list_runtime_artifacts' {
             return @"
@@ -662,6 +999,100 @@ try {
                 -NextActions $nextActions -Stdout $stdout -Stderr $stderr -ExitCode $exitCode
             break
         }
+        'inspect_run_outputs' {
+            $payload = Convert-JsonTextToHashtable -Text $stdout
+            if ($exitCode -ne 0) {
+                $errorKind = if ($payload -and $payload.ContainsKey('error_kind')) { [string]$payload.error_kind } else { 'filesystem_failure' }
+                $summary = if ($payload -and $payload.ContainsKey('summary')) { [string]$payload.summary } else { 'Failed to inspect run outputs.' }
+                $artifacts = [ordered]@{ run_outputs = $payload }
+                foreach ($key in $outputArtifacts.Keys) {
+                    if (-not $artifacts.Contains($key)) {
+                        $artifacts[$key] = $outputArtifacts[$key]
+                    }
+                }
+                $result = New-ActionResult -Status 'error' -Summary $summary `
+                    -Artifacts $artifacts -NextActions $nextActions `
+                    -ErrorKind $errorKind -Stdout $stdout -Stderr $stderr -ExitCode $exitCode
+                break
+            }
+
+            $artifacts = [ordered]@{
+                runtime_root      = $resolvedRuntimeRoot
+                runtime_data_root = $resolvedRuntimeDataRoot
+                runtime_trace     = if ($payload -and $payload.ContainsKey('artifacts') -and $payload.artifacts -is [hashtable] -and $payload.artifacts.ContainsKey('runtime_trace')) { $payload.artifacts.runtime_trace } else { $traceMetadata }
+                run_outputs       = $payload
+            }
+
+            if ($payload -and $payload.ContainsKey('artifacts') -and $payload.artifacts -is [hashtable]) {
+                foreach ($key in @('runtime_data_root', 'latest_interview_path', 'latest_seed_path', 'latest_log_path', 'log_excerpt', 'changed_files', 'runtime_listing', 'runtime_context', 'latest_seed', 'latest_interview')) {
+                    if ($payload.artifacts.ContainsKey($key)) {
+                        $artifacts[$key] = if ($key -eq 'changed_files') { [string[]]@($payload.artifacts[$key]) } else { $payload.artifacts[$key] }
+                    }
+                }
+            }
+
+            foreach ($key in $outputArtifacts.Keys) {
+                if (-not $artifacts.Contains($key) -and $key -ne 'runtime_trace') {
+                    $artifacts[$key] = $outputArtifacts[$key]
+                }
+            }
+
+            $result = New-ActionResult -Status 'ok' -Summary 'Run outputs inspected.' `
+                -Artifacts $artifacts -NextActions @('evaluate_result', 'run_seed', 'check_runtime_health') `
+                -Stdout $stdout -Stderr $stderr -ExitCode $exitCode
+            break
+        }
+        'evaluate_result' {
+            $payload = Convert-JsonTextToHashtable -Text $stdout
+            if ($exitCode -ne 0) {
+                $errorKind = if ($payload -and $payload.ContainsKey('error_kind')) { [string]$payload.error_kind } else { 'missing_evaluation_surface' }
+                $summary = if ($payload -and $payload.ContainsKey('summary')) { [string]$payload.summary } else { 'Failed to evaluate latest result.' }
+                $artifacts = [ordered]@{ evaluation = $payload }
+                foreach ($key in $outputArtifacts.Keys) {
+                    if (-not $artifacts.Contains($key)) {
+                        $artifacts[$key] = $outputArtifacts[$key]
+                    }
+                }
+                $result = New-ActionResult -Status 'error' -Summary $summary `
+                    -Artifacts $artifacts -NextActions $nextActions `
+                    -ErrorKind $errorKind -Stdout $stdout -Stderr $stderr -ExitCode $exitCode
+                break
+            }
+
+            $evaluation = $payload
+            $verdict = if ($evaluation -and $evaluation.ContainsKey('verdict')) { [string]$evaluation.verdict } else { 'unknown' }
+            $summary = if ($evaluation -and $evaluation.ContainsKey('summary')) { [string]$evaluation.summary } else { 'Evaluation completed.' }
+            $artifacts = [ordered]@{
+                runtime_root      = $resolvedRuntimeRoot
+                runtime_data_root = $resolvedRuntimeDataRoot
+                runtime_trace     = if ($evaluation -and $evaluation.ContainsKey('artifacts') -and $evaluation.artifacts -is [hashtable] -and $evaluation.artifacts.ContainsKey('runtime_trace')) { $evaluation.artifacts.runtime_trace } else { $traceMetadata }
+                verdict           = $verdict
+                signals           = if ($evaluation -and $evaluation.ContainsKey('signals')) { $evaluation.signals } else { @{} }
+                evaluation        = $evaluation
+            }
+
+            if ($evaluation -and $evaluation.ContainsKey('artifacts') -and $evaluation.artifacts -is [hashtable]) {
+                foreach ($key in @('runtime_data_root', 'latest_interview_path', 'latest_seed_path', 'latest_log_path', 'log_excerpt', 'changed_files', 'runtime_listing', 'runtime_context', 'latest_seed', 'latest_interview')) {
+                    if ($evaluation.artifacts.ContainsKey($key)) {
+                        $artifacts[$key] = if ($key -eq 'changed_files') { [string[]]@($evaluation.artifacts[$key]) } else { $evaluation.artifacts[$key] }
+                    }
+                }
+            }
+
+            foreach ($key in $outputArtifacts.Keys) {
+                if (-not $artifacts.Contains($key) -and $key -ne 'runtime_trace') {
+                    $artifacts[$key] = $outputArtifacts[$key]
+                }
+            }
+
+            $result = New-ActionResult -Status 'ok' -Summary $summary `
+                -Artifacts $artifacts `
+                -NextActions @('run_seed', 'resume_interview', 'check_runtime_health') `
+                -Stdout $stdout -Stderr $stderr -ExitCode $exitCode
+            $result.verdict = $verdict
+            $result.signals = if ($evaluation -and $evaluation.ContainsKey('signals')) { $evaluation.signals } else { @{} }
+            break
+        }
         'list_runtime_artifacts' {
             if ($exitCode -ne 0) {
                 $result = New-ActionResult -Status 'error' -Summary 'Failed to list runtime artifacts.' `
@@ -732,7 +1163,7 @@ try {
                 if ($TargetWorkspace) {
                     $resolvedWorkspace = Get-TargetWorkspacePath -PathValue $TargetWorkspace
                     $artifacts.target_workspace = $resolvedWorkspace
-                    $artifacts.changed_files = @(Get-ChangedFiles -ResolvedWorkspacePath $resolvedWorkspace)
+                    $artifacts.changed_files = [string[]]@(Get-ChangedFiles -ResolvedWorkspacePath $resolvedWorkspace)
                 }
             }
 
@@ -741,6 +1172,7 @@ try {
         }
     }
 
+    $result = Normalize-ListContractForJson -Value $result
     if ($PrettyJson) {
         $result | ConvertTo-Json -Depth 8
     }
@@ -751,6 +1183,7 @@ try {
 catch {
     $failure = New-ActionResult -Status 'error' -Summary $_.Exception.Message `
         -ErrorKind 'shell_failure' -ExitCode 1
+    $failure = Normalize-ListContractForJson -Value $failure
     if ($PrettyJson) {
         $failure | ConvertTo-Json -Depth 8
     }
