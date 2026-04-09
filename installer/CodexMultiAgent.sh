@@ -297,7 +297,7 @@ generate_default_workspace_agents() {
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
         printf -- '- Keep changes small\n'
         printf -- '- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here\n'
-        printf -- '- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, and `contract_freeze`\n'
+        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
         printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`\n'
     else
         printf '\n## Repository Facts To Fill\n\n'
@@ -307,13 +307,13 @@ generate_default_workspace_agents() {
         printf -- '- Error log path: `ERROR_LOG.md`\n'
         printf -- '- Verification commands\n'
         printf -- '- Manual approval zones\n'
-        printf -- '- Worker ownership mapping when Route B is used\n'
+        printf -- '- Dynamic agent budget guidance and ownership mapping for `worker`, `worker_shared`, `reviewer`, and `explorer` roles\n'
         printf '\n## Repository Overrides\n\n'
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
-        printf -- '- Keep `STATE.md` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active\n'
+        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
         printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran\n'
-        printf -- '- Add repository-specific verification commands, hard triggers, approval zones, and worker ownership here\n'
-        printf -- '- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules\n'
+        printf -- '- Add repository-specific verification commands, hard triggers, approval zones, delegation hints, and worker ownership here\n'
+        printf -- '- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules\n'
     fi
 }
 
@@ -326,9 +326,17 @@ generate_default_state() {
     printf -- '- phase: `explore`\n'
     printf -- '- scope: `n/a`\n'
     printf -- '- verification_target: `n/a`\n'
-    printf '\n## Route\n\n'
-    printf -- '- route: `Route A`\n'
-    printf -- '- reason: `placeholder - classify the first task as Route A or Route B before editing`\n'
+    printf '\n## Orchestration Profile\n\n'
+    printf -- '- score_total: `0`\n'
+    printf -- '- score_breakdown: `n/a`\n'
+    printf -- '- hard_triggers: `n/a`\n'
+    printf -- '- selected_rules: `n/a`\n'
+    printf -- '- selected_skills: `n/a`\n'
+    printf -- '- execution_topology: `single-session`\n'
+    printf -- '- delegation_plan: `agent-driven, task-scoped, and override-aware`\n'
+    printf -- '- agent_budget: `n/a`\n'
+    printf -- '- shared_assets_owner: `n/a`\n'
+    printf -- '- selection_reason: `placeholder - record the score and trigger basis for the chosen orchestration profile`\n'
     printf '\n## Writer Slot\n\n'
     printf -- '- owner: `main`\n'
     printf -- '- write_set: `n/a`\n'
@@ -336,9 +344,10 @@ generate_default_state() {
     printf '  - `main`: `n/a`\n'
     printf '  - `worker`: `n/a`\n'
     printf '  - `reviewer`: `n/a`\n'
-    printf -- '- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
+    printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`\n'
     printf '\n## Contract Freeze\n\n'
     printf -- '- contract_freeze: `n/a`\n'
+    printf -- '- note: `Freeze the contract before parallel or multi-write changes and track the frozen scope here.`\n'
     printf '\n## Seed\n\n'
     printf -- '- status: `n/a`\n'
     printf -- '- path: `n/a`\n'
@@ -743,16 +752,16 @@ generate_workspace_agents_from_context() {
         write_markdown_section 'Worker Mapping' ${worker_mapping[@]+"${worker_mapping[@]}"}
 
         printf '\n## Repository Overrides\n\n'
-        printf -- '- Role caps inherited from global defaults stay fixed\n'
-        printf '  `explorer 3`, `reviewer 2`, `worker up to 4 on Route B`\n'
-        printf -- '- Keep `%s` updated with exact `route`, concrete `reason`, `writer_slot`, `contract_freeze`, and `write_sets` when Route B is active\n' "$task_board_path"
+        printf -- '- Use score-based orchestration to choose the role mix and task-scoped budget instead of fixed caps\n'
+        printf '  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide how much support is spawned\n'
+        printf -- '- Keep `%s` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n' "$task_board_path"
         printf -- '- If multiple roles are used, append real participation to `%s` before reporting that they ran\n' "$multi_agent_log_path"
         if [ "$template_name" = "minimal" ]; then
             printf -- '- Keep changes small\n'
-            printf -- '- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules\n'
+            printf -- '- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules\n'
         else
-            printf -- '- Add repository-specific worker ownership, hard triggers, and approval zones here as they become clear\n'
-            printf -- '- Let this repository narrow Route A/B behavior further only when it truly needs stricter local rules\n'
+            printf -- '- Add repository-specific worker ownership, hard triggers, approval zones, and delegation hints here as they become clear\n'
+            printf -- '- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules\n'
         fi
 
         write_markdown_section 'Reviewer Focus' ${reviewer_focus[@]+"${reviewer_focus[@]}"}
@@ -775,9 +784,17 @@ generate_workspace_state_from_context() {
         printf -- '- phase: `explore`\n'
         printf -- '- scope: `n/a`\n'
         printf -- '- verification_target: `n/a`\n'
-        printf '\n## Route\n\n'
-        printf -- '- route: `Route A`\n'
-        printf -- '- reason: `placeholder - classify the first task as Route A or Route B before editing`\n'
+        printf '\n## Orchestration Profile\n\n'
+        printf -- '- score_total: `0`\n'
+        printf -- '- score_breakdown: `n/a`\n'
+        printf -- '- hard_triggers: `n/a`\n'
+        printf -- '- selected_rules: `n/a`\n'
+        printf -- '- selected_skills: `n/a`\n'
+        printf -- '- execution_topology: `single-session`\n'
+        printf -- '- delegation_plan: `agent-driven, task-scoped, and override-aware`\n'
+        printf -- '- agent_budget: `n/a`\n'
+        printf -- '- shared_assets_owner: `n/a`\n'
+        printf -- '- selection_reason: `placeholder - record the score and trigger basis for the chosen orchestration profile`\n'
         printf '\n## Writer Slot\n\n'
         printf -- '- owner: `main`\n'
         printf -- '- write_set: `n/a`\n'
@@ -785,9 +802,10 @@ generate_workspace_state_from_context() {
         printf '  - `main`: `n/a`\n'
         printf '  - `worker`: `n/a`\n'
         printf '  - `reviewer`: `n/a`\n'
-        printf -- '- note: `Route A has no subagents or reviewer calls; Route B is delegated with worker and reviewer roles.`\n'
+        printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`\n'
         printf '\n## Contract Freeze\n\n'
         printf -- '- contract_freeze: `n/a`\n'
+        printf -- '- note: `Freeze the contract before parallel or multi-write changes and track the frozen scope here.`\n'
         printf '\n## Seed\n\n'
         printf -- '- status: `n/a`\n'
         printf -- '- path: `n/a`\n'
@@ -1062,28 +1080,30 @@ ensure_config_section_key_value() {
 
 get_config_developer_instructions() {
     cat <<'EOF'
-Use subagents proactively when the route permits it and doing so improves focus, speed, or result quality.
+Use score-based orchestration and agent-driven skill routing to decide when to delegate work.
 
 Execution requirements:
 - Always load and follow the nearest applicable AGENTS.md before implementation.
 - Prefer workspace AGENTS.md over global AGENTS.md when both exist.
-- Treat AGENTS.md as the source of truth for route selection, delegation, state updates, and verification flow.
+- Treat AGENTS.md as the source of truth for orchestration selection, skill routing, state updates, and verification flow.
 - On each new user request, compare it against the active current_task in STATE.md before continuing, even if the work looks like a continuation of the same feature.
 - Do not continue implementation from an existing STATE.md unless the request is clearly the same task.
 - Treat investigation, planning, and implementation as separate stages.
-- If read-only investigation or planning turns into implementation, re-check the route, update STATE.md, and explicitly enter implementation before writing.
+- If read-only investigation or planning turns into implementation, re-check the score and trigger basis, update STATE.md, and explicitly enter implementation before writing.
 - Before parallelizing larger tasks, freeze the contract and write sets first.
 
 Error logging:
 - Leave interrupted or paused errors in ERROR_LOG.md as open or deferred until a later append marks them resolved.
 
 Default behavior:
-- For read-heavy or parallelizable work such as codebase exploration, reviews, tracing execution paths, log analysis, test-failure triage, and multi-part research, delegate to built-in subagents without waiting for the user to say "spawn" or "parallelize".
+- Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.
+- Route skill selection from task intent: use `ouroboros-interview` for ambiguous scope, `ouroboros-seed` for contract freeze, `ouroboros-run` for implementation, and `ouroboros-evaluate` for verification against the frozen seed.
+- For read-heavy, parallelizable, or shared-asset work, delegate proactively without waiting for the user to say "spawn" or "parallelize".
 - Close finished agents promptly once their output is consumed.
-- Prefer spawning reviewers as late as practical unless earlier review is explicitly needed.
-- Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, and `reviewer` for read-only close-out checks.
-- Keep the main thread focused on requirements, decisions, synthesis, route selection, and final answers.
-- Assume the user permits normal subagent use in this workspace; the main thread applies the AGENTS.md route result rather than re-deciding whether spawning is desirable.
+- Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.
+- Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, `worker_shared` for shared assets, and `reviewer` for close-out checks.
+- Keep the main thread focused on requirements, decisions, synthesis, orchestration selection, and final answers.
+- Apply user natural-language overrides first; then compute the task-scoped agent budget and selected skills from the score and trigger set.
 
 Spawn requirements:
 - These spawn settings are mandatory. Do not rely on inherited defaults, implicit role defaults, or absent custom agent files.
@@ -1095,17 +1115,16 @@ Spawn requirements:
 - If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.
 
 Delegation rules:
-- On Route A, stay in one write-capable lane and spawn no subagents or reviewer calls.
-- On Route B, keep main planner-only and always spawn at least one worker plus one reviewer.
-- Assign exactly one write set to each worker.
-- Promote Route A to Route B when work extracts a shared component, replaces page-specific implementations with a shared renderer, or unifies 2+ pages onto one shared implementation.
-- On Route B, keep main planner-only and always spawn at least one worker plus one reviewer.
-- Do not close Route B without the required reviewer pass.
-- Do not skip route or reason logging when AGENTS.md requires it.
+- Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, and `agent_budget` to decide whether delegation is allowed and how much support to spawn.
+- Assign exactly one write set to each worker unless the selected rules and budget explicitly require a shared owner for shared assets.
+- Select `reviewer` only when the task-scoped rules or budget call for review-required validation.
+- Select `worker_shared` when a shared asset owner is required by the current task.
+- Do not exceed the computed task budget, even when the repair loop needs another pass.
+- Log the selected skills and delegation plan in `STATE.md` before or immediately after the work starts, as the workspace instructions require.
 - Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.
 
 Execution bias:
-- Assume you are allowed to use subagents when the task matches the patterns above.
+- Assume agent-driven delegation is allowed when the score, triggers, and user overrides justify it.
 EOF
 }
 

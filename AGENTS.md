@@ -47,7 +47,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 - Use the workspace-configured log path when one is available, and treat the log as append-only.
 - If work is interrupted or paused, keep the entry `open` or `deferred` until a later append marks it resolved.
 - Keep each entry compact and include `time`, `location`, `summary`, `details`, and `status`.
-- This logging rule stays subordinate to the existing Route A/B rules, security rules, and reviewer requirements.
+- This logging rule stays subordinate to the existing orchestration profile, security rules, and reviewer requirements.
 - Do not use this log as a substitute for route logging, security handling, or reviewer escalation.
 
 ## Spec-First Workflow
@@ -55,17 +55,17 @@ Installer global setup copies this file to the user's Codex home as the default 
 - Use `interview -> seed -> run -> evaluate` for non-tiny hotfixes when the work spans multiple files, needs a frozen contract, or could drift without a written spec.
 - Skip spec-first only for tiny local hotfixes that stay in one file and do not need a frozen contract.
 - Treat `interview` as read-only scope clarification, `seed` as contract freeze, `run` as implementation, and `evaluate` as verification.
-- Keep the workflow subordinate to the existing Route A/B, security, reviewer, and verification rules.
+- Keep the workflow subordinate to the existing orchestration profile, security, reviewer, and verification rules.
 - Do not add background orchestration loops or polling behavior to this workflow.
-- If a tiny hotfix starts growing during execution, the agent must stop, update `STATE.md`, re-select the route, and only then continue with more writes.
+- If a tiny hotfix starts growing during execution, the agent must stop, update `STATE.md`, re-select the orchestration profile, and only then continue with more writes.
 
 ## Multi-Agent Enforcement
 
 ### Subagent Hygiene
 
-- When delegation is in use and the route permits it, close finished agents promptly instead of leaving them idle.
+- When delegation is in use, close finished agents promptly instead of leaving them idle.
 - Spawn reviewers as late as practical unless earlier review is explicitly needed for the task.
-- Give one write set to each worker; do not overlap write ownership unless the route is being reclassified.
+- Give one write set to each worker; do not overlap write ownership unless the task is being reclassified.
 - Avoid `fork_context` unless the exact thread context is required for the work.
 - For larger tasks, freeze the contract and write sets before parallelizing any implementation work.
 
@@ -73,52 +73,58 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 - `STATE.md` is mandatory for any non-trivial implementation task in this workspace
 - On each new user request, compare it against the active `current_task` in `STATE.md` before continuing implementation, even when the work looks like a continuation of the same feature
-- If the goal, scope, owned files, or verification target materially changed, treat it as a new task: update `Current Task`, re-select the `route`, and record a new concrete `reason` before more writes
-- Do not silently carry over the previous `route` just because `STATE.md` already exists
+- If the goal, scope, owned files, or verification target materially changed, treat it as a new task: update `Current Task`, refresh the orchestration profile, and record a new concrete `reason` before more writes
+- Do not silently carry over the previous orchestration choice just because `STATE.md` already exists
 
 ### Stage Gates
 
 - Treat investigation, planning, and implementation as separate stages
 - If a request starts as read-only investigation or planning, keep that phase read-only until implementation is explicitly entered
-- Before moving from exploration or planning into file edits, re-check the task against `STATE.md`, set the active phase to implementation, and reclassify the `route` when the scope expanded or changed
-- Do not let read-only exploration drift into implementation without a fresh route check
+- Before moving from exploration or planning into file edits, re-check the task against `STATE.md`, set the active phase to implementation, and refresh the orchestration profile when the scope expanded or changed
+- Do not let read-only exploration drift into implementation without a fresh task classification
 
-### Route Logging
+### Orchestration Logging
 
-- Before editing any file other than `STATE.md` or `MULTI_AGENT_LOG.md`, `main` must record the selected `route` and the concrete `reason` in `STATE.md`
-- `reason` must name the hard trigger that fired or the concrete scorecard basis for the selected route
-- Use exact route labels only: `Route A` or `Route B`
-- Do not use hedge labels such as `Route B-equivalent`, `mostly Route A`, or `single-agent fallback`
-- If `route` or `reason` is missing, stop and classify the task before writing
-- If the route changes during execution, update `STATE.md` first and only then continue
+- Before editing any file other than `STATE.md` or `MULTI_AGENT_LOG.md`, `main` must record the selected orchestration profile and the concrete `reason` in `STATE.md`
+- `reason` must name the hard trigger that fired or the concrete scorecard basis for the selected profile
+- Track the active profile with the repository terms that matter: `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`
+- If the profile or reason is missing, stop and classify the task before writing
+- If the profile changes during execution, update `STATE.md` first and only then continue
 
-### Route A
+### Orchestration Profiles
 
-- On `Route A`, keep exactly one write-capable lane and one tight implementation slice
-- On `Route A`, spawn no subagents
-- On `Route A`, if shared assets, `2+` directories, `2+` new files, test changes, or `2+` verification steps appear during execution, stop, update `STATE.md`, and promote the task to `Route B` before more writes
-- On `Route A`, close the task only if the final scope still matches the original small-slice classification and the relevant verification is recorded
+- `single-session` keeps exactly one write-capable lane and no subagent delegation
+- `delegated-serial` lets `main` coordinate workers one slice at a time when the work is larger but still linear
+- `delegated-parallel` splits safe write sets across workers when contracts are pinned and the budget allows it
+- `mixed` uses both serial and parallel delegation when the task has uneven subproblems
+- If shared assets and feature files are both touched, assign a designated `worker_shared` plus at least one feature worker
+- If the scope naturally separates into `2+` disjoint feature slices, split them across `2+` workers instead of handing one oversized slice to a single worker
+- A single worker is allowed only when `main` records in `STATE.md` why the slice cannot be safely split further
+- Implementation files must not be edited until `contract_freeze` and `write_sets` are explicitly recorded in `STATE.md`
+- Review is mandatory when the selected rules include `review_required`
+- User natural-language overrides take priority over default automatic selection across skills, delegation, execution topology, and budget
 
-### Route B
+### Skill Routing
 
-- `main` may write directly only on `Route A`
-- On `Route B`, `main` is planner-only and may edit only `STATE.md` and `MULTI_AGENT_LOG.md`
-- On `Route B`, assume worker and reviewer delegation is part of the normal path; do not self-downgrade to a single-agent lane just because the task started as reading or planning
-- On `Route B`, spawn at least one `worker` and at least one `reviewer`; this is route behavior, not a discretionary choice by `main`
-- On `Route B`, implementation files must not be edited until `contract_freeze` and `write_sets` are explicitly recorded in `STATE.md`
-- On `Route B`, `main` must delegate implementation to at least one `worker` and close the task with at least one `reviewer` pass
-- On `Route B`, `main` must not keep implementation in a single-agent fallback lane
-- On `Route B`, if the scope touches both shared assets and feature files, assign a designated `worker_shared` plus at least one feature worker
-- On `Route B`, if the scope naturally separates into `2+` disjoint feature slices, split them across `2+` workers instead of handing one oversized slice to a single worker
-- On `Route B`, treat cross-page componentization, shared UI extraction, or replacing page-specific logic with one shared module as normal reasons to fan out work
-- A single `worker` on `Route B` is allowed only when `main` records in `STATE.md` why the slice cannot be safely split further
-- If `Route B` starts without `write_sets`, stop, shrink the slice, or re-plan before any implementation write
-- If `Route B` starts without a named `reviewer` target, stop and assign one before implementation begins
-- Any Route B run that skips route logging, contract freeze, worker delegation, reviewer assignment, or write-set ownership is considered a process failure in this workspace
+- Skill choice is automatic and follows the task score, hard triggers, and current phase
+- Use `ouroboros-interview` when requirements are still moving or the scope is ambiguous
+- Use `ouroboros-seed` when the contract must be frozen before implementation
+- Use `ouroboros-run` when the task is ready to enter implementation
+- Use `ouroboros-evaluate` when verification against the frozen seed is the active goal
+- Record `selected_skills` and a short `selection_reason` so the choice is auditable
+- Skill selection follows the broader natural-language override precedence above
+
+### Dynamic Budgeting
+
+- Fixed role caps are replaced with per-task `agent_budget` instead of hardcoded per-role strings
+- `agent_budget` should be derived from `score_total`, `write_set` separability, `execution_topology`, and `hard_triggers`
+- `bounded_repair_loop` means follow-up fixes reuse the remaining budget instead of spawning agents without limit
+- Budget growth should be justified in `STATE.md` when a task needs more help than the initial estimate
 
 ### State Integrity
 
-- `STATE.md` updates may change field values, but must preserve the core sections: `Current Task`, `Route`, `Writer Slot`, `Contract Freeze`, `Reviewer`, and `Last Update`
+- `STATE.md` updates may change field values, but must preserve the core sections: `Current Task`, `Orchestration Profile`, `Writer Slot`, `Contract Freeze`, `Reviewer`, and `Last Update`
+- Keep `writer_slot`, `contract_freeze`, and `write_sets` as explicit tracking primitives
 - Do not collapse `STATE.md` into ad-hoc notes or delete required sections while a task is active
 
 ## Forbidden Commands

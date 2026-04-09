@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.4.0 - 2026-04-09
+
+### Changed
+
+- 저장소 상위 오케스트레이션 모델을 `Route A/B`에서 점수 기반 `orchestration profile` 흐름으로 전환
+- `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `selection_reason` 추적 필드를 `STATE.md`와 installer 생성 템플릿에 반영
+- 서브에이전트 위임을 사용자 명령 전제 대신 에이전트의 자동 delegation 판단으로 재정의하고 자연어 override 우선 규칙을 문서 전반에 통일
+- 고정 role cap 문구를 제거하고 작업별 동적 `agent_budget` 기준으로 `worker`, `reviewer`, `explorer` 사용량을 설명하도록 갱신
+- `AGENTS.md`, `README.md`, `MULTI_AGENT_GUIDE.md`, `profiles/*`, `examples/*`, `docs/OUROBOROS_LITE_PORT.md`, `codex_rules/ouroboros-lite.md`를 새 용어 체계에 맞춰 정렬
+- Windows PowerShell installer 실생성 검증으로 새 `AGENTS.md` / `STATE.md` 템플릿 출력이 `Orchestration Profile` 스키마를 따르는지 확인
+
 ## v0.3.0 - 2026-03-22
 
 ### Changed

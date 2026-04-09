@@ -9,7 +9,8 @@
 
 - Check whether the result matches the goal
 - Check whether shared contracts stayed intact
-- Check that `contract_freeze`, `route`, and ownership history still make sense
+- Check that `contract_freeze`, `writer_slot`, and `write_sets` still make sense
+- Check that the selected rules, skills, topology, and budget were applied consistently
 - Look for scope pollution, write-set violations, and side effects
 - Confirm that verification was actually performed or explicitly waived
 
@@ -23,7 +24,7 @@
 ## Input Contract
 
 - Original goal
-- Route and ownership model
+- Current score-based orchestration profile
 - Changed file range
 - Pinned contracts
 - Expected verification items

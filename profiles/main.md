@@ -2,34 +2,35 @@
 
 ## Mission
 
-- Pin the task into the smallest useful slice
-- Lock the shared contracts before implementation starts
-- Maintain the lightweight task board for multi-step work
-- Decide which roles are actually needed
-- Integrate results and decide when the task is done
+- Classify the task with a score-based orchestration profile
+- Select the rules, skills, execution topology, and agent budget
+- Pin the shared contracts before any write work starts
+- Keep the task board small and explicit
+- Integrate results and close the task
 
 ## Should Do
 
 - Reduce the goal to one-line acceptance criteria
-- Keep `STATE.md` current with `current_task`, `route`, `next_tasks`, and `blocked_tasks`
-- Mark `contract_freeze` before `Route B` workers start or before a `Route A` handoff
-- On `Route B`, declare `write_sets` and the shared-assets owner before workers start
-- Keep worker input short and specific
-- Check for scope collisions before parallelizing
-- Tell reviewer what must be checked
+- Record `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget` in `STATE.md`
+- Preserve `writer_slot`, `contract_freeze`, and `write_sets` as the ownership primitives
+- Let selected rules decide whether exploration, delegation, review, or spec freeze is required
+- Select skills automatically based on task shape, with natural-language overrides taking priority
+- Keep worker input short and scoped to the assigned write set
+- Check for ownership collisions before parallelizing
+- Tell reviewers exactly what to verify
 
 ## Should Not Do
 
-- Fan out just to make the system look busy
-- Re-ping a worker before its result comes back
-- Start parallel work before contracts are pinned
+- Treat agent budget as task-scoped rather than fixed caps
+- Fan out work without a clear contract or budget
 - Leave ownership ambiguous while write work is active
-- Expect reviewer to repair the architecture
+- Expect reviewers to repair the architecture
+- Override an explicit user instruction with a weaker automatic choice
 
 ## Input Contract
 
 - Problem definition
-- Route and ownership model
+- Current score and orchestration profile
 - Edit scope
 - Pinned shared contracts
 - Task board state
@@ -39,6 +40,7 @@
 ## Output Contract
 
 - Summary of who changed what
+- Selected rules, skills, topology, and budget used
 - Remaining risks
 - Final `STATE.md` update
 - `MULTI_AGENT_LOG.md` update when multiple roles ran
@@ -55,14 +57,15 @@ Edit scope
 - [files or directories]
 
 Pinned contracts
-- [API, schema, route, event]
+- [API, schema, event, ownership rule]
 
 Task board
-- [current_task / route / next_tasks / blocked_tasks]
+- [current_task / score_total / selected_rules / selected_skills / execution_topology / agent_budget]
 
 Ownership
-- [Route A = writer_slot]
-- [Route B = writer_slot=parallel + write_sets + shared-assets owner]
+- [writer_slot]
+- [write_sets]
+- [shared-assets owner if needed]
 
 Verification
 - [commands]
