@@ -7,6 +7,7 @@
 - `single-session` 판단이 최종 수정 파일 수에 과적합되지 않도록 `AGENTS.md`, `MULTI_AGENT_GUIDE.md`, installer 생성 문구를 보강
 - 샘플 데모에서 실데이터 반영으로 계약이 바뀌는 순간 `execution_topology` 를 재평가하도록 규칙 명시
 - 업스트림 수집, 정규화, read-heavy 조사도 독립 책임과 `write_sets` 후보로 보도록 문서화
+- `STATE.md` 를 읽은 직후 현재 점수와 그 점수가 착수 방식에 미치는 영향까지 먼저 보고하도록 시작 규칙 추가
 
 ## v0.4.0 - 2026-04-09
 

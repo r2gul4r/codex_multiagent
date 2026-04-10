@@ -63,6 +63,7 @@ Before any write begins:
 
 - record the exact `orchestration_profile` and concrete `reason` in `STATE.md`
 - record `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`
+- report to the user which score or trigger basis was read from `STATE.md` and how that changes the startup plan, such as staying local, starting serial delegation, or opening parallel worker lanes
 - do not use legacy route labels or hedge labels such as `single-agent fallback`
 - on `single-session`, keep one write-capable lane and no subagent calls
 - if the user changes the contract mid-task, record whether the old `single-session` reason still holds; if not, reclassify before continuing

@@ -1097,6 +1097,7 @@ Error logging:
 
 Default behavior:
 - Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.
+- After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.
 - Do not treat a task as single-session from final output file count alone; re-evaluate when upstream collection, normalization, or read-heavy investigation can be owned separately.
 - If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.
 - Route skill selection from task intent: use `ouroboros-interview` for ambiguous scope, `ouroboros-seed` for contract freeze, `ouroboros-run` for implementation, and `ouroboros-evaluate` for verification against the frozen seed.

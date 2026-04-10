@@ -73,6 +73,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 - `STATE.md` is mandatory for any non-trivial implementation task in this workspace
 - On each new user request, compare it against the active `current_task` in `STATE.md` before continuing implementation, even when the work looks like a continuation of the same feature
+- After reading `STATE.md` and before substantial work starts, report the current `score_total`, the decisive score or trigger basis, and how that classification changes the initial execution approach
 - If the goal, scope, owned files, or verification target materially changed, treat it as a new task: update `Current Task`, refresh the orchestration profile, and record a new concrete `reason` before more writes
 - If the contract shifts from sample or demo output to real data collection, normalization, or live integration, do not keep the old `single-session` choice by inertia; re-evaluate `execution_topology` before more writes
 - Do not silently carry over the previous orchestration choice just because `STATE.md` already exists
