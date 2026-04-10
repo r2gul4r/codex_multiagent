@@ -1097,6 +1097,8 @@ Error logging:
 
 Default behavior:
 - Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.
+- Do not treat a task as single-session from final output file count alone; re-evaluate when upstream collection, normalization, or read-heavy investigation can be owned separately.
+- If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.
 - Route skill selection from task intent: use `ouroboros-interview` for ambiguous scope, `ouroboros-seed` for contract freeze, `ouroboros-run` for implementation, and `ouroboros-evaluate` for verification against the frozen seed.
 - For read-heavy, parallelizable, or shared-asset work, delegate proactively without waiting for the user to say "spawn" or "parallelize".
 - Close finished agents promptly once their output is consumed.
@@ -1116,6 +1118,7 @@ Spawn requirements:
 
 Delegation rules:
 - Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, and `agent_budget` to decide whether delegation is allowed and how much support to spawn.
+- Count intermediate collection and normalization responsibility as part of `write_sets`; do not collapse that upstream work into the final frontend file owner by default.
 - Assign exactly one write set to each worker unless the selected rules and budget explicitly require a shared owner for shared assets.
 - Select `reviewer` only when the task-scoped rules or budget call for review-required validation.
 - Select `worker_shared` when a shared asset owner is required by the current task.

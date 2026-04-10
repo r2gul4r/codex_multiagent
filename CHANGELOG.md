@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `single-session` 판단이 최종 수정 파일 수에 과적합되지 않도록 `AGENTS.md`, `MULTI_AGENT_GUIDE.md`, installer 생성 문구를 보강
+- 샘플 데모에서 실데이터 반영으로 계약이 바뀌는 순간 `execution_topology` 를 재평가하도록 규칙 명시
+- 업스트림 수집, 정규화, read-heavy 조사도 독립 책임과 `write_sets` 후보로 보도록 문서화
+
 ## v0.4.0 - 2026-04-09
 
 ### Changed

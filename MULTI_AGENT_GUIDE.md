@@ -22,10 +22,15 @@ Hard triggers first:
 - Shared asset changes
 - Multi-layer changes
 - Naturally separable write sets
+- A contract shift from sample/demo output to real data integration
+- Read-heavy collection or normalization that can run independently from downstream rendering
 - Medium-or-higher regression risk
 - A clearly necessary reviewer pass
 
 If any hard trigger exists, classify the task as delegated or mixed.
+
+Do not score only from the final edited file count.
+One rendered HTML or frontend file can still hide separate upstream responsibilities such as data collection, coordinate extraction, normalization, or schema confirmation.
 
 If no hard trigger exists, score these at `1` point each:
 
@@ -42,12 +47,15 @@ Profile selection:
 - `single-session`
   - `0-3` points
   - `main` may edit directly in one tight slice
+  - use this only when upstream investigation and downstream implementation are not independently ownable
 - `delegated-serial`
   - `4-6` points
   - `main` coordinates workers one slice at a time
+  - good fit when collection or normalization must finish before rendering, but each slice is still independently verifiable
 - `delegated-parallel`
   - `7+` points, or any hard trigger when the write sets are separable
   - `main` delegates safe slices to workers
+  - good fit when collection, normalization, and rendering can proceed with pinned contracts and separate ownership
 - `mixed`
   - uneven tasks that need both sequential and parallel delegation
 
@@ -57,6 +65,7 @@ Before any write begins:
 - record `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`
 - do not use legacy route labels or hedge labels such as `single-agent fallback`
 - on `single-session`, keep one write-capable lane and no subagent calls
+- if the user changes the contract mid-task, record whether the old `single-session` reason still holds; if not, reclassify before continuing
 - on delegated profiles, `main` delegates implementation to workers and keeps ownership boundaries explicit
 - on delegated profiles, a `reviewer` pass is mandatory when `review_required` is selected
 - on delegated profiles, if shared assets and feature files are both touched, use `worker_shared` plus at least one feature worker
@@ -69,6 +78,8 @@ A safe slice satisfies all four conditions below:
 - The changed file range is small and closed.
 - The shared contract is already pinned.
 - There is a clear way to verify the result.
+
+For upstream work, the "changed file range" may be a produced dataset, normalization note, or other intermediate artifact responsibility rather than only the final UI file.
 
 If any part is blurry, shrink the slice or keep it in `single-session`.
 
