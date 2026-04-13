@@ -30,6 +30,8 @@
 - `make test` 가 정규화 결과의 저장/조회 스모크 검사까지 포함하도록 확장
 - macOS `Bootstrap.sh` 가 GNU `find` 깊이 옵션에 기대지 않도록 추출 루트 탐색을 shell loop로 교체하고, macOS CI에서 local bootstrap + `curl | bash` 둘 다 검증하도록 보강
 - shell installer 가 BSD/GNU `paste -sd` 동작 차이에 기대지 않도록 join 로직을 shell helper로 교체하고 `pipefail` 을 켜서 macOS shell 경로를 더 엄격하게 검증
+- shell/PowerShell installer 와 bootstrap 에 `update-global`, `update-workspace` 경로를 추가해서 기존 설치본을 최신 관리 규칙으로 재적용할 수 있게 함
+- guide 에 profile 시작 decision tree 를 추가하고, macOS CI 에 update flow 재적용 검증을 추가
 
 ## v0.4.0 - 2026-04-09
 

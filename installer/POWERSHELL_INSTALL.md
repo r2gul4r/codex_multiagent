@@ -9,6 +9,10 @@ Windows PowerShell 을 관리자 권한으로 열고
 Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode InstallGlobal
 ```
 
+```powershell
+Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode UpdateGlobal
+```
+
 이 명령은
 
 - `%USERPROFILE%\.codex\AGENTS.md`, `config.toml`, installer 관리 대상 `agents/*.toml` 을 백업 후 새 구조 기준으로 재생성
@@ -28,6 +32,10 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 
 ```powershell
 $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
+```
+
+```powershell
+$workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode UpdateWorkspace -TargetWorkspace $workspace
 ```
 
 이 명령은

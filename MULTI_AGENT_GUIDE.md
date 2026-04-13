@@ -88,6 +88,19 @@ Decision gate:
 - If `single-session` has a vague reason such as "small task" or "one file", stop and replace it with a concrete ownership and verification reason.
 - If implementation correctness depends on facts that are not yet known, use explorer-first discovery before implementation.
 
+Start decision tree:
+
+1. Did a hard trigger fire?
+2. If yes, does correctness depend on facts not yet known?
+3. If yes, start in explorer-first discovery.
+4. If no, are the contract and write sets already pinned and disjoint?
+5. If yes, choose `delegated-parallel` when `main` can stay read-only during fan-out; otherwise choose `delegated-serial`.
+6. If no hard trigger fired, score the task.
+7. `0-3` points stays `single-session` only when no independent upstream slice exists.
+8. `4-6` points starts `delegated-serial`.
+9. `7+` points starts `delegated-parallel` only if the parallel gate passes; otherwise downgrade to `delegated-serial`.
+10. If one early phase must freeze the contract and a later phase can fan out, choose `mixed`.
+
 ## 3. What Makes A Safe Slice
 
 A safe slice satisfies all four conditions below:

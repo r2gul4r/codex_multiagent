@@ -48,6 +48,9 @@ jobs:
           test -f "$CODEX_HOME/rules/default.rules"
           test -f "$CODEX_HOME/multiagent-kit/README.md"
           test -f "$CODEX_HOME/multiagent-kit/WORKSPACE_CONTEXT_TEMPLATE.toml"
+          printf '\nTEMP MARKER\n' >> "$CODEX_HOME/AGENTS.md"
+          bash installer/CodexMultiAgent.sh update-global --force --no-prompt
+          ! grep -q "TEMP MARKER" "$CODEX_HOME/AGENTS.md"
 
       - name: Test local installer workspace
         env:
@@ -62,6 +65,9 @@ jobs:
           test -f "$WORKSPACE/docs/codex-multiagent/codex_rules/default.rules"
           test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_TEMPLATE.toml"
           test -f "$WORKSPACE/docs/codex-multiagent/WORKSPACE_CONTEXT_GUIDE.md"
+          printf '\nTEMP WORKSPACE MARKER\n' >> "$WORKSPACE/AGENTS.md"
+          bash installer/CodexMultiAgent.sh update-workspace --workspace "$WORKSPACE" --force --no-prompt
+          ! grep -q "TEMP WORKSPACE MARKER" "$WORKSPACE/AGENTS.md"
 
       - name: Test local installer workspace with WORKSPACE_CONTEXT
         env:
@@ -99,14 +105,23 @@ jobs:
           test -f "$CODEX_HOME/AGENTS.md"
           test -f "$CODEX_HOME/agents/default.toml"
           test -f "$CODEX_HOME/rules/default.rules"
+          printf '\nTEMP BOOTSTRAP MARKER\n' >> "$CODEX_HOME/AGENTS.md"
+          curl -fsSL "$SCRIPT_URL" | bash -s -- update-global
+          ! grep -q "TEMP BOOTSTRAP MARKER" "$CODEX_HOME/AGENTS.md"
           bash installer/Bootstrap.sh apply-workspace --workspace "$WORKSPACE" --include-docs
           test -f "$WORKSPACE/AGENTS.md"
           test -f "$WORKSPACE/docs/codex-multiagent/README.md"
+          printf '\nTEMP BOOTSTRAP WORKSPACE MARKER\n' >> "$WORKSPACE/AGENTS.md"
+          bash installer/Bootstrap.sh update-workspace --workspace "$WORKSPACE"
+          ! grep -q "TEMP BOOTSTRAP WORKSPACE MARKER" "$WORKSPACE/AGENTS.md"
           rm -rf "$WORKSPACE"
           mkdir -p "$WORKSPACE"
           curl -fsSL "$SCRIPT_URL" | bash -s -- apply-workspace --workspace "$WORKSPACE" --include-docs
           test -f "$WORKSPACE/AGENTS.md"
           test -f "$WORKSPACE/docs/codex-multiagent/README.md"
+          printf '\nTEMP CURL WORKSPACE MARKER\n' >> "$WORKSPACE/AGENTS.md"
+          curl -fsSL "$SCRIPT_URL" | bash -s -- update-workspace --workspace "$WORKSPACE"
+          ! grep -q "TEMP CURL WORKSPACE MARKER" "$WORKSPACE/AGENTS.md"
 
       - name: Test bootstrap installer workspace with WORKSPACE_CONTEXT
         env:

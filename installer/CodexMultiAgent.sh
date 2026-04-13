@@ -27,6 +27,8 @@ usage() {
 Usage:
   CodexMultiAgent.sh install-global [--force] [--no-prompt]
   CodexMultiAgent.sh apply-workspace --workspace <path> [--template standard|minimal] [--include-docs] [--force] [--no-prompt]
+  CodexMultiAgent.sh update-global [--force] [--no-prompt]
+  CodexMultiAgent.sh update-workspace --workspace <path> [--template standard|minimal] [--include-docs] [--force] [--no-prompt]
   CodexMultiAgent.sh menu
 EOF
 }
@@ -1280,6 +1282,32 @@ show_info_banner() {
     printf 'Global defaults: %s\n' "$GLOBAL_AGENTS_PATH"
 }
 
+detect_workspace_template() {
+    workspace_path="$1"
+    agents_path="${workspace_path}/AGENTS.md"
+
+    if [ -f "$agents_path" ] && grep -Fq '## Minimal Repository Rules' "$agents_path"; then
+        printf 'minimal\n'
+    else
+        printf 'standard\n'
+    fi
+}
+
+should_copy_docs_for_update() {
+    workspace_path="$1"
+
+    if [ "$INCLUDE_DOCS" -eq 1 ]; then
+        printf '1\n'
+        return
+    fi
+
+    if [ -d "${workspace_path}/docs/codex-multiagent" ]; then
+        printf '1\n'
+    else
+        printf '0\n'
+    fi
+}
+
 select_folder() {
     description="$1"
 
@@ -1309,6 +1337,8 @@ read_menu_choice() {
     printf '\nChoose a mode\n'
     printf '[1] Install global defaults for all Codex workspaces\n'
     printf '[2] Apply a workspace override\n'
+    printf '[3] Update existing global defaults in place\n'
+    printf '[4] Update an existing workspace override in place\n'
     printf '[Q] Quit\n'
 
     while true; do
@@ -1317,8 +1347,10 @@ read_menu_choice() {
         case "$(printf '%s' "$choice" | tr '[:lower:]' '[:upper:]')" in
             1) printf 'InstallGlobal\n'; return ;;
             2) printf 'ApplyWorkspace\n'; return ;;
+            3) printf 'UpdateGlobal\n'; return ;;
+            4) printf 'UpdateWorkspace\n'; return ;;
             Q) printf 'Quit\n'; return ;;
-            *) printf 'Please choose 1, 2, or Q\n' ;;
+            *) printf 'Please choose 1, 2, 3, 4, or Q\n' ;;
         esac
     done
 }
@@ -1416,6 +1448,11 @@ install_global_kit() {
     printf 'Reference kit copied to %s\n' "$GLOBAL_KIT_ROOT"
 }
 
+update_global_kit() {
+    write_section 'Updating global defaults'
+    install_global_kit
+}
+
 apply_to_workspace() {
     workspace_path="$1"
     template_name="$2"
@@ -1493,6 +1530,30 @@ apply_to_workspace() {
     printf 'Applied workspace override to %s\n' "$resolved_workspace"
 }
 
+update_workspace() {
+    workspace_path="$1"
+    if [ ! -d "$workspace_path" ]; then
+        printf 'Workspace does not exist for update: %s\n' "$workspace_path" >&2
+        exit 1
+    fi
+    resolved_workspace=$(CDPATH= cd -- "$workspace_path" && pwd)
+
+    detected_template=$(detect_workspace_template "$resolved_workspace")
+    effective_template="$TEMPLATE"
+    if [ "$effective_template" = "standard" ] && [ "$detected_template" = "minimal" ]; then
+        effective_template="minimal"
+    fi
+    copy_docs=$(should_copy_docs_for_update "$resolved_workspace")
+
+    write_section 'Updating workspace override'
+    printf 'Workspace: %s\n' "$resolved_workspace"
+    printf 'Detected template: %s\n' "$detected_template"
+    printf 'Effective template: %s\n' "$effective_template"
+    printf 'Supporting docs: %s\n' "$copy_docs"
+
+    apply_to_workspace "$resolved_workspace" "$effective_template" "$copy_docs"
+}
+
 while [ $# -gt 0 ]; do
     case "$1" in
         install-global|InstallGlobal)
@@ -1500,6 +1561,12 @@ while [ $# -gt 0 ]; do
             ;;
         apply-workspace|ApplyWorkspace)
             MODE="ApplyWorkspace"
+            ;;
+        update-global|UpdateGlobal)
+            MODE="UpdateGlobal"
+            ;;
+        update-workspace|UpdateWorkspace)
+            MODE="UpdateWorkspace"
             ;;
         menu|Menu)
             MODE="Menu"
@@ -1539,13 +1606,19 @@ while [ $# -gt 0 ]; do
 done
 
 case "$MODE" in
-    InstallGlobal|ApplyWorkspace|Menu)
+    InstallGlobal|ApplyWorkspace|UpdateGlobal|UpdateWorkspace|Menu)
         ;;
     install-global)
         MODE="InstallGlobal"
         ;;
     apply-workspace)
         MODE="ApplyWorkspace"
+        ;;
+    update-global)
+        MODE="UpdateGlobal"
+        ;;
+    update-workspace)
+        MODE="UpdateWorkspace"
         ;;
     menu)
         MODE="Menu"
@@ -1593,6 +1666,17 @@ case "$effective_mode" in
             workspace=$(select_folder 'Select the workspace folder for the override')
         fi
         apply_to_workspace "$workspace" "$effective_template" "$copy_docs"
+        ;;
+    UpdateGlobal)
+        update_global_kit
+        ;;
+    UpdateWorkspace)
+        if [ -n "$TARGET_WORKSPACE" ]; then
+            workspace="$TARGET_WORKSPACE"
+        else
+            workspace=$(select_folder 'Select the workspace folder to update')
+        fi
+        update_workspace "$workspace"
         ;;
     *)
         printf 'Unsupported mode: %s\n' "$effective_mode" >&2

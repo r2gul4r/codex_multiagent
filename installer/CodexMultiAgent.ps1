@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Menu', 'InstallGlobal', 'ApplyWorkspace')]
+    [ValidateSet('Menu', 'InstallGlobal', 'ApplyWorkspace', 'UpdateGlobal', 'UpdateWorkspace')]
     [string]$Mode = 'Menu',
 
     [string]$TargetWorkspace,
@@ -1247,6 +1247,27 @@ function Show-InfoBanner {
     Write-Host "Global defaults: $GlobalAgentsPath"
 }
 
+function Get-WorkspaceTemplate {
+    param([string]$WorkspacePath)
+
+    $agentsPath = Join-Path $WorkspacePath 'AGENTS.md'
+    if ((Test-Path -LiteralPath $agentsPath) -and (Select-String -Path $agentsPath -Pattern '## Minimal Repository Rules' -SimpleMatch -Quiet)) {
+        return 'minimal'
+    }
+
+    return 'standard'
+}
+
+function Should-CopyDocsForUpdate {
+    param([string]$WorkspacePath)
+
+    if ($IncludeDocs) {
+        return $true
+    }
+
+    return (Test-Path -LiteralPath (Join-Path $WorkspacePath 'docs\codex-multiagent'))
+}
+
 function Select-Folder {
     param([string]$Description)
 
@@ -1287,6 +1308,8 @@ function Read-MenuChoice {
     Write-Host 'Choose a mode'
     Write-Host '[1] Install global defaults for all Codex workspaces'
     Write-Host '[2] Apply a workspace override'
+    Write-Host '[3] Update existing global defaults in place'
+    Write-Host '[4] Update an existing workspace override in place'
     Write-Host '[Q] Quit'
 
     while ($true) {
@@ -1295,8 +1318,10 @@ function Read-MenuChoice {
         switch ($choice) {
             '1' { return 'InstallGlobal' }
             '2' { return 'ApplyWorkspace' }
+            '3' { return 'UpdateGlobal' }
+            '4' { return 'UpdateWorkspace' }
             'Q' { return 'Quit' }
-            default { Write-Host 'Please choose 1, 2, or Q' -ForegroundColor Yellow }
+            default { Write-Host 'Please choose 1, 2, 3, 4, or Q' -ForegroundColor Yellow }
         }
     }
 }
@@ -1420,6 +1445,11 @@ function Install-GlobalKit {
     Write-Host "Reference kit copied to $GlobalKitRoot"
 }
 
+function Update-GlobalKit {
+    Write-Section -Text 'Updating global defaults'
+    Install-GlobalKit
+}
+
 function Apply-ToWorkspace {
     param(
         [string]$WorkspacePath,
@@ -1501,6 +1531,26 @@ function Apply-ToWorkspace {
     Write-Host "Applied workspace override to $resolvedWorkspace" -ForegroundColor Green
 }
 
+function Update-Workspace {
+    param([string]$WorkspacePath)
+
+    if (-not (Test-Path -LiteralPath $WorkspacePath -PathType Container)) {
+        throw "Workspace does not exist for update: $WorkspacePath"
+    }
+    $resolvedWorkspace = (Resolve-Path -LiteralPath $WorkspacePath).Path
+    $detectedTemplate = Get-WorkspaceTemplate -WorkspacePath $resolvedWorkspace
+    $effectiveTemplate = if ($Template -eq 'standard' -and $detectedTemplate -eq 'minimal') { 'minimal' } else { $Template }
+    $copyDocs = Should-CopyDocsForUpdate -WorkspacePath $resolvedWorkspace
+
+    Write-Section -Text 'Updating workspace override'
+    Write-Host "Workspace: $resolvedWorkspace"
+    Write-Host "Detected template: $detectedTemplate"
+    Write-Host "Effective template: $effectiveTemplate"
+    Write-Host "Supporting docs: $copyDocs"
+
+    Apply-ToWorkspace -WorkspacePath $resolvedWorkspace -TemplateName $effectiveTemplate -CopyDocs $copyDocs
+}
+
 try {
     Show-InfoBanner
 
@@ -1523,6 +1573,13 @@ try {
             $copyDocs = Read-IncludeDocsChoice
             $workspace = if ($TargetWorkspace) { $TargetWorkspace } else { Select-Folder -Description 'Select the workspace folder for the override' }
             Apply-ToWorkspace -WorkspacePath $workspace -TemplateName $effectiveTemplate -CopyDocs $copyDocs
+        }
+        'UpdateGlobal' {
+            Update-GlobalKit
+        }
+        'UpdateWorkspace' {
+            $workspace = if ($TargetWorkspace) { $TargetWorkspace } else { Select-Folder -Description 'Select the workspace folder to update' }
+            Update-Workspace -WorkspacePath $workspace
         }
         default {
             throw "Unsupported mode: $effectiveMode"

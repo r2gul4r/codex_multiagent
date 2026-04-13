@@ -2,7 +2,7 @@ function Invoke-MultiAgentBootstrap {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('InstallGlobal', 'ApplyWorkspace')]
+        [ValidateSet('InstallGlobal', 'ApplyWorkspace', 'UpdateGlobal', 'UpdateWorkspace')]
         [string]$Mode,
 
         [string]$TargetWorkspace,
@@ -16,8 +16,8 @@ function Invoke-MultiAgentBootstrap {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    if ($Mode -eq 'ApplyWorkspace' -and [string]::IsNullOrWhiteSpace($TargetWorkspace)) {
-        throw 'TargetWorkspace is required when Mode is ApplyWorkspace'
+    if ($Mode -in @('ApplyWorkspace', 'UpdateWorkspace') -and [string]::IsNullOrWhiteSpace($TargetWorkspace)) {
+        throw 'TargetWorkspace is required when Mode is ApplyWorkspace or UpdateWorkspace'
     }
 
     if ($Mode -eq 'ApplyWorkspace' -and -not (Test-Path -LiteralPath $TargetWorkspace)) {
@@ -62,7 +62,7 @@ function Invoke-MultiAgentBootstrap {
             $invokeArgs += '-IncludeDocs'
         }
 
-        if ($Mode -eq 'ApplyWorkspace') {
+        if ($Mode -in @('ApplyWorkspace', 'UpdateWorkspace')) {
             $invokeArgs += @('-TargetWorkspace', $TargetWorkspace)
         }
 
@@ -87,7 +87,7 @@ function Install-CodexMultiAgent {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('InstallGlobal', 'ApplyWorkspace')]
+        [ValidateSet('InstallGlobal', 'ApplyWorkspace', 'UpdateGlobal', 'UpdateWorkspace')]
         [string]$Mode,
 
         [string]$TargetWorkspace,
