@@ -23,6 +23,8 @@
 
 ### Changed
 
+- PowerShell installer가 UTF-8 no BOM `WORKSPACE_CONTEXT.toml` 의 한글을 깨뜨리지 않도록 명시적 UTF-8 읽기/쓰기로 고정
+- 설치 시 함께 복사되는 `docs/WORKSPACE_CONTEXT_GUIDE.md` 의 깨진 한글 문서를 정상 한국어 가이드로 교체
 - `AGENTS.md` 와 `MULTI_AGENT_GUIDE.md` 에 same-workspace 동시 작업 충돌을 위한 optional concurrent registry mode, overlap 충돌 시 중단 규칙, retrospective/metrics 기록 규칙을 추가
 - shell/PowerShell installer 생성 문구가 기본 single `STATE.md` 유지, concurrent registry 전환, retrospective/rule-evolution 기록 규칙까지 함께 출력하도록 동기화
 

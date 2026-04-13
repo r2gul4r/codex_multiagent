@@ -82,6 +82,34 @@ function Backup-PathIfExists {
     Copy-Item -LiteralPath $Path -Destination $target -Recurse -Force
 }
 
+function Read-Utf8Lines {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return @()
+    }
+
+    return [System.IO.File]::ReadAllLines($Path, [System.Text.UTF8Encoding]::new($false))
+}
+
+function Write-Utf8Text {
+    param(
+        [string]$Path,
+        [string]$Value
+    )
+
+    [System.IO.File]::WriteAllText($Path, $Value, [System.Text.UTF8Encoding]::new($false))
+}
+
+function Write-Utf8Lines {
+    param(
+        [string]$Path,
+        [string[]]$Value
+    )
+
+    [System.IO.File]::WriteAllLines($Path, $Value, [System.Text.UTF8Encoding]::new($false))
+}
+
 function Remove-StaleInstallerArtifacts {
     param([string]$InstallerPath)
 
@@ -141,7 +169,7 @@ function Read-WorkspaceContext {
 
     $context = @{}
     $currentSection = ''
-    $allLines = Get-Content -LiteralPath $Path
+    $allLines = Read-Utf8Lines -Path $Path
 
     for ($index = 0; $index -lt $allLines.Count; $index++) {
         $line = $allLines[$index].Trim()
@@ -926,7 +954,7 @@ function Install-CodexSkills {
 
     $previousManagedSkills = @()
     if (Test-Path -LiteralPath $GlobalManagedSkillsManifest) {
-        $previousManagedSkills = @(Get-Content -LiteralPath $GlobalManagedSkillsManifest | Where-Object { $_ })
+        $previousManagedSkills = @(Read-Utf8Lines -Path $GlobalManagedSkillsManifest | Where-Object { $_ })
     }
 
     $currentManagedSkills = @(
@@ -943,7 +971,7 @@ function Install-CodexSkills {
     }
 
     Copy-DirectoryContents -Source $sourceSkillsRoot -Destination $GlobalSkillsRoot
-    Set-Content -LiteralPath $GlobalManagedSkillsManifest -Value $currentManagedSkills -Encoding utf8
+    Write-Utf8Lines -Path $GlobalManagedSkillsManifest -Value $currentManagedSkills
 }
 
 function Install-CodexRules {
@@ -1222,7 +1250,7 @@ function Install-CodexConfig {
     Backup-PathIfExists -Path $ConfigPath -BackupRoot $BackupRoot -Name 'config.toml'
     $lines = [System.Collections.Generic.List[string]]::new()
     if (Test-Path -LiteralPath $ConfigPath) {
-        foreach ($line in (Get-Content -LiteralPath $ConfigPath)) {
+        foreach ($line in (Read-Utf8Lines -Path $ConfigPath)) {
             $lines.Add($line)
         }
     }
@@ -1244,7 +1272,7 @@ function Install-CodexConfig {
     Ensure-ConfigSectionKeyValue -Lines $lines -Section 'agents.explorer' -Key 'config_file' -ValueLiteral '"./agents/explorer.toml"'
     Ensure-ConfigSectionKeyValue -Lines $lines -Section 'agents.reviewer' -Key 'config_file' -ValueLiteral '"./agents/reviewer.toml"'
 
-    Set-Content -LiteralPath $ConfigPath -Value ($lines -join "`n") -Encoding utf8
+    Write-Utf8Text -Path $ConfigPath -Value ($lines -join "`n")
 }
 
 function Show-InfoBanner {
@@ -1494,27 +1522,27 @@ function Apply-ToWorkspace {
 
     if ($context) {
         $agentsContent = New-WorkspaceAgentsFromContext -Context $context -WorkspaceName (Split-Path -Leaf $resolvedWorkspace) -TemplateName $TemplateName -WorkspaceRoot $resolvedWorkspace
-        Set-Content -LiteralPath $agentsTarget -Value $agentsContent -Encoding utf8
+        Write-Utf8Text -Path $agentsTarget -Value $agentsContent
     }
     else {
         $agentsContent = New-DefaultWorkspaceAgents -WorkspaceName (Split-Path -Leaf $resolvedWorkspace) -TemplateName $TemplateName
-        Set-Content -LiteralPath $agentsTarget -Value $agentsContent -Encoding utf8
+        Write-Utf8Text -Path $agentsTarget -Value $agentsContent
     }
 
     Ensure-Directory -Path (Split-Path -Parent $stateTarget)
     if ($context) {
         $stateContent = New-WorkspaceStateFromContext -Context $context -WorkspaceName (Split-Path -Leaf $resolvedWorkspace)
-        Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8
+        Write-Utf8Text -Path $stateTarget -Value $stateContent
     }
     else {
         $stateContent = New-DefaultState -WorkspaceName (Split-Path -Leaf $resolvedWorkspace)
-        Set-Content -LiteralPath $stateTarget -Value $stateContent -Encoding utf8
+        Write-Utf8Text -Path $stateTarget -Value $stateContent
     }
 
     Ensure-Directory -Path (Split-Path -Parent $errorLogTarget)
     if (-not (Test-Path -LiteralPath $errorLogTarget)) {
         $errorLogContent = New-DefaultErrorLog
-        Set-Content -LiteralPath $errorLogTarget -Value $errorLogContent -Encoding utf8
+        Write-Utf8Text -Path $errorLogTarget -Value $errorLogContent
     }
 
     if ($CopyDocs) {

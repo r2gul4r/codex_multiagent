@@ -10,6 +10,8 @@
 
 ### Included Changes
 
+- PowerShell installer 의 UTF-8 읽기/쓰기를 명시화해서 한글 `WORKSPACE_CONTEXT.toml` 기반 생성물이 깨지지 않도록 수정
+- 설치 지원 문서 `WORKSPACE_CONTEXT_GUIDE.md` 의 깨진 한글을 정상 한국어 가이드로 교체
 - `AGENTS.md` 에 concurrent registry mode, overlap 충돌 시 중단 규칙, retrospective/metrics 기록 규칙 추가
 - `MULTI_AGENT_GUIDE.md` 에 concurrent registry 운영 기준, adoption 순서, rule-evolution 정리 추가
 - `docs/CONCURRENT_STATE_MODE.md`, `docs/OPERATIONS_RETROSPECTIVE.md` 신규 추가
@@ -28,3 +30,4 @@
 - PowerShell parser check for `installer/CodexMultiAgent.ps1`
 - `git diff --check`
 - shell/PowerShell installer 를 임시 워크스페이스에 적용해 생성물에 새 규칙 문구가 포함되는지 확인
+- UTF-8 no BOM 한글 `WORKSPACE_CONTEXT.toml` 을 PowerShell installer 에 통과시켜 생성된 `AGENTS.md` 에 한글이 보존되는지 확인
