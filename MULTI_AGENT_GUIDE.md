@@ -24,10 +24,17 @@ Hard triggers first:
 - Naturally separable write sets
 - A contract shift from sample/demo output to real data integration
 - Read-heavy collection or normalization that can run independently from downstream rendering
+- Contract instability that can change API, schema, props, payload, env keys, or normalized data shape
+- High investigation uncertainty where implementation depends on facts not yet discovered
+- Data fidelity risk, especially when real-world data, coordinates, metrics, or external sources must be trusted
+- External source dependency that must be checked before implementation can be correct
+- Implementation depending on discovery results that may change the planned write sets
+- Ambiguous acceptance criteria that can change the contract or verification target
 - Medium-or-higher regression risk
 - A clearly necessary reviewer pass
 
 If any hard trigger exists, classify the task as delegated or mixed.
+Hard triggers are gates, not hidden score boosts; record the trigger by name instead of converting it into points.
 
 Do not score only from the final edited file count.
 One rendered HTML or frontend file can still hide separate upstream responsibilities such as data collection, coordinate extraction, normalization, or schema confirmation.
@@ -48,16 +55,20 @@ Profile selection:
   - `0-3` points
   - `main` may edit directly in one tight slice
   - use this only when upstream investigation and downstream implementation are not independently ownable
+  - allowed only when the contract is stable, no independent discovery slice exists, verification is small, and the reason is more specific than "one final file"
 - `delegated-serial`
   - `4-6` points
   - `main` coordinates workers one slice at a time
   - good fit when collection or normalization must finish before rendering, but each slice is still independently verifiable
+  - choose this when dependencies exist between slices or the contract must be frozen after discovery
 - `delegated-parallel`
   - `7+` points, or any hard trigger when the write sets are separable
   - `main` delegates safe slices to workers
   - good fit when collection, normalization, and rendering can proceed with pinned contracts and separate ownership
+  - allowed only when the contract is frozen, write sets are disjoint, shared assets have one owner, `main` will not write during the parallel phase, and slice verification exists
 - `mixed`
   - uneven tasks that need both sequential and parallel delegation
+  - choose this when one phase must run serially to freeze the contract and later phases can fan out safely
 
 Before any write begins:
 
@@ -71,6 +82,12 @@ Before any write begins:
 - on delegated profiles, a `reviewer` pass is mandatory when `review_required` is selected
 - on delegated profiles, if shared assets and feature files are both touched, use `worker_shared` plus at least one feature worker
 
+Decision gate:
+
+- If `delegated-parallel` fails any required condition, downgrade to `delegated-serial` or run discovery first.
+- If `single-session` has a vague reason such as "small task" or "one file", stop and replace it with a concrete ownership and verification reason.
+- If implementation correctness depends on facts that are not yet known, use explorer-first discovery before implementation.
+
 ## 3. What Makes A Safe Slice
 
 A safe slice satisfies all four conditions below:
@@ -83,6 +100,39 @@ A safe slice satisfies all four conditions below:
 For upstream work, the "changed file range" may be a produced dataset, normalization note, or other intermediate artifact responsibility rather than only the final UI file.
 
 If any part is blurry, shrink the slice or keep it in `single-session`.
+
+## 3.1 Explorer-First And Re-Orchestration
+
+Use explorer-first discovery when the task mentions real data, external sources, coordinates, schema inference, broad codebase scouting, unstable acceptance criteria, or any implementation that depends on not-yet-known facts.
+
+Discovery mode rules:
+
+- `phase` is `discovery`
+- `writer_slot` is `none` unless updating `STATE.md` or `MULTI_AGENT_LOG.md`
+- output is findings, proposed contract, write-set recommendation, verification target, and reclassification recommendation
+- implementation waits until `main` records the updated contract and execution topology
+
+If a worker or `main` discovers a new hard trigger, contract mismatch, or write-set conflict during execution, stop and mark the task `contract_blocked` or `reclassify_required`.
+
+Record:
+
+- `trigger_found`
+- `discovered_by`
+- `impact`
+- `required_action`
+
+No implementation writes continue until `main` updates `STATE.md`, refreshes `execution_topology`, and records whether the task stays local, moves serial, moves parallel, or becomes mixed.
+
+## 3.2 Verification Gates
+
+Use the selected profile to set the minimum verification gate before close-out:
+
+- `single-session`: code review plus the smallest relevant repository command when available
+- `delegated-serial`: verify each slice output, then verify the integrated contract after the final slice
+- `delegated-parallel`: verify each worker output, check shared-contract consistency, check write-set ownership, then run final integration verification
+- `mixed`: verify the serial contract-freeze phase before fan-out, then apply the parallel gate to the fan-out phase
+
+If no verification target can be named, do not fan out; return to discovery or shrink the slice.
 
 ## 4. When To Use Skills
 

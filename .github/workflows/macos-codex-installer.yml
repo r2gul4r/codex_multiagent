@@ -89,10 +89,21 @@ jobs:
           CODEX_MULTIAGENT_ZIP_URL: https://github.com/${{ github.repository }}/archive/${{ github.sha }}.zip
         run: |
           mkdir -p "$(dirname "$CODEX_HOME")" "$WORKSPACE"
+          bash installer/Bootstrap.sh install-global
+          test -f "$CODEX_HOME/AGENTS.md"
+          test -f "$CODEX_HOME/agents/default.toml"
+          test -f "$CODEX_HOME/rules/default.rules"
+          rm -rf "$CODEX_HOME"
+          mkdir -p "$(dirname "$CODEX_HOME")"
           curl -fsSL "$SCRIPT_URL" | bash -s -- install-global
           test -f "$CODEX_HOME/AGENTS.md"
           test -f "$CODEX_HOME/agents/default.toml"
           test -f "$CODEX_HOME/rules/default.rules"
+          bash installer/Bootstrap.sh apply-workspace --workspace "$WORKSPACE" --include-docs
+          test -f "$WORKSPACE/AGENTS.md"
+          test -f "$WORKSPACE/docs/codex-multiagent/README.md"
+          rm -rf "$WORKSPACE"
+          mkdir -p "$WORKSPACE"
           curl -fsSL "$SCRIPT_URL" | bash -s -- apply-workspace --workspace "$WORKSPACE" --include-docs
           test -f "$WORKSPACE/AGENTS.md"
           test -f "$WORKSPACE/docs/codex-multiagent/README.md"

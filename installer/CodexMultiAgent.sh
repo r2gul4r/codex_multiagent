@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eu
+set -euo pipefail
 
 MODE="Menu"
 TARGET_WORKSPACE=""
@@ -281,6 +281,21 @@ write_markdown_section() {
     printf '\n## %s\n\n' "$title"
     for item in "$@"; do
         [ -n "$item" ] && printf -- '- %s\n' "$item"
+    done
+}
+
+join_lines() {
+    delimiter="$1"
+    first=1
+
+    while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        if [ "$first" -eq 1 ]; then
+            printf '%s' "$line"
+            first=0
+        else
+            printf '%s%s' "$delimiter" "$line"
+        fi
     done
 }
 
@@ -677,9 +692,9 @@ get_derived_worker_mapping() {
 
     merge_context_items \
         ${worker_mapping_a[@]+"${worker_mapping_a[@]}"} \
-        "$([ "${#shell_scope[@]}" -gt 0 ] && printf 'worker_shell_runtime = %s' "$(merge_context_items ${shell_scope[@]+"${shell_scope[@]}"} | paste -sd ', ' -)")" \
-        "$([ "${#shared_scope[@]}" -gt 0 ] && printf 'worker_shared = %s' "$(merge_context_items ${shared_scope[@]+"${shared_scope[@]}"} | paste -sd ', ' -)")" \
-        "$([ "${#landing_scope[@]}" -gt 0 ] && printf 'worker_feature_landing = %s' "$(merge_context_items ${landing_scope[@]+"${landing_scope[@]}"} | paste -sd ', ' -)")"
+        "$([ "${#shell_scope[@]}" -gt 0 ] && printf 'worker_shell_runtime = %s' "$(merge_context_items ${shell_scope[@]+"${shell_scope[@]}"} | join_lines ', ')")" \
+        "$([ "${#shared_scope[@]}" -gt 0 ] && printf 'worker_shared = %s' "$(merge_context_items ${shared_scope[@]+"${shared_scope[@]}"} | join_lines ', ')")" \
+        "$([ "${#landing_scope[@]}" -gt 0 ] && printf 'worker_feature_landing = %s' "$(merge_context_items ${landing_scope[@]+"${landing_scope[@]}"} | join_lines ', ')")"
 }
 
 get_derived_reviewer_focus() {
@@ -944,7 +959,7 @@ ensure_config_array_contains() {
 
     tmp_file=$(mktemp)
     if [ -f "$file" ]; then
-        awk -v key="$key" -v values="$(printf '%s\n' "$@" | paste -sd '\t' -)" '
+        awk -v key="$key" -v values="$(printf '%s\n' "$@" | join_lines $'\t')" '
             BEGIN {
                 split(values, required, "\t")
             }
@@ -1098,6 +1113,8 @@ Error logging:
 Default behavior:
 - Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.
 - After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.
+- Treat `contract_instability`, `high_investigation_uncertainty`, `data_fidelity_risk`, `external_source_dependency`, `implementation_depends_on_discovery_result`, and `ambiguous_acceptance_criteria` as hard triggers, not hidden score boosts.
+- Use explorer-first discovery when correctness depends on real data, external sources, coordinates, schema inference, broad codebase scouting, or other facts not yet known.
 - Do not treat a task as single-session from final output file count alone; re-evaluate when upstream collection, normalization, or read-heavy investigation can be owned separately.
 - If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.
 - Route skill selection from task intent: use `ouroboros-interview` for ambiguous scope, `ouroboros-seed` for contract freeze, `ouroboros-run` for implementation, and `ouroboros-evaluate` for verification against the frozen seed.
@@ -1120,6 +1137,9 @@ Spawn requirements:
 Delegation rules:
 - Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, and `agent_budget` to decide whether delegation is allowed and how much support to spawn.
 - Count intermediate collection and normalization responsibility as part of `write_sets`; do not collapse that upstream work into the final frontend file owner by default.
+- Allow `delegated-parallel` only when the contract is frozen, write sets are disjoint, shared assets have one owner, main will not write during the parallel phase, and slice verification exists.
+- If a new hard trigger, contract mismatch, or write-set conflict appears during execution, stop writes, mark the task `contract_blocked` or `reclassify_required`, and refresh STATE.md before continuing.
+- Match verification to the selected profile: local command for single-session, slice plus integration checks for serial, worker plus contract plus ownership checks for parallel, and serial-then-parallel checks for mixed.
 - Assign exactly one write set to each worker unless the selected rules and budget explicitly require a shared owner for shared assets.
 - Select `reviewer` only when the task-scoped rules or budget call for review-required validation.
 - Select `worker_shared` when a shared asset owner is required by the current task.
@@ -1201,7 +1221,7 @@ remove_legacy_config_agent_sections() {
     if [ ! -f "$file" ]; then
         return
     fi
-    awk -v allowed="$(printf '%s\n' "$@" | paste -sd '\t' -)" '
+    awk -v allowed="$(printf '%s\n' "$@" | join_lines $'\t')" '
         BEGIN {
             split(allowed, items, "\t")
             for (i in items) {

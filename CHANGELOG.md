@@ -2,12 +2,34 @@
 
 ## Unreleased
 
+### Added
+
+- 각 핵심 기능 영역의 기대 동작을 `pass|partial|fail` 로 판정할 수 있도록 `docs/AREA_EVALUATION_METRICS.md` 에 공통 평가 축, 측정 항목, 최소 합격선, 기록 예시를 추가
+- 프로젝트 목표 기준으로 저장소를 비교할 수 있도록 `docs/GOAL_COMPARISON_AREAS.md`에 핵심 기능 영역, 포함/제외 범위, 비교 질문, 최소 합격선을 추가
+- `docs/GOAL_COMPARISON_AREAS.md` 각 기능 영역에 현재 구현과 직접 대조 가능한 `기대 동작`, `현재 구현에서 확인할 증거`, `비교 기록 포맷`을 추가
+- `docs/GOAL_COMPARISON_AREAS.md` 와 `docs/AREA_EVALUATION_METRICS.md` 에 기능 영역, 기대 동작, 평가 기준, 최소 게이트, 갭 기록, 다음 액션을 한 레코드로 묶는 통합 갭 검토 워크시트 형식을 추가
+- 루트 `Makefile` 에 `make lint`, `make test`, `make check` 검증 엔트리포인트 추가
+- 저장소 방향성과 목표에서 직접 뽑은 상위 원칙, 공통 평가 축, 계획 단계 goal gate를 `docs/GOAL_ALIGNMENT_FRAMEWORK.md`에 추가
+- 작은 기능 후보를 `value`, `implementation_cost`, `goal_alignment`, `ripple_effect` 기준으로 점수화하고 우선순위화하는 세부 루브릭을 `docs/GOAL_ALIGNMENT_FRAMEWORK.md`에 추가
+- 리팩터링 후보를 `quality_impact`, `risk`, `maintainability`, `feature_goal_contribution` 기준으로 점수화하고 우선순위화하는 세부 루브릭을 `docs/GOAL_ALIGNMENT_FRAMEWORK.md`에 추가
+- 기능 후보와 리팩터링 후보를 같은 후보 카드, `common_score`, `specific_score`, `priority_score`, `priority_grade` 규칙으로 비교·정렬하는 공통 점수화 체계를 `docs/GOAL_ALIGNMENT_FRAMEWORK.md`에 추가
+- 도구 실행 결과에서 실패·경고·커버리지 신호를 공통 JSON 필드로 정규화하는 `normalize_quality_signals.py` 와 샘플 입력 `examples/quality_signal_samples.json` 추가
+- 정규화된 분석 결과를 지정한 `--history` 경로에 append-only JSON 이력으로 누적 저장하고 `latest|summary|all` 로 조회하는 기능 추가
+
 ### Changed
 
+- `docs/GOAL_COMPARISON_AREAS.md` 가 추상 비교 문서에 머물지 않도록 영역별 실제 판정 루브릭 문서 연결을 추가
+- `docs/AREA_EVALUATION_METRICS.md` 와 `docs/GOAL_COMPARISON_AREAS.md` 가 후보 종류별 개별 루브릭뿐 아니라 동일 포맷 비교 규칙까지 확인하도록 보강
+- 저장소 기본 검증 도구를 `markdownlint-cli2`, `shellcheck`, `pwsh + PSScriptAnalyzer` 기준으로 식별하고, 미설치 환경에서는 문법 검사와 스모크 테스트로 폴백하도록 정리
 - `single-session` 판단이 최종 수정 파일 수에 과적합되지 않도록 `AGENTS.md`, `MULTI_AGENT_GUIDE.md`, installer 생성 문구를 보강
 - 샘플 데모에서 실데이터 반영으로 계약이 바뀌는 순간 `execution_topology` 를 재평가하도록 규칙 명시
 - 업스트림 수집, 정규화, read-heavy 조사도 독립 책임과 `write_sets` 후보로 보도록 문서화
 - `STATE.md` 를 읽은 직후 현재 점수와 그 점수가 착수 방식에 미치는 영향까지 먼저 보고하도록 시작 규칙 추가
+- Score 2.0-lite hard trigger, profile decision gate, explorer-first discovery, `contract_blocked` / `reclassify_required` 재오케스트레이션, profile별 verification gate 규칙 추가
+- `make test` 가 샘플 기반 품질 신호 정규화 검사까지 포함하도록 확장
+- `make test` 가 정규화 결과의 저장/조회 스모크 검사까지 포함하도록 확장
+- macOS `Bootstrap.sh` 가 GNU `find` 깊이 옵션에 기대지 않도록 추출 루트 탐색을 shell loop로 교체하고, macOS CI에서 local bootstrap + `curl | bash` 둘 다 검증하도록 보강
+- shell installer 가 BSD/GNU `paste -sd` 동작 차이에 기대지 않도록 join 로직을 shell helper로 교체하고 `pipefail` 을 켜서 macOS shell 경로를 더 엄격하게 검증
 
 ## v0.4.0 - 2026-04-09
 

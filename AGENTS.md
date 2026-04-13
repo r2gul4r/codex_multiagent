@@ -84,6 +84,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 - If a request starts as read-only investigation or planning, keep that phase read-only until implementation is explicitly entered
 - Before moving from exploration or planning into file edits, re-check the task against `STATE.md`, set the active phase to implementation, and refresh the orchestration profile when the scope expanded or changed
 - If read-heavy collection or normalization became an independent upstream step during execution, re-check whether that step and the downstream rendering work now form separate delegated slices
+- Use explorer-first discovery when correctness depends on real data, external sources, coordinates, schema inference, broad codebase scouting, or other facts not yet known
 - Do not let read-only exploration drift into implementation without a fresh task classification
 
 ### Orchestration Logging
@@ -100,12 +101,16 @@ Installer global setup copies this file to the user's Codex home as the default 
 - `delegated-serial` lets `main` coordinate workers one slice at a time when the work is larger but still linear
 - `delegated-parallel` splits safe write sets across workers when contracts are pinned and the budget allows it
 - `mixed` uses both serial and parallel delegation when the task has uneven subproblems
+- Treat `contract_instability`, `high_investigation_uncertainty`, `data_fidelity_risk`, `external_source_dependency`, `implementation_depends_on_discovery_result`, and `ambiguous_acceptance_criteria` as hard triggers that force reclassification before writes
 - Do not justify `single-session` from final output file count alone; upstream collection, normalization, and read-heavy investigation can be separate write ownership even when one frontend file is the final destination
 - If shared assets and feature files are both touched, assign a designated `worker_shared` plus at least one feature worker
 - If the scope naturally separates into `2+` disjoint feature slices, split them across `2+` workers instead of handing one oversized slice to a single worker
 - If collection, normalization, and rendering can be described as separate verifiable responsibilities, prefer `delegated-serial` or `delegated-parallel` over forcing them into one oversized slice
+- `delegated-parallel` is allowed only when the contract is frozen, write sets are disjoint, shared assets have one owner, `main` will not write during the parallel phase, and slice-level verification exists
+- If a new hard trigger, contract mismatch, or write-set conflict is discovered during execution, stop writes, mark the task `contract_blocked` or `reclassify_required`, and refresh `STATE.md` before continuing
 - A single worker is allowed only when `main` records in `STATE.md` why the slice cannot be safely split further
 - Implementation files must not be edited until `contract_freeze` and `write_sets` are explicitly recorded in `STATE.md`
+- Verification must match the selected profile: local command for `single-session`, slice plus integration checks for `delegated-serial`, worker plus contract plus ownership checks for `delegated-parallel`, and serial-then-parallel checks for `mixed`
 - Review is mandatory when the selected rules include `review_required`
 - User natural-language overrides take priority over default automatic selection across skills, delegation, execution topology, and budget
 
