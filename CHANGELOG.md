@@ -4,6 +4,11 @@
 
 ### Added
 
+- `docs/CONCURRENT_STATE_MODE.md` 를 추가해 기본 single `STATE.md` 유지 원칙, concurrent-registry 전환 조건, root registry 필드, thread state 파일 구조를 문서화
+- `docs/OPERATIONS_RETROSPECTIVE.md` 를 추가해 task retrospective 와 rule evolution log 를 어떤 기준으로 남길지 운영 규칙을 정리
+- `examples/STATE.registry.example.md`, `examples/STATE.thread.example.md` 로 동시 작업용 root/thread 상태 파일 예시를 추가
+- `examples/TASK_RETROSPECTIVE.example.md`, `examples/RULE_EVOLUTION_LOG.example.md` 로 사후 회고와 규칙 진화 로그 예시를 추가
+
 - 각 핵심 기능 영역의 기대 동작을 `pass|partial|fail` 로 판정할 수 있도록 `docs/AREA_EVALUATION_METRICS.md` 에 공통 평가 축, 측정 항목, 최소 합격선, 기록 예시를 추가
 - 프로젝트 목표 기준으로 저장소를 비교할 수 있도록 `docs/GOAL_COMPARISON_AREAS.md`에 핵심 기능 영역, 포함/제외 범위, 비교 질문, 최소 합격선을 추가
 - `docs/GOAL_COMPARISON_AREAS.md` 각 기능 영역에 현재 구현과 직접 대조 가능한 `기대 동작`, `현재 구현에서 확인할 증거`, `비교 기록 포맷`을 추가
@@ -17,6 +22,9 @@
 - 정규화된 분석 결과를 지정한 `--history` 경로에 append-only JSON 이력으로 누적 저장하고 `latest|summary|all` 로 조회하는 기능 추가
 
 ### Changed
+
+- `AGENTS.md` 와 `MULTI_AGENT_GUIDE.md` 에 same-workspace 동시 작업 충돌을 위한 optional concurrent registry mode, overlap 충돌 시 중단 규칙, retrospective/metrics 기록 규칙을 추가
+- shell/PowerShell installer 생성 문구가 기본 single `STATE.md` 유지, concurrent registry 전환, retrospective/rule-evolution 기록 규칙까지 함께 출력하도록 동기화
 
 - `docs/GOAL_COMPARISON_AREAS.md` 가 추상 비교 문서에 머물지 않도록 영역별 실제 판정 루브릭 문서 연결을 추가
 - `docs/AREA_EVALUATION_METRICS.md` 와 `docs/GOAL_COMPARISON_AREAS.md` 가 후보 종류별 개별 루브릭뿐 아니라 동일 포맷 비교 규칙까지 확인하도록 보강

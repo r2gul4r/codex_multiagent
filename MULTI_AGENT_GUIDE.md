@@ -255,6 +255,24 @@ Use `STATE.md` to track:
 
 That gives `main` enough structure to sequence work without pretending this repo is a full scheduler.
 
+Default mode is still one shared task board.
+Do not introduce concurrent thread-local state just because the task is large.
+
+Use concurrent registry mode only when multiple live threads must work in the same workspace at the same time and the write ownership can actually stay disjoint.
+
+In that mode:
+
+- root `STATE.md` becomes the registry
+- record `state_mode = concurrent-registry`
+- track `active_threads`
+- track `workspace_locks`
+- track shared-contract notes that apply across threads
+- move each live execution lane into `states/STATE.<thread_id>.md`
+- keep the core sections unchanged inside each thread state file
+
+If two live threads need the same file, the same shared asset, or the same contract surface, concurrent mode is the wrong fix.
+Serialize the work or move one slice into a separate worktree.
+
 ## 9. Why Explicit Profiles And Write Sets Help
 
 Small and large tasks need different visibility.
@@ -327,8 +345,28 @@ If the structure is broken, formatting comments are noise.
 - Manual approval zones such as deploys, migrations, or external writes
 - Domain worker names
 - Skill-selection overrides for repository-specific workflows
+- Whether concurrent registry mode is enabled and where thread state files live
+- Where task retrospectives and rule-evolution notes should be appended
 
-## 14. Recommended Adoption Order
+## 14. Retrospectives And Rule Evolution
+
+A task board helps you not crash during execution.
+A retrospective helps you not repeat the same crash next week.
+
+After non-trivial work, especially anything involving reclassification, collisions, installer surprises, or verification gaps, capture a compact note with:
+
+- task name
+- `score_total`
+- selected profile
+- actual topology used
+- what caused drift, collision, or reclassification
+- what verification caught or missed
+- what rule, template, or installer text should change next
+
+Keep rule-evolution notes append-only.
+That gives future AGENTS or installer changes an evidence trail instead of a vague memory.
+
+## 15. Recommended Adoption Order
 
 1. Start with `main`
 2. Add hard-trigger + scorecard gating
@@ -337,8 +375,10 @@ If the structure is broken, formatting comments are noise.
 5. Add `agent_budget` once delegation starts to spread across multiple slices
 6. Add `worker_shared` when common types, shared utils, or common components keep causing collisions
 7. When real collisions appear, add repository-specific forbidden patterns
+8. Only after real same-workspace collisions appear, add concurrent registry mode
+9. Once execution patterns repeat, add compact retrospectives and a rule-evolution log
 
-## 15. One-Line Summary
+## 16. One-Line Summary
 
 Multi-agent work is not a free productivity buff.
 It is distributed coordination with extra failure modes.

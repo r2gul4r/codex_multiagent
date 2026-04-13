@@ -635,7 +635,9 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('- Keep changes small')
         $lines.Add('- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here')
         $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`')
+        $lines.Add('- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`')
         $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`')
+        $lines.Add('- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change')
     }
     else {
         $lines.Add('## Repository Facts To Fill')
@@ -652,7 +654,9 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('')
         $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
         $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`')
+        $lines.Add('- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`')
         $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran')
+        $lines.Add('- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change')
         $lines.Add('- Add repository-specific verification commands, hard triggers, approval zones, delegation hints, and worker ownership here')
         $lines.Add('- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules')
     }
@@ -695,6 +699,7 @@ function New-DefaultState {
     $lines.Add('  - `worker`: `n/a`')
     $lines.Add('  - `reviewer`: `n/a`')
     $lines.Add('- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`')
+    $lines.Add('- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
@@ -781,7 +786,9 @@ function New-WorkspaceAgentsFromContext {
     $lines.Add('- Use score-based orchestration to choose the role mix and task-scoped budget instead of fixed caps')
     $lines.Add('  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide how much support is spawned')
     $lines.Add(('- Keep `{0}` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`' -f $taskBoardPath))
+    $lines.Add(('- Keep one shared `{0}` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root task board into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`' -f $taskBoardPath))
     $lines.Add(('- If multiple roles are used, append real participation to `{0}` before reporting that they ran' -f $multiAgentLogPath))
+    $lines.Add('- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change')
     if ($TemplateName -eq 'minimal') {
         $lines.Add('- Keep changes small')
         $lines.Add('- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules')
@@ -848,6 +855,7 @@ function New-WorkspaceStateFromContext {
     $lines.Add('  - `worker`: `n/a`')
     $lines.Add('  - `reviewer`: `n/a`')
     $lines.Add('- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`')
+    $lines.Add('- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
     $lines.Add('')
@@ -1062,6 +1070,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Treat AGENTS.md as the source of truth for orchestration selection, skill routing, state updates, and verification flow.',
         '- On each new user request, compare it against the active current_task in STATE.md before continuing, even if the work looks like a continuation of the same feature.',
         '- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.',
+        '- Keep one shared STATE.md by default; switch to a root registry plus per-thread files only when true same-workspace concurrent threads are explicitly chosen.',
         '- Treat investigation, planning, and implementation as separate stages.',
         '- If read-only investigation or planning turns into implementation, re-check the score and trigger basis, update STATE.md, and explicitly enter implementation before writing.',
         '- Before parallelizing larger tasks, freeze the contract and write sets first.',
@@ -1076,6 +1085,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Use explorer-first discovery when correctness depends on real data, external sources, coordinates, schema inference, broad codebase scouting, or other facts not yet known.',
         '- Do not treat a task as single-session from final output file count alone; re-evaluate when upstream collection, normalization, or read-heavy investigation can be owned separately.',
         '- If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.',
+        '- If another live thread already owns an overlapping file, shared asset, or contract surface, stop and serialize the work, move one slice to another worktree, or switch to concurrent registry mode before more writes.',
         '- Route skill selection from task intent: use `ouroboros-interview` for ambiguous scope, `ouroboros-seed` for contract freeze, `ouroboros-run` for implementation, and `ouroboros-evaluate` for verification against the frozen seed.',
         '- Delegate proactively for read-heavy, parallelizable, or shared-asset work without waiting for the user to say "spawn" or "parallelize".',
         '- Close finished agents promptly once their output is consumed.',
@@ -1104,6 +1114,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Select `worker_shared` when a shared asset owner is required by the current task.',
         '- Do not exceed the computed task budget, even when the repair loop needs another pass.',
         '- Log the selected skills and delegation plan in `STATE.md` before or immediately after the work starts, as the workspace instructions require.',
+        '- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change.',
         '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.',
         '',
         'Execution bias:',

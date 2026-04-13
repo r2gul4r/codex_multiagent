@@ -77,6 +77,8 @@ Installer global setup copies this file to the user's Codex home as the default 
 - If the goal, scope, owned files, or verification target materially changed, treat it as a new task: update `Current Task`, refresh the orchestration profile, and record a new concrete `reason` before more writes
 - If the contract shifts from sample or demo output to real data collection, normalization, or live integration, do not keep the old `single-session` choice by inertia; re-evaluate `execution_topology` before more writes
 - Do not silently carry over the previous orchestration choice just because `STATE.md` already exists
+- Default to one shared `STATE.md`; switch to concurrent registry mode only when true same-workspace concurrent threads are explicitly chosen or an active-task collision is already present
+- In concurrent registry mode, keep the root `STATE.md` as the registry and move thread-owned execution state into per-thread files such as `states/STATE.<thread_id>.md`
 
 ### Stage Gates
 
@@ -86,6 +88,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 - If read-heavy collection or normalization became an independent upstream step during execution, re-check whether that step and the downstream rendering work now form separate delegated slices
 - Use explorer-first discovery when correctness depends on real data, external sources, coordinates, schema inference, broad codebase scouting, or other facts not yet known
 - Do not let read-only exploration drift into implementation without a fresh task classification
+- If another live thread already owns an overlapping file, contract, or shared asset, stop and either serialize the work, move one slice to a separate worktree, or switch to concurrent registry mode before more writes
 
 ### Orchestration Logging
 
@@ -131,11 +134,20 @@ Installer global setup copies this file to the user's Codex home as the default 
 - `bounded_repair_loop` means follow-up fixes reuse the remaining budget instead of spawning agents without limit
 - Budget growth should be justified in `STATE.md` when a task needs more help than the initial estimate
 
+### Retrospectives And Metrics
+
+- After non-trivial work, especially reclassification, collision avoidance, or verification surprises, append a compact retrospective artifact or workspace-configured note instead of relying on memory
+- Record at least `task`, `score_total`, `selected_profile`, `actual_topology`, `verification_outcome`, `collisions_or_reclassifications`, and `next_rule_change`
+- Keep rule-evolution notes append-only so later installer and AGENTS changes can cite concrete failure patterns rather than vibes
+
 ### State Integrity
 
 - `STATE.md` updates may change field values, but must preserve the core sections: `Current Task`, `Orchestration Profile`, `Writer Slot`, `Contract Freeze`, `Reviewer`, and `Last Update`
 - Keep `writer_slot`, `contract_freeze`, and `write_sets` as explicit tracking primitives
 - Do not collapse `STATE.md` into ad-hoc notes or delete required sections while a task is active
+- In default mode, one task board owns the active task and all writes go through that file
+- In concurrent registry mode, the root `STATE.md` must track `state_mode`, `active_threads`, `workspace_locks`, and shared-contract notes, while each `states/STATE.<thread_id>.md` preserves the core sections above for that thread
+- Do not let two live threads append execution state to the same task file; if ownership is not disjoint, serialize the work or move one slice out of the workspace
 
 ## Forbidden Commands
 
