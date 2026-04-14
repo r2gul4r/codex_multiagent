@@ -6,6 +6,17 @@ Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운
 
 ---
 
+## 2026-04-14 패치 요약
+
+- 저장소 품질 신호 도구를 추가했다: repository metrics, feature gap, test gap, refactor candidate, tool-output normalization.
+- 루트 `Makefile` 을 검증 엔트리포인트로 추가하고, `normalize_quality_signals.py` 로 실패/경고/커버리지/메트릭 신호를 공통 JSON으로 정규화한다.
+- subagent 호출 기준을 점수 단독이 아니라 `score_total`, hard trigger, write set 분리 가능성, `agent_budget`, 효율 게이트로 판단하도록 다듬었다.
+- policy, installer, template, permission 문구 변경에는 짧은 재귀개선 게이트를 적용한다: 실패 모드, 직접 효과, blast radius, 판정, 최소 수정, 자기검증, 최종 권고.
+- installer 기본값은 사용자 권한을 새로 창설하지 않고, user/workspace instruction 이 허용한 범위 안에서만 자동 delegation 을 설명한다.
+- 자세한 내용은 [2026-04-14 패치노트](./docs/PATCH_NOTES_2026-04-14.md)를 참고.
+
+---
+
 ## 최근 패치
 
 - `v0.4.0 - 2026-04-09`
@@ -381,6 +392,8 @@ delegated profile 에선 병렬 쓰기를 `writer_slot = parallel` 과 `write_se
 
 - [AGENTS.md](./AGENTS.md)
   전역 기본 규칙의 canonical 원본
+- [Makefile](./Makefile)
+  저장소 루트 검증 엔트리포인트
 - [WORKSPACE_CONTEXT_TEMPLATE.toml](./WORKSPACE_CONTEXT_TEMPLATE.toml)
   작업공간 컨텍스트 파일 예시
 - [examples/micro-seed.md](./examples/micro-seed.md): seed 예시만 둔다
@@ -427,6 +440,53 @@ delegated profile 에선 병렬 쓰기를 `writer_slot = parallel` 과 `write_se
   Codex 복붙용 부트스트랩
 - [installer/POWERSHELL_INSTALL.md](./installer/POWERSHELL_INSTALL.md)
   Codex 복붙용 요약
+
+---
+
+## 개발용 검증 엔트리포인트
+
+이 저장소에서 루트 기준으로 일관되게 돌릴 엔트리포인트는 `Makefile` 이다.
+
+도구 실행 결과를 다음 자가개선 단계에 넘길 때는 루트의 `normalize_quality_signals.py` 를 기준 정규화 헬퍼로 쓴다.
+이 헬퍼는 `stdout`/`stderr`/구조화된 `issues` 입력에서 실패, 경고, 커버리지 신호를 공통 JSON 필드로 매핑한다.
+또한 `--history <path>` 기준으로 append-only 분석 이력을 JSON으로 누적 저장하고, `--query latest|summary|all` 로 다시 조회할 수 있다.
+
+- 정규화 결과 스키마
+  - `schema_version`, `result_count`, `failed_tool_count`, `warning_tool_count`, `coverage_tool_count`
+  - `failed_tools`, `warning_tools`, `coverage_tools`, `results`
+- 분석 이력 스키마
+  - `history_schema_version`, `analysis_schema_version`, `entry_count`
+  - `failed_entry_count`, `warning_entry_count`, `latest_entry_id`, `latest_recorded_at`
+  - `tool_occurrences`, `entries`
+  - 각 `entry` 는 `entry_id`, `recorded_at`, `source`, `analysis` 를 가진다
+
+예시:
+
+```bash
+python3 normalize_quality_signals.py --input examples/quality_signal_samples.json --history /tmp/quality-history.json --store --pretty
+python3 normalize_quality_signals.py --history /tmp/quality-history.json --query latest --pretty
+python3 normalize_quality_signals.py --history /tmp/quality-history.json --query summary --pretty
+```
+
+- `make lint`
+  - `markdownlint-cli2` 또는 `markdownlint` 로 `*.md` 검사
+  - `bash -n` 으로 `*.sh` 문법 검사
+  - `shellcheck` 가 있으면 추가 셸 정적 분석
+  - `pwsh` 또는 `powershell` 이 있으면 `*.ps1` 파서 검사
+  - `Invoke-ScriptAnalyzer` 가 있으면 추가 PowerShell 정적 분석
+- `make test`
+  - `installer/CodexMultiAgent.sh --help` 스모크 테스트
+  - `python3 normalize_quality_signals.py --input examples/quality_signal_samples.json` 샘플 기반 정규화 검사
+  - 샘플 입력을 임시 `--history` 파일에 저장한 뒤 `latest`, `summary` 조회까지 스모크 검사
+  - `python3 extract_test_gap_candidates.py --root .` 로 테스트 공백 리포트가 재현되는지 검사
+- `make check`
+  - `make lint` + `make test`
+- `make test-test-gap-docs`
+  - `extract_test_gap_candidates.py` 의 JSON/Markdown 출력이 현재 저장소 상태와 일치하는지 검사
+  - 생성 Markdown 이 `docs/TEST_GAP_AREAS.md` 와 완전히 같은지 비교
+
+권장 도구는 `markdownlint-cli2`, `shellcheck`, `pwsh` + `PSScriptAnalyzer` 다.
+로컬에 일부 도구가 없더라도 엔트리포인트는 가능한 검사부터 수행하고, 빠진 도구는 `skip` 으로 명시한다.
 
 ---
 

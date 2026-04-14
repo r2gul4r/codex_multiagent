@@ -70,10 +70,43 @@ Profile selection:
   - uneven tasks that need both sequential and parallel delegation
   - choose this when one phase must run serially to freeze the contract and later phases can fan out safely
 
+Efficiency gate:
+
+- `0-3` points usually stays local unless there is a clean reviewer or explorer sidecar with almost no handoff cost.
+- `4-6` points use a lightweight spawn/no-spawn basis when the choice is non-obvious. Spawn only when a role can return useful work while `main` continues non-overlapping work, or when serial delegation lowers risk enough to justify the handoff.
+- `7-9` points should record an explicit `spawn_decision` and default toward delegation when the write sets split cleanly. Staying single-session needs a concrete reason, such as one blocking discovery result or one tightly coupled edit surface.
+- `10+` points should strongly consider `delegated-parallel` or `mixed`, usually with reviewer coverage.
+
+Record `efficiency_basis` in `STATE.md` before spawning. Use a one-line basis for simple `4-6` point decisions, and the full structure below for delegated profiles or policy/template changes:
+
+- `parallelizable_slices`: the independent slices and their owners
+- `handoff_cost`: why the handoff is small enough
+- `expected_gain`: wall-clock reduction, lower risk, or better review coverage
+- `blocking_dependencies`: anything that prevents immediate fan-out
+- `spawn_decision`: `spawn`, `defer_until_contract_freeze`, or `do_not_spawn`
+
+Spawn automatically when the user has granted standing authorization and all of these are true:
+
+- the slice has a read-only scope or a disjoint write set
+- the output can be verified independently
+- `agent_budget` is greater than `0`
+- `main` will not write the same files during a parallel phase
+- the expected gain is larger than handoff and wait cost
+
+Do not spawn just because the score is high. High score starts the efficiency analysis; safe ownership and useful parallel work decide the actual call.
+
+Recursive Socratic improvement gate:
+
+- Trigger it for policy, workflow, delegation, installer/template, global default, permission language, or new recording-field changes; also trigger it when the user asks whether a design is too heavy.
+- Use the smallest useful loop: `4-6` points gets three questions, `7+` gets an efficiency-and-safety pass, and installer/template/global-default text gets the blast-radius pass.
+- Keep the output fixed: failure mode, direct or indirect effect, blast radius, verdict `keep`/`soften`/`remove`, minimal edit, self-check, and final recommendation.
+- For installer, template, global default, or authorization wording, ask: "Does this describe existing authority, or create authority the user did not grant?"
+- Finish with the adversarial pass: did the simplification become too weak, too vague, or likely to revive the original failure mode?
+
 Before any write begins:
 
 - record the exact `orchestration_profile` and concrete `reason` in `STATE.md`
-- record `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`
+- record `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`; record `efficiency_basis` and `spawn_decision` when delegation efficiency is being evaluated
 - report to the user which score or trigger basis was read from `STATE.md` and how that changes the startup plan, such as staying local, starting serial delegation, or opening parallel worker lanes
 - do not use legacy route labels or hedge labels such as `single-agent fallback`
 - on `single-session`, keep one write-capable lane and no subagent calls

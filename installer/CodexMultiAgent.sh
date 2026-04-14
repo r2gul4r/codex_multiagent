@@ -1124,18 +1124,22 @@ Error logging:
 Default behavior:
 - Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.
 - After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.
+- When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.
+- For `score_total 4-6`, use a lightweight spawn/no-spawn basis when the choice is non-obvious; for `score_total >= 7`, record an explicit `spawn_decision` unless a concrete blocker makes single-session cheaper and safer.
 - Treat `contract_instability`, `high_investigation_uncertainty`, `data_fidelity_risk`, `external_source_dependency`, `implementation_depends_on_discovery_result`, and `ambiguous_acceptance_criteria` as hard triggers, not hidden score boosts.
 - Use explorer-first discovery when correctness depends on real data, external sources, coordinates, schema inference, broad codebase scouting, or other facts not yet known.
 - Do not treat a task as single-session from final output file count alone; re-evaluate when upstream collection, normalization, or read-heavy investigation can be owned separately.
 - If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.
 - If another live thread already owns an overlapping file, shared asset, or contract surface, stop and serialize the work, move one slice to another worktree, or switch to concurrent registry mode before more writes.
 - Route skill selection from task intent: use `ouroboros-interview` for ambiguous scope, `ouroboros-seed` for contract freeze, `ouroboros-run` for implementation, and `ouroboros-evaluate` for verification against the frozen seed.
-- For read-heavy, parallelizable, or shared-asset work, delegate proactively without waiting for the user to say "spawn" or "parallelize".
+- For read-heavy, parallelizable, or shared-asset work, delegate proactively when the efficiency gate passes; do not wait for the user to say "spawn" or "parallelize".
 - Close finished agents promptly once their output is consumed.
 - Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.
 - Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, `worker_shared` for shared assets, and `reviewer` for close-out checks.
 - Keep the main thread focused on requirements, decisions, synthesis, orchestration selection, and final answers.
 - Apply user natural-language overrides first; then compute the task-scoped agent budget and selected skills from the score and trigger set.
+- For policy, workflow, delegation, installer/template, permission-language, or recording-field changes, use a compact recursive improvement gate: failure mode, direct effect, blast radius, keep/soften/remove verdict, minimal edit, self-check, and final recommendation.
+- For installer, template, global default, and authorization wording, verify that the text describes existing authority instead of creating authority the user did not grant.
 
 Spawn requirements:
 - These spawn settings are mandatory. Do not rely on inherited defaults, implicit role defaults, or absent custom agent files.
@@ -1147,7 +1151,8 @@ Spawn requirements:
 - If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.
 
 Delegation rules:
-- Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, and `agent_budget` to decide whether delegation is allowed and how much support to spawn.
+- Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, `agent_budget`, and when applicable `efficiency_basis` and `spawn_decision` to decide whether delegation is allowed and how much support to spawn.
+- Spawn only when the slice has a read-only scope or disjoint write set, independent verification target, positive expected gain, and `agent_budget` greater than zero.
 - Count intermediate collection and normalization responsibility as part of `write_sets`; do not collapse that upstream work into the final frontend file owner by default.
 - Allow `delegated-parallel` only when the contract is frozen, write sets are disjoint, shared assets have one owner, main will not write during the parallel phase, and slice verification exists.
 - If a new hard trigger, contract mismatch, or write-set conflict appears during execution, stop writes, mark the task `contract_blocked` or `reclassify_required`, and refresh STATE.md before continuing.

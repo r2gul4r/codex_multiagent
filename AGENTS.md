@@ -63,6 +63,11 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 ### Subagent Hygiene
 
+- Standing authorization to spawn subagents must come from the current user request or workspace instructions; global or installer defaults must describe how to use authorization, not create it.
+- When standing authorization exists, `main` may spawn subagents automatically only after recording the efficiency basis, budget, contract, and disjoint ownership needed for that profile.
+- `efficiency_basis` must name the concrete benefit: reduced wall-clock time, lower investigation risk, independent review coverage, or isolated ownership of separable write sets.
+- Prefer spawning when there are `2+` independently verifiable slices, broad read-only discovery can run beside local work, or a reviewer can check a risky change while `main` continues non-overlapping integration.
+- Do not spawn when the next step is immediately blocked on a single discovery result, the edit is tiny and single-file, write ownership would overlap, verification cannot be scoped per slice, or handoff/waiting cost is likely higher than doing it locally.
 - When delegation is in use, close finished agents promptly instead of leaving them idle.
 - Spawn reviewers as late as practical unless earlier review is explicitly needed for the task.
 - Give one write set to each worker; do not overlap write ownership unless the task is being reclassified.
@@ -94,12 +99,16 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 - Before editing any file other than `STATE.md` or `MULTI_AGENT_LOG.md`, `main` must record the selected orchestration profile and the concrete `reason` in `STATE.md`
 - `reason` must name the hard trigger that fired or the concrete scorecard basis for the selected profile
-- Track the active profile with the repository terms that matter: `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`
+- Track the active profile with the repository terms that matter: `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`; add `efficiency_basis` and `spawn_decision` when delegation efficiency is being evaluated.
 - If the profile or reason is missing, stop and classify the task before writing
 - If the profile changes during execution, update `STATE.md` first and only then continue
 
 ### Orchestration Profiles
 
+- Score bands are guidance, not blind switches: `0-3` usually stays `single-session`, `4-6` uses a lightweight efficiency check when the choice is non-obvious, `7-9` is a strong delegation candidate when write sets split cleanly, and `10+` should strongly consider `delegated-parallel` or `mixed` with review.
+- For `score_total 4-6`, keep the efficiency check lightweight and record a one-line spawn/no-spawn basis only when the delegation choice is non-obvious or the task changes policy, workflow, installer, templates, or recording fields.
+- For `score_total >= 7`, record an explicit `spawn_decision` and default toward a delegated profile unless a concrete blocker makes single-session cheaper and safer.
+- Hard triggers force reclassification and usually justify an explorer, reviewer, or worker when that role can produce an independently useful result without blocking the next local step.
 - `single-session` keeps exactly one write-capable lane and no subagent delegation
 - `delegated-serial` lets `main` coordinate workers one slice at a time when the work is larger but still linear
 - `delegated-parallel` splits safe write sets across workers when contracts are pinned and the budget allows it
@@ -130,9 +139,19 @@ Installer global setup copies this file to the user's Codex home as the default 
 ### Dynamic Budgeting
 
 - Fixed role caps are replaced with per-task `agent_budget` instead of hardcoded per-role strings
-- `agent_budget` should be derived from `score_total`, `write_set` separability, `execution_topology`, and `hard_triggers`
+- `agent_budget` should be derived from `score_total`, `write_set` separability, `execution_topology`, `hard_triggers`, and `efficiency_basis`
+- Budget `0` means no spawn; budget `1` is for one explorer, worker, or reviewer; budget `2+` is allowed only when each slice has a disjoint write set or read-only scope plus its own verification target
 - `bounded_repair_loop` means follow-up fixes reuse the remaining budget instead of spawning agents without limit
 - Budget growth should be justified in `STATE.md` when a task needs more help than the initial estimate
+
+### Recursive Improvement Gate
+
+- Use this gate when the task changes policy, workflow, delegation rules, installer/default templates, permission language, or recording fields; also use it when the user asks whether the design is too heavy or efficient enough.
+- Scale the depth by task: `score_total 4-6` uses a three-question lightweight check, `score_total >= 7` uses an efficiency-and-safety check, and installer/template/global-default changes must include blast-radius and permission-language checks.
+- Keep the output patch-oriented, not essay-oriented: original failure mode, direct or indirect effect, blast radius, verdict `keep`/`soften`/`remove`, minimal edit, self-check, and final recommendation.
+- Ask at most six questions, and close each question with a verdict or a minimal patch direction.
+- For installer, template, global default, authorization, and permission text, explicitly ask whether the wording describes existing authority or creates authority that the user did not grant.
+- End with an adversarial second pass: check whether the proposed simplification became too weak, too vague, or likely to revive the original failure mode.
 
 ### Retrospectives And Metrics
 

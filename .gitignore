@@ -3,3 +3,7 @@ STATE.md
 SEED.yaml
 MULTI_AGENT_LOG.md
 ERROR_LOG.md
+
+# Python generated files
+__pycache__/
+*.py[cod]
