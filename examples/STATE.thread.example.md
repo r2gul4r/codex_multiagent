@@ -15,7 +15,7 @@
   - `contract_freeze_required`
   - `state_integrity_required`
 - selected_skills:
-  - `ouroboros-run`
+  - `none`
 - execution_topology: `single-session`
 - selection_reason: `This thread owns one closed documentation slice under the root registry.`
 

@@ -904,39 +904,27 @@ install_codex_custom_agents() {
     done < <(iter_top_level_sorted_paths "$source_agents_root" file)
 }
 
-install_codex_skills() {
-    source_kit_root="$1"
-    backup_root="$2"
-    source_skills_root="${source_kit_root}/codex_skills"
+remove_installer_managed_skills() {
+    backup_root="$1"
 
-    if [ ! -d "$source_skills_root" ]; then
+    if [ ! -f "$GLOBAL_MANAGED_SKILLS_MANIFEST" ]; then
         return
     fi
 
-    ensure_directory "$GLOBAL_SKILLS_ROOT"
-    backup_path_if_exists "$GLOBAL_SKILLS_ROOT" "$backup_root" "skills"
     backup_path_if_exists "$GLOBAL_MANAGED_SKILLS_MANIFEST" "$backup_root" "installer-managed-skills.manifest"
-
-    tmp_manifest=$(mktemp)
-    : > "$tmp_manifest"
-
-    while IFS= read -r -d '' source_skill_dir; do
-        [ -d "$source_skill_dir" ] || continue
-        managed_skill_name=$(basename "$source_skill_dir")
-        printf '%s\n' "$managed_skill_name" >> "$tmp_manifest"
-        copy_directory_contents "$source_skill_dir" "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
-    done < <(iter_top_level_sorted_paths "$source_skills_root" dir)
-
-    if [ -f "$GLOBAL_MANAGED_SKILLS_MANIFEST" ]; then
-        while IFS= read -r managed_skill_name; do
-            [ -n "$managed_skill_name" ] || continue
-            if ! grep -Fxq "$managed_skill_name" "$tmp_manifest"; then
-                rm -rf "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
-            fi
-        done < "$GLOBAL_MANAGED_SKILLS_MANIFEST"
+    if [ -d "$GLOBAL_SKILLS_ROOT" ]; then
+        backup_path_if_exists "$GLOBAL_SKILLS_ROOT" "$backup_root" "skills"
     fi
 
-    mv "$tmp_manifest" "$GLOBAL_MANAGED_SKILLS_MANIFEST"
+    while IFS= read -r managed_skill_name; do
+        [ -n "$managed_skill_name" ] || continue
+        case "$managed_skill_name" in
+            */*|*\\*|.|..) continue ;;
+        esac
+        rm -rf "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
+    done < "$GLOBAL_MANAGED_SKILLS_MANIFEST"
+
+    rm -f "$GLOBAL_MANAGED_SKILLS_MANIFEST"
 }
 
 install_codex_rules() {
@@ -1131,7 +1119,7 @@ Default behavior:
 - Do not treat a task as single-session from final output file count alone; re-evaluate when upstream collection, normalization, or read-heavy investigation can be owned separately.
 - If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.
 - If another live thread already owns an overlapping file, shared asset, or contract surface, stop and serialize the work, move one slice to another worktree, or switch to concurrent registry mode before more writes.
-- Route skill selection from task intent: use `ouroboros-interview` for ambiguous scope, `ouroboros-seed` for contract freeze, `ouroboros-run` for implementation, and `ouroboros-evaluate` for verification against the frozen seed.
+- Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, implement through the selected profile, and verify against the frozen contract.
 - For read-heavy, parallelizable, or shared-asset work, delegate proactively when the efficiency gate passes; do not wait for the user to say "spawn" or "parallelize".
 - Close finished agents promptly once their output is consumed.
 - Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.
@@ -1430,7 +1418,6 @@ install_global_kit() {
         CHANGELOG.md \
         codex_agents \
         codex_rules \
-        codex_skills \
         docs \
         examples \
         profiles \
@@ -1447,6 +1434,12 @@ install_global_kit() {
         fi
     done
 
+    stale_kit_skills_root="${GLOBAL_KIT_ROOT}/codex_skills"
+    if [ -e "$stale_kit_skills_root" ]; then
+        backup_path_if_exists "$stale_kit_skills_root" "$backup_root" "multiagent-kit-codex_skills"
+        rm -rf "$stale_kit_skills_root"
+    fi
+
     if ! should_overwrite_file "$GLOBAL_AGENTS_PATH"; then
         printf 'Skipped global AGENTS.md overwrite\n'
     else
@@ -1454,7 +1447,7 @@ install_global_kit() {
     fi
     install_codex_config "$backup_root"
     install_codex_custom_agents "$LOCAL_KIT_ROOT" "$backup_root"
-    install_codex_skills "$LOCAL_KIT_ROOT" "$backup_root"
+    remove_installer_managed_skills "$backup_root"
     install_codex_rules "$LOCAL_KIT_ROOT"
 
     printf 'Installed global defaults at %s\n' "$GLOBAL_AGENTS_PATH"
@@ -1533,10 +1526,6 @@ apply_to_workspace() {
 
         if [ -d "${source_kit_root}/codex_rules" ]; then
             copy_directory_contents "${source_kit_root}/codex_rules" "${docs_root}/codex_rules"
-        fi
-
-        if [ -d "${source_kit_root}/codex_skills" ]; then
-            copy_directory_contents "${source_kit_root}/codex_skills" "${docs_root}/codex_skills"
         fi
 
         copy_directory_contents "${source_kit_root}/profiles" "${docs_root}/profiles"

@@ -180,18 +180,14 @@ Use the selected profile to set the minimum verification gate before close-out:
 
 If no verification target can be named, do not fan out; return to discovery or shrink the slice.
 
-## 4. When To Use Skills
+## 4. Native Spec-First Gates
 
-Skill selection is automatic and follows the task state.
+The kit does not bundle workflow skills for spec-first phases. Spec-first behavior is native to `AGENTS.md`, `STATE.md`, and the selected orchestration profile.
 
-- `ouroboros-interview`
-  - requirements are unclear or still moving
-- `ouroboros-seed`
-  - the contract must be frozen before implementation
-- `ouroboros-run`
-  - the task is ready to enter implementation
-- `ouroboros-evaluate`
-  - verification against the frozen seed is the active goal
+- Clarify requirements in a read-only phase when scope is unclear or still moving.
+- Freeze the contract by recording scope, write sets, verification targets, and non-goals in `STATE.md`.
+- Enter implementation through the selected orchestration profile once the contract is stable enough.
+- Verify against the frozen contract using repository checks and record the result in `STATE.md`.
 
 The user can still override the default picker with natural language. That override wins.
 
@@ -404,7 +400,7 @@ That gives future AGENTS or installer changes an evidence trail instead of a vag
 1. Start with `main`
 2. Add hard-trigger + scorecard gating
 3. Add `STATE.md` once tasks stop fitting in your head
-4. Add automatic skill routing for `ouroboros-*`
+4. Add repository-specific skill routing only when a real workflow needs it
 5. Add `agent_budget` once delegation starts to spread across multiple slices
 6. Add `worker_shared` when common types, shared utils, or common components keep causing collisions
 7. When real collisions appear, add repository-specific forbidden patterns

@@ -52,9 +52,9 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 ## Spec-First Workflow
 
-- Use `interview -> seed -> run -> evaluate` for non-tiny hotfixes when the work spans multiple files, needs a frozen contract, or could drift without a written spec.
+- Use `clarify -> freeze -> implement -> verify` for non-tiny hotfixes when the work spans multiple files, needs a frozen contract, or could drift without a written spec.
 - Skip spec-first only for tiny local hotfixes that stay in one file and do not need a frozen contract.
-- Treat `interview` as read-only scope clarification, `seed` as contract freeze, `run` as implementation, and `evaluate` as verification.
+- Treat clarification as read-only scope discovery, freeze as the contract snapshot, implementation as bounded writes, and verification as contract checking.
 - Keep the workflow subordinate to the existing orchestration profile, security, reviewer, and verification rules.
 - Do not add background orchestration loops or polling behavior to this workflow.
 - If a tiny hotfix starts growing during execution, the agent must stop, update `STATE.md`, re-select the orchestration profile, and only then continue with more writes.
@@ -129,10 +129,11 @@ Installer global setup copies this file to the user's Codex home as the default 
 ### Skill Routing
 
 - Skill choice is automatic and follows the task score, hard triggers, and current phase
-- Use `ouroboros-interview` when requirements are still moving or the scope is ambiguous
-- Use `ouroboros-seed` when the contract must be frozen before implementation
-- Use `ouroboros-run` when the task is ready to enter implementation
-- Use `ouroboros-evaluate` when verification against the frozen seed is the active goal
+- Do not depend on bundled workflow skills; this kit expresses spec-first behavior directly through `AGENTS.md`, `STATE.md`, and repository verification rules.
+- When requirements are still moving or scope is ambiguous, keep the phase read-only and clarify before writing.
+- When the contract must be frozen before implementation, record the frozen scope in `STATE.md` instead of invoking a separate skill command.
+- When the task is ready for implementation, enter the selected orchestration profile directly.
+- When verification against a frozen contract is active, run repository verification and record the result in `STATE.md`.
 - Record `selected_skills` and a short `selection_reason` so the choice is auditable
 - Skill selection follows the broader natural-language override precedence above
 

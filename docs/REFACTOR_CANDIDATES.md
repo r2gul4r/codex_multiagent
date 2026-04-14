@@ -4,7 +4,7 @@
 각 항목은 문제 징후, 개선 기대효과, 선정 근거를 함께 남겨 다음 계획 단계의 직접 입력으로 쓴다.
 
 - schema_version: `1`
-- scanned_file_count: `60`
+- scanned_file_count: `52`
 - refactor_candidate_count: `5`
 
 ## Refactor Candidates
@@ -14,6 +14,7 @@
 - 결정: `pick` / 등급 `A` / 점수 `47`
 - 문제 징후:
   - `collect_repo_metrics.py` 가 code_lines=702, cyclomatic_estimate=111, duplication_group_count=19 로 큰 핫스팟임
+  - 변경 빈도도 commit_count=1 로 누적돼 수정 안정성 압박이 큼
   - 큰 책임 덩어리 예시: build_summary(74 lines), collect_duplicate_groups(54 lines), analyze_file(52 lines)
 - 개선 기대효과:
   - 탐지, 점수화, 렌더링 같은 책임을 더 작은 단위로 쪼개 다음 수정 범위를 좁힘
@@ -35,7 +36,8 @@
 
 - 결정: `pick` / 등급 `A` / 점수 `47`
 - 문제 징후:
-  - `normalize_quality_signals.py` 가 code_lines=859, cyclomatic_estimate=209, duplication_group_count=13 로 큰 핫스팟임
+  - `normalize_quality_signals.py` 가 code_lines=859, cyclomatic_estimate=209, duplication_group_count=14 로 큰 핫스팟임
+  - 변경 빈도도 commit_count=1 로 누적돼 수정 안정성 압박이 큼
   - 큰 책임 덩어리 예시: normalize_repo_metric_file(89 lines), parse_coverage(68 lines), normalize_repo_metrics_payload(66 lines)
 - 개선 기대효과:
   - 탐지, 점수화, 렌더링 같은 책임을 더 작은 단위로 쪼개 다음 수정 범위를 좁힘
@@ -58,7 +60,7 @@
 - 결정: `pick` / 등급 `A` / 점수 `47`
 - 문제 징후:
   - 정규화 중복 블록 15줄이 2회 반복됨
-  - 영향 파일 중 최대 변경 빈도는 commit_count=0
+  - 영향 파일 중 최대 변경 빈도는 commit_count=1
   - 중복이 같은 책임 경계(apply_git_history_metrics, apply_duplication_metrics) 주변에 몰려 있음
   - 반복 블록 예시: return [ / FileMetrics(
 - 개선 기대효과:
@@ -80,7 +82,7 @@
 - 결정: `pick` / 등급 `A` / 점수 `45`
 - 문제 징후:
   - 정규화 중복 블록 50줄이 2회 반복됨
-  - 영향 파일 중 최대 변경 빈도는 commit_count=30
+  - 영향 파일 중 최대 변경 빈도는 commit_count=31
   - 중복이 같은 책임 경계(New-DefaultState, New-WorkspaceStateFromContext) 주변에 몰려 있음
   - 반복 블록 예시: $lines.Add('- phase: `explore`') / $lines.Add('- scope: `n/a`')
 - 개선 기대효과:
@@ -102,7 +104,7 @@
 - 결정: `pick` / 등급 `A` / 점수 `45`
 - 문제 징후:
   - 정규화 중복 블록 38줄이 2회 반복됨
-  - 영향 파일 중 최대 변경 빈도는 commit_count=30
+  - 영향 파일 중 최대 변경 빈도는 commit_count=31
   - 중복이 같은 책임 경계(generate_default_state, generate_workspace_state_from_context) 주변에 몰려 있음
   - 반복 블록 예시: printf -- '- phase: `explore`\n' / printf -- '- scope: `n/a`\n'
 - 개선 기대효과:

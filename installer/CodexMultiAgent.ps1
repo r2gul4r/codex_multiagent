@@ -937,41 +937,30 @@ function Install-CodexCustomAgents {
     }
 }
 
-function Install-CodexSkills {
-    param(
-        [string]$SourceKitRoot,
-        [string]$BackupRoot
-    )
+function Remove-InstallerManagedSkills {
+    param([string]$BackupRoot)
 
-    $sourceSkillsRoot = Join-Path $SourceKitRoot 'codex_skills'
-    if (-not (Test-Path -LiteralPath $sourceSkillsRoot -PathType Container)) {
+    if (-not (Test-Path -LiteralPath $GlobalManagedSkillsManifest)) {
         return
     }
 
-    Ensure-Directory -Path $GlobalSkillsRoot
-    Backup-PathIfExists -Path $GlobalSkillsRoot -BackupRoot $BackupRoot -Name 'skills'
     Backup-PathIfExists -Path $GlobalManagedSkillsManifest -BackupRoot $BackupRoot -Name 'installer-managed-skills.manifest'
-
-    $previousManagedSkills = @()
-    if (Test-Path -LiteralPath $GlobalManagedSkillsManifest) {
-        $previousManagedSkills = @(Read-Utf8Lines -Path $GlobalManagedSkillsManifest | Where-Object { $_ })
+    if (Test-Path -LiteralPath $GlobalSkillsRoot -PathType Container) {
+        Backup-PathIfExists -Path $GlobalSkillsRoot -BackupRoot $BackupRoot -Name 'skills'
     }
 
-    $currentManagedSkills = @(
-        Get-ChildItem -LiteralPath $sourceSkillsRoot -Directory | ForEach-Object { $_.Name }
-    )
-
+    $previousManagedSkills = @(Read-Utf8Lines -Path $GlobalManagedSkillsManifest | Where-Object { $_ })
     foreach ($managedSkillName in $previousManagedSkills) {
-        if ($currentManagedSkills -notcontains $managedSkillName) {
-            $managedSkillPath = Join-Path $GlobalSkillsRoot $managedSkillName
-            if (Test-Path -LiteralPath $managedSkillPath) {
-                Remove-Item -LiteralPath $managedSkillPath -Recurse -Force
-            }
+        if ($managedSkillName -match '[\\/]' -or $managedSkillName -eq '.' -or $managedSkillName -eq '..') {
+            continue
+        }
+        $managedSkillPath = Join-Path $GlobalSkillsRoot $managedSkillName
+        if (Test-Path -LiteralPath $managedSkillPath) {
+            Remove-Item -LiteralPath $managedSkillPath -Recurse -Force
         }
     }
 
-    Copy-DirectoryContents -Source $sourceSkillsRoot -Destination $GlobalSkillsRoot
-    Write-Utf8Lines -Path $GlobalManagedSkillsManifest -Value $currentManagedSkills
+    Remove-Item -LiteralPath $GlobalManagedSkillsManifest -Force
 }
 
 function Install-CodexRules {
@@ -1116,7 +1105,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Do not treat a task as single-session from final output file count alone; re-evaluate when upstream collection, normalization, or read-heavy investigation can be owned separately.',
         '- If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.',
         '- If another live thread already owns an overlapping file, shared asset, or contract surface, stop and serialize the work, move one slice to another worktree, or switch to concurrent registry mode before more writes.',
-        '- Route skill selection from task intent: use `ouroboros-interview` for ambiguous scope, `ouroboros-seed` for contract freeze, `ouroboros-run` for implementation, and `ouroboros-evaluate` for verification against the frozen seed.',
+        '- Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, implement through the selected profile, and verify against the frozen contract.',
         '- Delegate proactively for read-heavy, parallelizable, or shared-asset work when the efficiency gate passes; do not wait for the user to say "spawn" or "parallelize".',
         '- Close finished agents promptly once their output is consumed.',
         '- Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.',
@@ -1451,7 +1440,6 @@ function Install-GlobalKit {
         'MULTI_AGENT_GUIDE.md',
         'codex_agents',
         'codex_rules',
-        'codex_skills',
         'docs',
         'examples',
         'profiles',
@@ -1471,6 +1459,12 @@ function Install-GlobalKit {
         }
     }
 
+    $staleKitSkillsRoot = Join-Path $GlobalKitRoot 'codex_skills'
+    if (Test-Path -LiteralPath $staleKitSkillsRoot) {
+        Backup-PathIfExists -Path $staleKitSkillsRoot -BackupRoot $backupRoot -Name 'multiagent-kit-codex_skills'
+        Remove-Item -LiteralPath $staleKitSkillsRoot -Recurse -Force
+    }
+
     if (-not (Should-OverwriteFile -Path $GlobalAgentsPath)) {
         Write-Host 'Skipped global AGENTS.md overwrite' -ForegroundColor Yellow
     }
@@ -1479,7 +1473,7 @@ function Install-GlobalKit {
     }
     Install-CodexConfig -ConfigPath $GlobalConfigPath -BackupRoot $backupRoot
     Install-CodexCustomAgents -SourceKitRoot $LocalKitRoot -BackupRoot $backupRoot
-    Install-CodexSkills -SourceKitRoot $LocalKitRoot -BackupRoot $backupRoot
+    Remove-InstallerManagedSkills -BackupRoot $backupRoot
     Install-CodexRules -SourceKitRoot $LocalKitRoot
 
     Write-Host "Installed global defaults at $GlobalAgentsPath" -ForegroundColor Green
@@ -1564,9 +1558,6 @@ function Apply-ToWorkspace {
         }
         if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_rules')) {
             Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_rules') -Destination (Join-Path $docsRoot 'codex_rules')
-        }
-        if (Test-Path -LiteralPath (Join-Path $sourceKitRoot 'codex_skills')) {
-            Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'codex_skills') -Destination (Join-Path $docsRoot 'codex_skills')
         }
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'profiles') -Destination (Join-Path $docsRoot 'profiles')
         Copy-DirectoryContents -Source (Join-Path $sourceKitRoot 'examples') -Destination (Join-Path $docsRoot 'examples')

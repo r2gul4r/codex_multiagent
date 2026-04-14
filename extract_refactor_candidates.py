@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -109,7 +110,15 @@ def load_metrics(root: Path, metrics_input: str | None) -> dict[str, Any]:
             return json.load(handle)
 
     command = [sys.executable, str(root / "collect_repo_metrics.py"), "--root", str(root), "--pretty"]
-    completed = subprocess.run(command, capture_output=True, text=True, check=False)
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    completed = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+        check=False,
+    )
     if completed.returncode != 0:
         raise RuntimeError(
             "collect_repo_metrics.py failed while building refactor candidates:\n"

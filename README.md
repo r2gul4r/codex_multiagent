@@ -11,16 +11,10 @@ Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운
 - 저장소 품질 신호 도구를 추가했다: repository metrics, feature gap, test gap, refactor candidate, tool-output normalization.
 - 루트 `Makefile` 을 검증 엔트리포인트로 추가하고, `normalize_quality_signals.py` 로 실패/경고/커버리지/메트릭 신호를 공통 JSON으로 정규화한다.
 - subagent 호출 기준을 점수 단독이 아니라 `score_total`, hard trigger, write set 분리 가능성, `agent_budget`, 효율 게이트로 판단하도록 다듬었다.
+- bundled spec-first workflow skills와 legacy command-routing docs/rules를 제거했다. spec-first 동작은 `AGENTS.md`/`STATE.md` native gate로 유지한다.
 - policy, installer, template, permission 문구 변경에는 짧은 재귀개선 게이트를 적용한다: 실패 모드, 직접 효과, blast radius, 판정, 최소 수정, 자기검증, 최종 권고.
 - installer 기본값은 사용자 권한을 새로 창설하지 않고, user/workspace instruction 이 허용한 범위 안에서만 자동 delegation 을 설명한다.
 - 자세한 내용은 [2026-04-14 패치노트](./docs/PATCH_NOTES_2026-04-14.md)를 참고.
-
----
-
-## Acknowledgements
-
-이 저장소는 Ouroboros 전체 런타임을 배포하지 않고 선택한 아이디어만 재구성한다. 이 킷의 spec-first workflow와 일부 skill/rule 설계는 [Q00/ouroboros](https://github.com/Q00/ouroboros)에서 참고하고 포팅했다.
-Ouroboros-derived portion에 적용되는 MIT 원문은 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)를 보면 된다.
 
 ---
 
@@ -44,7 +38,6 @@ Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/ma
 - `%USERPROFILE%\.codex\config.toml` 의 필요한 키를 patch 해서 `AGENTS.md` 발견 우선순위, `multi_agent` 기본값, 그리고 `AGENTS.md`를 우선 읽고 집행하는 execution requirements 를 맞춤
 - `%USERPROFILE%\.codex\agents\*.toml` 서브에이전트 설정 설치 및 레거시 추가 agent 정리
 - `%USERPROFILE%\.codex\rules\*.rules` 기본 command rules 설치
-- `%USERPROFILE%\.codex\skills\ouroboros-*` spec-first workflow skill 설치
 - `%USERPROFILE%\.codex\multiagent-kit` 에 참고용 킷 복사
 
 #### 서브에이전트 설정 파일
@@ -170,7 +163,6 @@ Codex는 현재 `default`, `worker`, `explorer`, `reviewer` 같은 공식 서브
 
 - 전역 `AGENTS.md` 기본값
 - 전역 `config.toml` patch
-- 전역 `codex_skills/ouroboros-*` spec-first workflow skill
 - 저장소별 `AGENTS.md` 오버라이드 생성
 - `STATE.md` 기반 경량 task board
 - `score-based orchestration profile + writer_slot + write_sets` 기반 실행 소유권 흐름
@@ -383,7 +375,6 @@ delegated profile 에선 병렬 쓰기를 `writer_slot = parallel` 과 `write_se
   저장소 루트 검증 엔트리포인트
 - [WORKSPACE_CONTEXT_TEMPLATE.toml](./WORKSPACE_CONTEXT_TEMPLATE.toml)
   작업공간 컨텍스트 파일 예시
-- [examples/micro-seed.md](./examples/micro-seed.md): seed 예시만 둔다
 - 루트의 `STATE.md`, `SEED.yaml`, `MULTI_AGENT_LOG.md`, `ERROR_LOG.md` 는 런타임에서 생성되거나 무시되는 파일이다
 - [docs/WORKSPACE_CONTEXT_GUIDE.md](./docs/WORKSPACE_CONTEXT_GUIDE.md)
   `WORKSPACE_CONTEXT.toml` 기준표와 작성 프롬프트
@@ -405,14 +396,6 @@ delegated profile 에선 병렬 쓰기를 `writer_slot = parallel` 과 `write_se
   Codex `explorer` 서브에이전트 설정 파일
 - [codex_agents/reviewer.toml](./codex_agents/reviewer.toml)
   Codex `reviewer` 서브에이전트 설정 파일
-- [codex_skills/ouroboros-interview/SKILL.md](./codex_skills/ouroboros-interview/SKILL.md)
-  spec-first 인터뷰 단계 skill
-- [codex_skills/ouroboros-seed/SKILL.md](./codex_skills/ouroboros-seed/SKILL.md)
-  seed 고정 단계 skill
-- [codex_skills/ouroboros-run/SKILL.md](./codex_skills/ouroboros-run/SKILL.md)
-  orchestration-aware 실행 진입 skill
-- [codex_skills/ouroboros-evaluate/SKILL.md](./codex_skills/ouroboros-evaluate/SKILL.md)
-  seed 기준 staged verification skill
 - [profiles/main.md](./profiles/main.md)
   `main` 역할 계약
 - [profiles/explorer.md](./profiles/explorer.md)
