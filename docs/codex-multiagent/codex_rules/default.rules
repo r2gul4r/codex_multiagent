@@ -1,0 +1,127 @@
+# Block destructive commands by default.
+# Based on Codex Rules docs:
+# https://developers.openai.com/codex/rules
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Do not hard reset automatically. Use a non-destructive alternative or ask the user first.",
+    match = [
+        "git reset --hard",
+        "git reset --hard HEAD~1",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "--"],
+    decision = "forbidden",
+    justification = "Do not discard tracked file changes automatically. Ask the user first.",
+    match = [
+        "git checkout -- README.md",
+        "git checkout -- src/app.ts",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "-f"],
+    decision = "forbidden",
+    justification = "Do not force checkout automatically. Ask the user first.",
+    match = [
+        "git checkout -f main",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "restore"],
+    decision = "forbidden",
+    justification = "Do not restore or discard changes automatically. Ask the user first.",
+    match = [
+        "git restore README.md",
+        "git restore --staged src/app.ts",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "forbidden",
+    justification = "Do not clean untracked files automatically. Ask the user first.",
+    match = [
+        "git clean -fd",
+        "git clean -fdx",
+    ],
+)
+
+prefix_rule(
+    pattern = ["rm", ["-rf", "-fr"]],
+    decision = "forbidden",
+    justification = "Do not recursively delete files automatically. Ask the user first.",
+    match = [
+        "rm -rf build",
+        "rm -fr dist",
+    ],
+)
+
+prefix_rule(
+    pattern = ["rm", "-r", "-f"],
+    decision = "forbidden",
+    justification = "Do not recursively delete files automatically. Ask the user first.",
+    match = [
+        "rm -r -f build",
+    ],
+)
+
+prefix_rule(
+    pattern = ["rm", "-f", "-r"],
+    decision = "forbidden",
+    justification = "Do not recursively delete files automatically. Ask the user first.",
+    match = [
+        "rm -f -r build",
+    ],
+)
+
+prefix_rule(
+    pattern = ["sudo", "rm", ["-rf", "-fr"]],
+    decision = "forbidden",
+    justification = "Do not recursively delete files with sudo automatically. Ask the user first.",
+    match = [
+        "sudo rm -rf /tmp/test-dir",
+    ],
+)
+
+prefix_rule(
+    pattern = ["del", "/s", "/q"],
+    decision = "forbidden",
+    justification = "Do not recursively delete files automatically. Ask the user first.",
+    match = [
+        "del /s /q temp\\*",
+    ],
+)
+
+prefix_rule(
+    pattern = [["rd", "rmdir"], "/s", "/q"],
+    decision = "forbidden",
+    justification = "Do not recursively delete directories automatically. Ask the user first.",
+    match = [
+        "rd /s /q build",
+        "rmdir /s /q dist",
+    ],
+)
+
+prefix_rule(
+    pattern = [["Remove-Item", "rm", "ri"], "-Recurse", "-Force"],
+    decision = "forbidden",
+    justification = "Do not recursively delete files from PowerShell automatically. Ask the user first.",
+    match = [
+        "Remove-Item -Recurse -Force build",
+        "rm -Recurse -Force dist",
+    ],
+)
+
+prefix_rule(
+    pattern = [["Remove-Item", "rm", "ri"], "-Force", "-Recurse"],
+    decision = "forbidden",
+    justification = "Do not recursively delete files from PowerShell automatically. Ask the user first.",
+    match = [
+        "Remove-Item -Force -Recurse build",
+    ],
+)

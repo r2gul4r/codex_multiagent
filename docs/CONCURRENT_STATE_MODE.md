@@ -76,5 +76,5 @@ Each thread file still keeps the usual sections:
 
 ## Examples
 
-- [Registry Example](/C:/lsh/git/codex_multiagent/examples/STATE.registry.example.md)
-- [Thread Example](/C:/lsh/git/codex_multiagent/examples/STATE.thread.example.md)
+- [Registry Example](../examples/STATE.registry.example.md)
+- [Thread Example](../examples/STATE.thread.example.md)

@@ -18,7 +18,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# 경로 기본 값
+# Default paths
 $InstallerRoot = $PSScriptRoot
 $LocalKitRoot = Split-Path -Parent $PSScriptRoot
 $GlobalHome = Join-Path $env:USERPROFILE '.codex'
@@ -113,7 +113,7 @@ function Write-Utf8Lines {
 function Remove-StaleInstallerArtifacts {
     param([string]$InstallerPath)
 
-    # 예전 exe 방식 잔해만 지정 제거
+    # Remove only legacy exe-style leftovers
     $stalePaths = @(
         (Join-Path $InstallerPath 'CodexMultiAgentLauncher.exe'),
         (Join-Path $InstallerPath 'Launch-CodexMultiAgent.cmd'),
@@ -125,6 +125,36 @@ function Remove-StaleInstallerArtifacts {
         if (Test-Path -LiteralPath $stalePath) {
             Remove-Item -LiteralPath $stalePath -Recurse -Force
         }
+    }
+}
+
+function Remove-StaleKitArtifacts {
+    param(
+        [string]$KitRoot,
+        [string]$BackupRoot,
+        [string]$Label
+    )
+
+    $staleRelativePaths = @(
+        'codex_rules\ouroboros-lite.md',
+        'docs\OUROBOROS_LITE_PORT.md',
+        'examples\micro-seed.md'
+    )
+
+    foreach ($relativePath in $staleRelativePaths) {
+        $stalePath = Join-Path $KitRoot $relativePath
+        if (Test-Path -LiteralPath $stalePath) {
+            $backupName = ('{0}-{1}' -f $Label, ($relativePath -replace '[\\/]', '-'))
+            Backup-PathIfExists -Path $stalePath -BackupRoot $BackupRoot -Name $backupName
+            Remove-Item -LiteralPath $stalePath -Force
+        }
+    }
+
+    $legacySkillsDirName = 'codex' + '_skills'
+    $staleSkillsRoot = Join-Path $KitRoot $legacySkillsDirName
+    if (Test-Path -LiteralPath $staleSkillsRoot) {
+        Backup-PathIfExists -Path $staleSkillsRoot -BackupRoot $BackupRoot -Name "$Label-$legacySkillsDirName"
+        Remove-Item -LiteralPath $staleSkillsRoot -Recurse -Force
     }
 }
 
@@ -345,6 +375,27 @@ function Get-DerivedErrorLogPath {
         $errorLogPath = 'ERROR_LOG.md'
     }
     return $errorLogPath
+}
+
+function Get-DerivedPersonaOverrides {
+    param([hashtable]$Context)
+
+    $items = [System.Collections.Generic.List[string]]::new()
+    $personaName = Get-ContextString -Context $Context -Section 'persona_override' -Key 'name'
+    $responseLanguage = Get-ContextString -Context $Context -Section 'persona_override' -Key 'response_language'
+    $speechStyle = Get-ContextString -Context $Context -Section 'persona_override' -Key 'speech_style'
+    $tone = Get-ContextString -Context $Context -Section 'persona_override' -Key 'tone'
+    $allowMildProfanity = Get-ContextString -Context $Context -Section 'persona_override' -Key 'allow_mild_profanity'
+    $codeCommentLanguage = Get-ContextString -Context $Context -Section 'persona_override' -Key 'code_comment_language'
+
+    if ($personaName) { $items.Add(('persona_name: `{0}`' -f $personaName)) }
+    if ($responseLanguage) { $items.Add(('response_language: `{0}`' -f $responseLanguage)) }
+    if ($speechStyle) { $items.Add(('speech_style: `{0}`' -f $speechStyle)) }
+    if ($tone) { $items.Add(('tone: `{0}`' -f $tone)) }
+    if ($allowMildProfanity -ne '') { $items.Add(('allow_mild_profanity: `{0}`' -f $allowMildProfanity.ToLowerInvariant())) }
+    if ($codeCommentLanguage) { $items.Add(('code_comment_language: `{0}`' -f $codeCommentLanguage)) }
+
+    return $items.ToArray()
 }
 
 function Resolve-WorkspaceRelativePath {
@@ -654,6 +705,11 @@ function New-DefaultWorkspaceAgents {
     $lines.Add('')
     $lines.Add('This file adds repository-specific rules on top of the global multi-agent defaults.')
     $lines.Add('Global multi-agent defaults remain in effect unless this file narrows them.')
+    $lines.Add('This workspace override is local; do not treat it as the public toolkit canonical global ruleset.')
+    $lines.Add('Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.')
+    $lines.Add('Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.')
+    $lines.Add('Use `[persona_override]` in `WORKSPACE_CONTEXT.toml` only to narrow persona fields locally.')
+    $lines.Add('Generated artifacts follow repository and audience conventions before persona defaults.')
     $lines.Add('')
     if ($TemplateName -eq 'minimal') {
         $lines.Add('## Minimal Repository Rules')
@@ -663,9 +719,12 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('- Keep changes small')
         $lines.Add('- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here')
         $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`')
+        $lines.Add('- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`')
+        $lines.Add('- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task')
+        $lines.Add('- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation')
         $lines.Add('- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`')
         $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`')
-        $lines.Add('- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change')
+        $lines.Add('- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change')
     }
     else {
         $lines.Add('## Repository Facts To Fill')
@@ -682,9 +741,12 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('')
         $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
         $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`')
+        $lines.Add('- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`')
+        $lines.Add('- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task')
+        $lines.Add('- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation')
         $lines.Add('- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`')
         $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran')
-        $lines.Add('- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change')
+        $lines.Add('- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change')
         $lines.Add('- Add repository-specific verification commands, hard triggers, approval zones, delegation hints, and worker ownership here')
         $lines.Add('- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules')
     }
@@ -726,7 +788,7 @@ function New-DefaultState {
     $lines.Add('  - `main`: `n/a`')
     $lines.Add('  - `worker`: `n/a`')
     $lines.Add('  - `reviewer`: `n/a`')
-    $lines.Add('- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`')
+    $lines.Add('- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`')
     $lines.Add('- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
@@ -779,6 +841,7 @@ function New-WorkspaceAgentsFromContext {
     $workerMappings = @(Get-DerivedWorkerMappings -Context $Context)
     $reviewerFocus = @(Get-DerivedReviewerFocus -Context $Context)
     $forbiddenPatterns = @(Get-DerivedForbiddenPatterns -Context $Context)
+    $personaOverrides = @(Get-DerivedPersonaOverrides -Context $Context)
 
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add("# Workspace Override: $title")
@@ -789,6 +852,24 @@ function New-WorkspaceAgentsFromContext {
     }
     $lines.Add('This file adds repository-specific rules on top of the global multi-agent defaults.')
     $lines.Add('Global multi-agent defaults remain in effect unless this file narrows them.')
+    $lines.Add('This workspace override is local; do not treat it as the public toolkit canonical global ruleset.')
+    $lines.Add('Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.')
+    $lines.Add('Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.')
+    $lines.Add('Generated artifacts follow repository and audience conventions before persona defaults.')
+    if ($personaOverrides.Count -gt 0) {
+        $lines.Add('')
+        $lines.Add('## Local Persona Override')
+        $lines.Add('')
+        $lines.Add('These fields narrow the global default persona `gogi`; unspecified persona fields inherit the global default.')
+        $lines.Add('Default response language remains Korean unless the user asks otherwise; default speech style remains concise Korean banmal.')
+        $lines.Add('Current user requests still take precedence over both workspace overrides and global defaults.')
+        $lines.Add('')
+        foreach ($item in $personaOverrides) {
+            if ($item) {
+                $lines.Add("- $item")
+            }
+        }
+    }
 
     Add-MarkdownSection -Lines $lines -Title 'Repository Facts' -Items ($repositoryFacts + @(
         ('Task board path: `{0}`' -f $taskBoardPath),
@@ -808,11 +889,14 @@ function New-WorkspaceAgentsFromContext {
     $lines.Add('## Repository Overrides')
     $lines.Add('')
     $lines.Add('- Use score-based orchestration to choose the role mix and task-scoped budget instead of fixed caps')
-    $lines.Add('  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide how much support is spawned')
+    $lines.Add('  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide whether support may be spawned')
     $lines.Add(('- Keep `{0}` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`' -f $taskBoardPath))
+    $lines.Add('- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`')
+    $lines.Add('- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task')
+    $lines.Add('- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation')
     $lines.Add(('- Keep one shared `{0}` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root task board into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`' -f $taskBoardPath))
     $lines.Add(('- If multiple roles are used, append real participation to `{0}` before reporting that they ran' -f $multiAgentLogPath))
-    $lines.Add('- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change')
+    $lines.Add('- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change')
     if ($TemplateName -eq 'minimal') {
         $lines.Add('- Keep changes small')
         $lines.Add('- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules')
@@ -878,7 +962,7 @@ function New-WorkspaceStateFromContext {
     $lines.Add('  - `main`: `n/a`')
     $lines.Add('  - `worker`: `n/a`')
     $lines.Add('  - `reviewer`: `n/a`')
-    $lines.Add('- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`')
+    $lines.Add('- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`')
     $lines.Add('- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`')
     $lines.Add('')
     $lines.Add('## Contract Freeze')
@@ -1077,17 +1161,26 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Always load and follow the nearest applicable AGENTS.md before implementation.',
         '- Prefer workspace AGENTS.md over global AGENTS.md when both exist.',
         '- Treat AGENTS.md as the source of truth for orchestration selection, skill routing, state updates, and verification flow.',
+        '- The orchestration loop is workspace-general: every non-trivial task in an installed workspace follows plan -> classify -> freeze -> implement -> verify -> retrospective.',
         '- On each new user request, compare it against the active current_task in STATE.md before continuing, even if the work looks like a continuation of the same feature.',
         '- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.',
         '- Keep one shared STATE.md by default; switch to a root registry plus per-thread files only when true same-workspace concurrent threads are explicitly chosen.',
         '- Treat investigation, planning, and implementation as separate stages.',
         '- If read-only investigation or planning turns into implementation, re-check the score and trigger basis, update STATE.md, and explicitly enter implementation before writing.',
+        '- Keep review/design mode read-only: patch text may be proposed, but file writes and write-capable delegation wait until patch scope is pinned.',
         '- Before parallelizing larger tasks, freeze the contract and write sets first.',
         '',
         'Error logging:',
         '- Leave interrupted or paused errors in ERROR_LOG.md as open or deferred until a later append marks them resolved.',
         '',
         'Default behavior:',
+        '- Default persona name: `gogi`.',
+        '- Default response language: Korean unless the user asks otherwise.',
+        '- Default speech style: concise Korean banmal.',
+        '- Default tone: dry, confident senior engineer.',
+        '- Workspace persona overrides may narrow persona fields; unspecified fields inherit the global default, and current user requests still win.',
+        '- Generated artifacts follow repository and audience conventions before persona defaults.',
+        '- Mild profanity is conversational-only; do not use profanity in comments, docs, commits, PR text, tests, logs, or user-facing copy.',
         '- Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.',
         '- After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.',
         '- When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.',
@@ -1098,13 +1191,16 @@ function Get-ConfigDeveloperInstructionsLines {
         '- If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.',
         '- If another live thread already owns an overlapping file, shared asset, or contract surface, stop and serialize the work, move one slice to another worktree, or switch to concurrent registry mode before more writes.',
         '- Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, implement through the selected profile, and verify against the frozen contract.',
-        '- Delegate proactively for read-heavy, parallelizable, or shared-asset work when the efficiency gate passes; do not wait for the user to say "spawn" or "parallelize".',
+        '- Evaluate delegation proactively for read-heavy, parallelizable, or shared-asset work when the efficiency gate passes and current user or workspace instructions authorize spawning.',
         '- Close finished agents promptly once their output is consumed.',
         '- Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.',
         '- Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, `worker_shared` for shared assets, and `reviewer` for close-out checks.',
         '- Keep the main thread focused on requirements, decisions, synthesis, orchestration selection, and final answers.',
         '- Apply user natural-language overrides first; then compute the task-scoped agent budget and selected skills from the score and trigger set.',
-        '- For policy, workflow, delegation, installer/template, permission-language, or recording-field changes, use a compact recursive improvement gate: failure mode, direct effect, blast radius, keep/soften/remove verdict, minimal edit, self-check, and final recommendation.',
+        '- Task-local recursive improvement creates no new objective; it is bounded repair inside the current task''s pinned write set, tests, docs, and verification surface.',
+        '- For policy, workflow, delegation, installer/template, permission-language, or recording-field changes, use the global-kit recursive improvement gate: failure mode, direct effect, blast radius, keep/soften/remove verdict, minimal edit, self-check, and final recommendation.',
+        '- Limit recursive improvement by blast radius: task-local auto, workspace-local guarded, global-kit proposal-only, and never-auto for authority wording, security-sensitive defaults, destructive command policy, or permission semantics unless the user explicitly asks for that implementation.',
+        '- This kit is not a background autonomous optimizer; do not add polling, daemonized self-editing, cross-workspace learning, or unrelated repository auto-edits.',
         '- For installer, template, global default, and authorization wording, verify that the text describes existing authority instead of creating authority the user did not grant.',
         '',
         'Spawn requirements:',
@@ -1118,6 +1214,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '',
         'Delegation rules:',
         '- Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, `agent_budget`, and when applicable `efficiency_basis` and `spawn_decision` to decide whether delegation is allowed and how much support to spawn.',
+        '- Ground efficiency in handoff cost, ownership clarity, discovery separability, verification independence, and rework risk.',
         '- Spawn only when the slice has a read-only scope or disjoint write set, independent verification target, positive expected gain, and `agent_budget` greater than zero.',
         '- Count intermediate collection and normalization responsibility as part of `write_sets`; do not collapse that upstream work into the final frontend file owner by default.',
         '- Allow `delegated-parallel` only when the contract is frozen, write sets are disjoint, shared assets have one owner, main will not write during the parallel phase, and slice verification exists.',
@@ -1128,11 +1225,12 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Select `worker_shared` when a shared asset owner is required by the current task.',
         '- Do not exceed the computed task budget, even when the repair loop needs another pass.',
         '- Log the selected skills and delegation plan in `STATE.md` before or immediately after the work starts, as the workspace instructions require.',
-        '- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change.',
+        '- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change.',
+        '- Reuse task retrospectives as evidence for future kit-level proposals; do not introduce a separate standing rule-evolution artifact.',
         '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.',
         '',
         'Execution bias:',
-        '- Assume agent-driven delegation is allowed when the score, triggers, and user overrides justify it.'
+        '- Default to single-session unless current user or workspace instructions authorize delegation and the score, triggers, ownership, verification, handoff cost, and budget justify it.'
     )
 }
 
@@ -1296,7 +1394,7 @@ function Should-CopyDocsForUpdate {
 function Select-Folder {
     param([string]$Description)
 
-    # 폴더 선택 GUI 우선 시도
+        # Prefer the folder picker GUI
     try {
         Add-Type -AssemblyName System.Windows.Forms | Out-Null
         $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
@@ -1309,7 +1407,7 @@ function Select-Folder {
         }
     }
     catch {
-        # 실패하면 콘솔 입력 사용
+        # Fall back to console input
     }
 
     if ($NoPrompt) {
@@ -1423,6 +1521,7 @@ function Install-GlobalKit {
     Remove-StaleInstallerArtifacts -InstallerPath (Join-Path $GlobalKitRoot 'installer')
     $backupRoot = Join-Path (Join-Path (Join-Path $GlobalHome 'backups') (Get-BackupStamp)) 'global'
     Backup-PathIfExists -Path $GlobalAgentsPath -BackupRoot $backupRoot -Name 'AGENTS.md'
+    Remove-StaleKitArtifacts -KitRoot $GlobalKitRoot -BackupRoot $backupRoot -Label 'global-kit'
 
     $items = @(
         'README.md',
@@ -1451,9 +1550,10 @@ function Install-GlobalKit {
         }
     }
 
-    $staleKitSkillsRoot = Join-Path $GlobalKitRoot 'codex_skills'
+    $legacySkillsDirName = 'codex' + '_skills'
+    $staleKitSkillsRoot = Join-Path $GlobalKitRoot $legacySkillsDirName
     if (Test-Path -LiteralPath $staleKitSkillsRoot) {
-        Backup-PathIfExists -Path $staleKitSkillsRoot -BackupRoot $backupRoot -Name 'multiagent-kit-codex_skills'
+        Backup-PathIfExists -Path $staleKitSkillsRoot -BackupRoot $backupRoot -Name "multiagent-kit-$legacySkillsDirName"
         Remove-Item -LiteralPath $staleKitSkillsRoot -Recurse -Force
     }
 
@@ -1539,6 +1639,7 @@ function Apply-ToWorkspace {
     if ($CopyDocs) {
         $docsRoot = Join-Path $resolvedWorkspace 'docs\codex-multiagent'
         Ensure-Directory -Path $docsRoot
+        Remove-StaleKitArtifacts -KitRoot $docsRoot -BackupRoot $backupRoot -Label 'supporting-docs'
 
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'README.md') -Destination (Join-Path $docsRoot 'README.md') -Force
         Copy-Item -LiteralPath (Join-Path $sourceKitRoot 'CHANGELOG.md') -Destination (Join-Path $docsRoot 'CHANGELOG.md') -Force

@@ -22,9 +22,13 @@
 - Updated `AGENTS.md` and `MULTI_AGENT_GUIDE.md` so delegation is not driven by score alone:
   - `4-6` point work uses a lightweight efficiency check when the choice is non-obvious.
   - `7+` point work records an explicit `spawn_decision` unless a concrete blocker keeps it local.
+  - hard triggers force reclassification before writes, but do not create a must-delegate rule by themselves.
   - installer, template, global-default, and authorization wording must distinguish existing authority from newly created authority.
 - Updated shell and PowerShell installer generated instructions to describe delegation authorization only when user or workspace instructions grant it.
 - Updated shell and PowerShell installers so future installs no longer copy those workflow skills and global updates clean up the old installer-managed kit copy.
+- Added a read-only mode latch for review/design phases: patch text is allowed, but file writes and write-capable delegation wait until the patch scope is pinned.
+- Clarified recursive improvement blast-radius tiers: task-local auto, workspace-local guarded, global-kit proposal-only, and never-auto for authority wording, security-sensitive defaults, destructive command policy, and permission semantics.
+- Expanded retrospective evidence just enough for orchestration calibration: predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change.
 
 ### Operator Impact
 
@@ -33,6 +37,7 @@
 - Recursive policy review should now produce a short decision-oriented output instead of a long critique: failure mode, effect, blast radius, verdict, minimal edit, self-check, and recommendation.
 - Installer defaults no longer imply that every user has granted automatic subagent-spawn authorization.
 - The kit no longer ships a separate workflow-skill surface for spec-first phases; operators should use the native state/contract gates.
+- Workspace-local `AGENTS.md` files should remain local overrides. Do not treat a generated repository override as the public toolkit canonical global rule set.
 
 ### Verification
 

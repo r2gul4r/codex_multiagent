@@ -133,6 +133,31 @@ remove_stale_installer_artifacts() {
         "${installer_path}/src"
 }
 
+remove_stale_kit_artifacts() {
+    kit_root="$1"
+    backup_root="$2"
+    label="$3"
+
+    for rel in \
+        "codex_rules/ouroboros-lite.md" \
+        "docs/OUROBOROS_LITE_PORT.md" \
+        "examples/micro-seed.md"
+    do
+        stale_path="${kit_root}/${rel}"
+        if [ -e "$stale_path" ]; then
+            backup_path_if_exists "$stale_path" "$backup_root" "${label}-${rel//\//-}"
+            rm -f "$stale_path"
+        fi
+    done
+
+    legacy_skills_dir_name="codex""_skills"
+    stale_skills_root="${kit_root}/${legacy_skills_dir_name}"
+    if [ -e "$stale_skills_root" ]; then
+        backup_path_if_exists "$stale_skills_root" "$backup_root" "${label}-${legacy_skills_dir_name}"
+        rm -rf "$stale_skills_root"
+    fi
+}
+
 get_source_kit_root() {
     if [ -f "${GLOBAL_KIT_ROOT}/AGENTS.md" ]; then
         printf '%s\n' "$GLOBAL_KIT_ROOT"
@@ -308,6 +333,11 @@ generate_default_workspace_agents() {
     printf '# Workspace Override: %s\n\n' "$workspace_name"
     printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
     printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+    printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
+    printf 'Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.\n'
+    printf 'Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.\n'
+    printf 'Use `[persona_override]` in `WORKSPACE_CONTEXT.toml` only to narrow persona fields locally.\n'
+    printf 'Generated artifacts follow repository and audience conventions before persona defaults.\n'
     if [ "$template_name" = "minimal" ]; then
         printf '\n## Minimal Repository Rules\n\n'
         printf -- '- Error log path: `ERROR_LOG.md`\n'
@@ -315,9 +345,12 @@ generate_default_workspace_agents() {
         printf -- '- Keep changes small\n'
         printf -- '- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here\n'
         printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
+        printf -- '- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`\n'
+        printf -- '- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task\n'
+        printf -- '- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation\n'
         printf -- '- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`\n'
         printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`\n'
-        printf -- '- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change\n'
+        printf -- '- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change\n'
     else
         printf '\n## Repository Facts To Fill\n\n'
         printf -- '- Primary source of truth paths\n'
@@ -330,9 +363,12 @@ generate_default_workspace_agents() {
         printf '\n## Repository Overrides\n\n'
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
         printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
+        printf -- '- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`\n'
+        printf -- '- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task\n'
+        printf -- '- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation\n'
         printf -- '- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`\n'
         printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran\n'
-        printf -- '- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change\n'
+        printf -- '- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change\n'
         printf -- '- Add repository-specific verification commands, hard triggers, approval zones, delegation hints, and worker ownership here\n'
         printf -- '- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules\n'
     fi
@@ -365,7 +401,7 @@ generate_default_state() {
     printf '  - `main`: `n/a`\n'
     printf '  - `worker`: `n/a`\n'
     printf '  - `reviewer`: `n/a`\n'
-    printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`\n'
+    printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`\n'
     printf -- '- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`\n'
     printf '\n## Contract Freeze\n\n'
     printf -- '- contract_freeze: `n/a`\n'
@@ -446,6 +482,25 @@ get_derived_error_log_path() {
     error_log_path=$(toml_get_scalar "$context_path" "workspace" "error_log_path")
     [ -n "$error_log_path" ] || error_log_path="ERROR_LOG.md"
     printf '%s\n' "$error_log_path"
+}
+
+get_derived_persona_overrides() {
+    context_path="$1"
+
+    persona_name=$(toml_get_scalar "$context_path" "persona_override" "name")
+    response_language=$(toml_get_scalar "$context_path" "persona_override" "response_language")
+    speech_style=$(toml_get_scalar "$context_path" "persona_override" "speech_style")
+    tone=$(toml_get_scalar "$context_path" "persona_override" "tone")
+    allow_mild_profanity=$(toml_get_scalar "$context_path" "persona_override" "allow_mild_profanity")
+    code_comment_language=$(toml_get_scalar "$context_path" "persona_override" "code_comment_language")
+
+    merge_context_items \
+        "${persona_name:+persona_name: \`$persona_name\`}" \
+        "${response_language:+response_language: \`$response_language\`}" \
+        "${speech_style:+speech_style: \`$speech_style\`}" \
+        "${tone:+tone: \`$tone\`}" \
+        "${allow_mild_profanity:+allow_mild_profanity: \`$allow_mild_profanity\`}" \
+        "${code_comment_language:+code_comment_language: \`$code_comment_language\`}"
 }
 
 resolve_workspace_relative_path() {
@@ -751,6 +806,7 @@ generate_workspace_agents_from_context() {
     load_array_from_command worker_mapping get_derived_worker_mapping "$context_path"
     load_array_from_command reviewer_focus get_derived_reviewer_focus "$context_path"
     load_array_from_command forbidden_patterns get_derived_forbidden_patterns "$context_path"
+    load_array_from_command persona_overrides get_derived_persona_overrides "$context_path"
 
     {
         printf '# Workspace Override: %s\n\n' "$title"
@@ -759,6 +815,19 @@ generate_workspace_agents_from_context() {
         fi
         printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
         printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+        printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
+        printf 'Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.\n'
+        printf 'Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.\n'
+        printf 'Generated artifacts follow repository and audience conventions before persona defaults.\n'
+        if [ "${#persona_overrides[@]}" -gt 0 ]; then
+            printf '\n## Local Persona Override\n\n'
+            printf 'These fields narrow the global default persona `gogi`; unspecified persona fields inherit the global default.\n'
+            printf 'Default response language remains Korean unless the user asks otherwise; default speech style remains concise Korean banmal.\n'
+            printf 'Current user requests still take precedence over both workspace overrides and global defaults.\n\n'
+            for item in "${persona_overrides[@]}"; do
+                [ -n "$item" ] && printf -- '- %s\n' "$item"
+            done
+        fi
 
         combined_facts=(${repository_facts[@]+"${repository_facts[@]}"} "Task board path: \`$task_board_path\`" "Multi-agent log path: \`$multi_agent_log_path\`" "Error log path: \`$error_log_path\`")
         write_markdown_section 'Repository Facts' ${combined_facts[@]+"${combined_facts[@]}"}
@@ -773,11 +842,14 @@ generate_workspace_agents_from_context() {
 
         printf '\n## Repository Overrides\n\n'
         printf -- '- Use score-based orchestration to choose the role mix and task-scoped budget instead of fixed caps\n'
-        printf '  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide how much support is spawned\n'
+        printf '  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide whether support may be spawned\n'
         printf -- '- Keep `%s` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n' "$task_board_path"
+        printf -- '- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`\n'
+        printf -- '- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task\n'
+        printf -- '- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation\n'
         printf -- '- Keep one shared `%s` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root task board into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`\n' "$task_board_path"
         printf -- '- If multiple roles are used, append real participation to `%s` before reporting that they ran\n' "$multi_agent_log_path"
-        printf -- '- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change\n'
+        printf -- '- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change\n'
         if [ "$template_name" = "minimal" ]; then
             printf -- '- Keep changes small\n'
             printf -- '- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules\n'
@@ -824,7 +896,7 @@ generate_workspace_state_from_context() {
         printf '  - `main`: `n/a`\n'
         printf '  - `worker`: `n/a`\n'
         printf '  - `reviewer`: `n/a`\n'
-        printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`\n'
+        printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`\n'
         printf -- '- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`\n'
         printf '\n## Contract Freeze\n\n'
         printf -- '- contract_freeze: `n/a`\n'
@@ -1095,17 +1167,26 @@ Execution requirements:
 - Always load and follow the nearest applicable AGENTS.md before implementation.
 - Prefer workspace AGENTS.md over global AGENTS.md when both exist.
 - Treat AGENTS.md as the source of truth for orchestration selection, skill routing, state updates, and verification flow.
+- The orchestration loop is workspace-general: every non-trivial task in an installed workspace follows plan -> classify -> freeze -> implement -> verify -> retrospective.
 - On each new user request, compare it against the active current_task in STATE.md before continuing, even if the work looks like a continuation of the same feature.
 - Do not continue implementation from an existing STATE.md unless the request is clearly the same task.
 - Keep one shared STATE.md by default; switch to a root registry plus per-thread files only when true same-workspace concurrent threads are explicitly chosen.
 - Treat investigation, planning, and implementation as separate stages.
 - If read-only investigation or planning turns into implementation, re-check the score and trigger basis, update STATE.md, and explicitly enter implementation before writing.
+- Keep review/design mode read-only: patch text may be proposed, but file writes and write-capable delegation wait until patch scope is pinned.
 - Before parallelizing larger tasks, freeze the contract and write sets first.
 
 Error logging:
 - Leave interrupted or paused errors in ERROR_LOG.md as open or deferred until a later append marks them resolved.
 
 Default behavior:
+- Default persona name: `gogi`.
+- Default response language: Korean unless the user asks otherwise.
+- Default speech style: concise Korean banmal.
+- Default tone: dry, confident senior engineer.
+- Workspace persona overrides may narrow persona fields; unspecified fields inherit the global default, and current user requests still win.
+- Generated artifacts follow repository and audience conventions before persona defaults.
+- Mild profanity is conversational-only; do not use profanity in comments, docs, commits, PR text, tests, logs, or user-facing copy.
 - Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.
 - After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.
 - When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.
@@ -1116,13 +1197,16 @@ Default behavior:
 - If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.
 - If another live thread already owns an overlapping file, shared asset, or contract surface, stop and serialize the work, move one slice to another worktree, or switch to concurrent registry mode before more writes.
 - Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, implement through the selected profile, and verify against the frozen contract.
-- For read-heavy, parallelizable, or shared-asset work, delegate proactively when the efficiency gate passes; do not wait for the user to say "spawn" or "parallelize".
+- For read-heavy, parallelizable, or shared-asset work, evaluate delegation proactively when the efficiency gate passes and current user or workspace instructions authorize spawning.
 - Close finished agents promptly once their output is consumed.
 - Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.
 - Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, `worker_shared` for shared assets, and `reviewer` for close-out checks.
 - Keep the main thread focused on requirements, decisions, synthesis, orchestration selection, and final answers.
 - Apply user natural-language overrides first; then compute the task-scoped agent budget and selected skills from the score and trigger set.
-- For policy, workflow, delegation, installer/template, permission-language, or recording-field changes, use a compact recursive improvement gate: failure mode, direct effect, blast radius, keep/soften/remove verdict, minimal edit, self-check, and final recommendation.
+- Task-local recursive improvement creates no new objective; it is bounded repair inside the current task's pinned write set, tests, docs, and verification surface.
+- For policy, workflow, delegation, installer/template, permission-language, or recording-field changes, use the global-kit recursive improvement gate: failure mode, direct effect, blast radius, keep/soften/remove verdict, minimal edit, self-check, and final recommendation.
+- Limit recursive improvement by blast radius: task-local auto, workspace-local guarded, global-kit proposal-only, and never-auto for authority wording, security-sensitive defaults, destructive command policy, or permission semantics unless the user explicitly asks for that implementation.
+- This kit is not a background autonomous optimizer; do not add polling, daemonized self-editing, cross-workspace learning, or unrelated repository auto-edits.
 - For installer, template, global default, and authorization wording, verify that the text describes existing authority instead of creating authority the user did not grant.
 
 Spawn requirements:
@@ -1136,6 +1220,7 @@ Spawn requirements:
 
 Delegation rules:
 - Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, `agent_budget`, and when applicable `efficiency_basis` and `spawn_decision` to decide whether delegation is allowed and how much support to spawn.
+- Ground efficiency in handoff cost, ownership clarity, discovery separability, verification independence, and rework risk.
 - Spawn only when the slice has a read-only scope or disjoint write set, independent verification target, positive expected gain, and `agent_budget` greater than zero.
 - Count intermediate collection and normalization responsibility as part of `write_sets`; do not collapse that upstream work into the final frontend file owner by default.
 - Allow `delegated-parallel` only when the contract is frozen, write sets are disjoint, shared assets have one owner, main will not write during the parallel phase, and slice verification exists.
@@ -1146,11 +1231,12 @@ Delegation rules:
 - Select `worker_shared` when a shared asset owner is required by the current task.
 - Do not exceed the computed task budget, even when the repair loop needs another pass.
 - Log the selected skills and delegation plan in `STATE.md` before or immediately after the work starts, as the workspace instructions require.
-- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change.
+- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change.
+- Reuse task retrospectives as evidence for future kit-level proposals; do not introduce a separate standing rule-evolution artifact.
 - Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.
 
 Execution bias:
-- Assume agent-driven delegation is allowed when the score, triggers, and user overrides justify it.
+- Default to single-session unless current user or workspace instructions authorize delegation and the score, triggers, ownership, verification, handoff cost, and budget justify it.
 EOF
 }
 
@@ -1405,6 +1491,7 @@ install_global_kit() {
     remove_stale_installer_artifacts "${GLOBAL_KIT_ROOT}/installer"
     backup_root="${GLOBAL_HOME}/backups/$(get_backup_stamp)/global"
     backup_path_if_exists "$GLOBAL_AGENTS_PATH" "$backup_root" "AGENTS.md"
+    remove_stale_kit_artifacts "$GLOBAL_KIT_ROOT" "$backup_root" "global-kit"
 
     for item in \
         README.md \
@@ -1430,9 +1517,10 @@ install_global_kit() {
         fi
     done
 
-    stale_kit_skills_root="${GLOBAL_KIT_ROOT}/codex_skills"
+    legacy_skills_dir_name="codex""_skills"
+    stale_kit_skills_root="${GLOBAL_KIT_ROOT}/${legacy_skills_dir_name}"
     if [ -e "$stale_kit_skills_root" ]; then
-        backup_path_if_exists "$stale_kit_skills_root" "$backup_root" "multiagent-kit-codex_skills"
+        backup_path_if_exists "$stale_kit_skills_root" "$backup_root" "multiagent-kit-${legacy_skills_dir_name}"
         rm -rf "$stale_kit_skills_root"
     fi
 
@@ -1509,6 +1597,7 @@ apply_to_workspace() {
         docs_root="${resolved_workspace}/docs/codex-multiagent"
 
         ensure_directory "$docs_root"
+        remove_stale_kit_artifacts "$docs_root" "$backup_root" "supporting-docs"
 
         cp "${source_kit_root}/README.md" "${docs_root}/README.md"
         cp "${source_kit_root}/CHANGELOG.md" "${docs_root}/CHANGELOG.md"
