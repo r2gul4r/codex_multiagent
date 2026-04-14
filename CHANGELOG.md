@@ -8,6 +8,9 @@
 - Removed the legacy command-routing rule, porting note, and micro-seed example.
 - Updated shell and PowerShell installers so they no longer copy bundled workflow skills and clean up the previously installer-managed workflow-skill kit folder.
 - Removed remaining active seed/interview/evaluate terminology from current docs and installer-generated state templates.
+- Removed committed `docs/codex-multiagent/` mirror copies from the repository surface; installers still create workspace-local supporting docs when requested.
+- Removed obsolete `agentplan.txt`.
+- Removed obsolete `examples/RULE_EVOLUTION_LOG.example.md`; task retrospectives remain the evidence trail for future rule proposals.
 
 ### Added
 

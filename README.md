@@ -47,7 +47,8 @@ Persona precedence는 `current user request > workspace persona override > globa
 
 - canonical 실행 규칙과 installer 생성 정책 문구를 English/ASCII-first로 정리했다.
 - `gogi` persona, 기본 한국어 응답, concise Korean banmal, dry confident senior-engineer tone은 유지했다.
-- generated workspace `AGENTS.md`, config developer instructions, examples, workspace context guide/template, mirror docs를 같은 계약으로 맞췄다.
+- generated workspace `AGENTS.md`, config developer instructions, examples, workspace context guide/template을 같은 계약으로 맞췄다.
+- repo 안의 중복 mirror 문서와 legacy planning artifact를 정리했다.
 - README는 한국어 본문을 메인으로 두고, 접히는 `English` 섹션을 추가했다.
 - 자세한 내용은 [2026-04-15 패치노트](./docs/PATCH_NOTES_2026-04-15.md)를 참고.
 
@@ -111,7 +112,7 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 - 기존 작업공간의 `AGENTS.md` 와 `STATE.md` 를 백업 후 새 구조 기준으로 재생성
 - 전역 기본 규칙 위에 저장소 전용 오버라이드 추가
 - `ERROR_LOG.md` 가 없으면 append-only 에러 로그 파일을 생성
-- `docs/codex-multiagent/` 참고 문서 복사
+- 작업공간의 `docs/codex-multiagent/` 아래로 참고 문서 복사
 
 작업공간 루트에 `WORKSPACE_CONTEXT.toml` 이 있으면 설치기가 그 파일을 먼저 읽고, 그 내용으로 프로젝트에 맞는 `AGENTS.md` 와 초기 `STATE.md` 를 생성한다.
 파일이 없으면 installer 내장 fallback 규칙으로 동작하므로, 실제 프로젝트에 맞춘 설치를 원하면 먼저 `WORKSPACE_CONTEXT.toml` 을 준비해 두는 편이 좋다.
