@@ -17,19 +17,6 @@ Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운
 
 ---
 
-## 최근 패치
-
-- `v0.4.0 - 2026-04-09`
-- `Route A/B` 대신 점수 기반 `orchestration profile` 흐름으로 전환
-- `STATE.md` 와 installer 생성 템플릿에 `score_total`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget` 추적 반영
-- 자동 delegation, 자동 skill routing, 자연어 override 우선 규칙을 문서와 예시에 통일
-- PowerShell installer 실생성 검증으로 새 `AGENTS.md` / `STATE.md` 출력 확인
-- `codex_skills/ouroboros-*` spec-first workflow skeleton 추가
-- append-only `ERROR_LOG.md` 템플릿과 workspace `error_log_path` 지원 추가
-- 자세한 내용은 [CHANGELOG.md](./CHANGELOG.md) 참고
-
----
-
 ## Acknowledgements
 
 이 저장소는 Ouroboros 전체 런타임을 배포하지 않고 선택한 아이디어만 재구성한다. 이 킷의 spec-first workflow와 일부 skill/rule 설계는 [Q00/ouroboros](https://github.com/Q00/ouroboros)에서 참고하고 포팅했다.
