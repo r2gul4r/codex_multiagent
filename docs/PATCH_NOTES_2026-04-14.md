@@ -12,8 +12,8 @@
 
 ### Included Changes
 
-- Added `collect_repo_metrics.py` for module size, complexity, duplication, and git-history signals.
-- Added `normalize_quality_signals.py` to normalize tool failures, warnings, coverage, and repository metric payloads into common JSON.
+- Added `scripts/collect_repo_metrics.py` for module size, complexity, duplication, and git-history signals.
+- Added `scripts/normalize_quality_signals.py` to normalize tool failures, warnings, coverage, and repository metric payloads into common JSON.
 - Added extraction helpers for feature-gap, test-gap, and refactor-candidate reports.
 - Added generated reports under `docs/` for goal alignment, area evaluation, repository metrics, feature gaps, test gaps, and refactor candidates.
 - Added `examples/quality_signal_samples.json` as a stable sample input for normalization smoke tests.
@@ -45,8 +45,8 @@
 - `bash -n installer/CodexMultiAgent.sh`
 - PowerShell parser check for `installer/CodexMultiAgent.ps1`
 - `bash installer/CodexMultiAgent.sh --help`
-- `python -m py_compile collect_repo_metrics.py normalize_quality_signals.py extract_feature_gap_candidates.py extract_refactor_candidates.py extract_test_gap_candidates.py`
-- `python normalize_quality_signals.py --input examples/quality_signal_samples.json`
+- `python -m py_compile scripts/collect_repo_metrics.py scripts/normalize_quality_signals.py scripts/extract_feature_gap_candidates.py scripts/extract_refactor_candidates.py scripts/extract_test_gap_candidates.py`
+- `python scripts/normalize_quality_signals.py --input examples/quality_signal_samples.json`
 - Generated markdown comparison for feature-gap, refactor-candidate, and test-gap reports
 
 ### Known Local Notes

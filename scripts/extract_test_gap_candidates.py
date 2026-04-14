@@ -296,7 +296,7 @@ def build_missing_module_test_finding(
 
 def build_coverage_gap_finding(index: dict[str, Any]) -> dict[str, Any] | None:
     makefile = index["by_path"].get("Makefile")
-    normalizer = index["by_path"].get("normalize_quality_signals.py")
+    normalizer = index["by_path"].get("scripts/normalize_quality_signals.py")
     if makefile is None or normalizer is None:
         return None
 
@@ -321,8 +321,8 @@ def build_coverage_gap_finding(index: dict[str, Any]) -> dict[str, Any] | None:
             "라인/브랜치 커버리지 하락이나 특정 분기 미실행은 다음 개선 루프에 신호로 남지 않는다."
         ),
         "evidence": [
-            make_evidence("normalize_quality_signals.py", coverage_line, "coverage 정규화 패턴 정의"),
-            make_evidence("normalize_quality_signals.py", parse_coverage_line, "coverage 입력을 실제 요약 필드로 변환"),
+            make_evidence("scripts/normalize_quality_signals.py", coverage_line, "coverage 정규화 패턴 정의"),
+            make_evidence("scripts/normalize_quality_signals.py", parse_coverage_line, "coverage 입력을 실제 요약 필드로 변환"),
             make_evidence("Makefile", test_line, "기본 test 엔트리포인트에 coverage 실행이 없음"),
         ],
     }
@@ -470,7 +470,11 @@ def build_findings(index: dict[str, Any]) -> list[dict[str, Any]]:
         record
         for record in source_records
         if record.relative_path
-        in {"normalize_quality_signals.py", "collect_repo_metrics.py", "extract_feature_gap_candidates.py"}
+        in {
+            "scripts/normalize_quality_signals.py",
+            "scripts/collect_repo_metrics.py",
+            "scripts/extract_feature_gap_candidates.py",
+        }
     ]
 
     findings = [

@@ -68,7 +68,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--root", default=".", help="Repository root to inspect.")
     parser.add_argument(
         "--metrics-input",
-        help="Optional JSON file produced by collect_repo_metrics.py. Defaults to collecting fresh metrics.",
+        help="Optional JSON file produced by scripts/collect_repo_metrics.py. Defaults to collecting fresh metrics.",
     )
     parser.add_argument(
         "--format",
@@ -101,6 +101,8 @@ def classify_area(path: Path) -> str:
         return "rules_and_skills"
     if head == "examples":
         return "examples_and_snapshots"
+    if head == "scripts":
+        return "root_tooling"
     if len(parts) == 1:
         return "root_tooling"
     return "other"
@@ -154,7 +156,8 @@ def load_metrics(root: Path, metrics_input: str | None) -> dict[str, Any]:
         with open(metrics_input, "r", encoding="utf-8") as handle:
             return json.load(handle)
 
-    command = [sys.executable, str(root / "collect_repo_metrics.py"), "--root", str(root), "--pretty"]
+    script_dir = Path(__file__).resolve().parent
+    command = [sys.executable, str(script_dir / "collect_repo_metrics.py"), "--root", str(root), "--pretty"]
     env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
     completed = subprocess.run(
         command,
@@ -166,7 +169,7 @@ def load_metrics(root: Path, metrics_input: str | None) -> dict[str, Any]:
     )
     if completed.returncode != 0:
         raise RuntimeError(
-            "collect_repo_metrics.py failed while building refactor candidates:\n"
+            "scripts/collect_repo_metrics.py failed while building refactor candidates:\n"
             + completed.stderr.strip()
         )
     return json.loads(completed.stdout)
