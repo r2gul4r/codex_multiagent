@@ -34,7 +34,7 @@ Hard triggers first:
 - A clearly necessary reviewer pass
 
 If any hard trigger exists, reclassify before implementation writes.
-Hard triggers are gates, not hidden score boosts and not automatic delegation orders; record the trigger by name, then decide topology from contract stability, write-set separability, verification independence, handoff cost, and `agent_budget`.
+Hard triggers are gates, not hidden score boosts and not delegation orders; record the trigger by name, then decide topology from contract stability, write-set separability, verification independence, handoff cost, and `agent_budget`.
 
 Do not score only from the final edited file count.
 One rendered HTML or frontend file can still hide separate upstream responsibilities such as data collection, coordinate extraction, normalization, or schema confirmation.
@@ -134,7 +134,7 @@ Before any write begins:
 
 Decision gate:
 
-- If `delegated-parallel` fails any required condition, downgrade to `delegated-serial` or run discovery first.
+- If `delegated-parallel` fails any required condition, do not use parallel delegation. Choose `delegated-serial` only when the serial handoff still lowers risk; otherwise stay `single-session` or run discovery first.
 - If `single-session` has a vague reason such as "small task" or "one file", stop and replace it with a concrete ownership and verification reason.
 - If implementation correctness depends on facts that are not yet known, use explorer-first discovery before implementation.
 

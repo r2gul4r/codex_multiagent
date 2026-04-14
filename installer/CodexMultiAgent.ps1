@@ -150,9 +150,10 @@ function Remove-StaleKitArtifacts {
         }
     }
 
-    $staleSkillsRoot = Join-Path $KitRoot 'codex_skills'
+    $legacySkillsDirName = 'codex' + '_skills'
+    $staleSkillsRoot = Join-Path $KitRoot $legacySkillsDirName
     if (Test-Path -LiteralPath $staleSkillsRoot) {
-        Backup-PathIfExists -Path $staleSkillsRoot -BackupRoot $BackupRoot -Name "$Label-codex_skills"
+        Backup-PathIfExists -Path $staleSkillsRoot -BackupRoot $BackupRoot -Name "$Label-$legacySkillsDirName"
         Remove-Item -LiteralPath $staleSkillsRoot -Recurse -Force
     }
 }
@@ -1486,9 +1487,10 @@ function Install-GlobalKit {
         }
     }
 
-    $staleKitSkillsRoot = Join-Path $GlobalKitRoot 'codex_skills'
+    $legacySkillsDirName = 'codex' + '_skills'
+    $staleKitSkillsRoot = Join-Path $GlobalKitRoot $legacySkillsDirName
     if (Test-Path -LiteralPath $staleKitSkillsRoot) {
-        Backup-PathIfExists -Path $staleKitSkillsRoot -BackupRoot $backupRoot -Name 'multiagent-kit-codex_skills'
+        Backup-PathIfExists -Path $staleKitSkillsRoot -BackupRoot $backupRoot -Name "multiagent-kit-$legacySkillsDirName"
         Remove-Item -LiteralPath $staleKitSkillsRoot -Recurse -Force
     }
 

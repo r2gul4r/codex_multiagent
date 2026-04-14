@@ -4,9 +4,9 @@ This is the fast-start version for small repositories or personal projects.
 
 ## Core Rules
 
-- Default to a score-based orchestration profile
+- Default to `single-session`
 - Do not use multiple agents for simple investigation or short edits unless the selected rules justify it
-- Use a hard-trigger plus score gate before selecting delegation
+- Check hard triggers before score, then select delegation only when ownership, verification, and handoff cost justify it
 - Let `main` choose `selected_rules`, `selected_skills`, and `execution_topology`
 - Before closing delegated work, let `reviewer` do one read-only pass when `review_required` is selected
 - Keep a small `STATE.md` with `score_total`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, and `contract_freeze`
@@ -23,7 +23,8 @@ This is the fast-start version for small repositories or personal projects.
 ## Parallelization
 
 - Default to no parallelization
-- Make an exception only when the score and hard triggers justify delegation
+- For `4-6` point work, record a lightweight spawn/no-spawn basis only when the choice is non-obvious
+- For `7+` point work, record `spawn_decision`; stay local when a concrete blocker makes delegation more expensive or less safe
 - If the shared contract starts drifting, collapse back to `main`
 
 ## Done Means

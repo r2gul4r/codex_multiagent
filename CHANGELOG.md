@@ -4,9 +4,9 @@
 
 ### Removed
 
-- Removed bundled `codex_skills/ouroboros-*` workflow skills.
-- Removed the `codex_rules/ouroboros-lite.md` command-routing rule, `docs/OUROBOROS_LITE_PORT.md`, and `examples/micro-seed.md`.
-- Updated shell and PowerShell installers so they no longer copy bundled workflow skills and clean up the previously installer-managed `codex_skills` kit folder.
+- Removed bundled legacy workflow skills.
+- Removed the legacy command-routing rule, porting note, and micro-seed example.
+- Updated shell and PowerShell installers so they no longer copy bundled workflow skills and clean up the previously installer-managed workflow-skill kit folder.
 - Removed remaining active seed/interview/evaluate terminology from current docs and installer-generated state templates.
 
 ### Added
@@ -54,27 +54,27 @@
 
 ### Changed
 
-- 저장소 상위 오케스트레이션 모델을 `Route A/B`에서 점수 기반 `orchestration profile` 흐름으로 전환
+- 저장소 상위 오케스트레이션 모델을 legacy route model 에서 점수 기반 `orchestration profile` 흐름으로 전환
 - `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `selection_reason` 추적 필드를 `STATE.md`와 installer 생성 템플릿에 반영
 - 서브에이전트 위임을 사용자 명령 전제 대신 에이전트의 자동 delegation 판단으로 재정의하고 자연어 override 우선 규칙을 문서 전반에 통일
 - 고정 role cap 문구를 제거하고 작업별 동적 `agent_budget` 기준으로 `worker`, `reviewer`, `explorer` 사용량을 설명하도록 갱신
-- `AGENTS.md`, `README.md`, `MULTI_AGENT_GUIDE.md`, `profiles/*`, `examples/*`, `docs/OUROBOROS_LITE_PORT.md`, `codex_rules/ouroboros-lite.md`를 새 용어 체계에 맞춰 정렬
+- `AGENTS.md`, `README.md`, `MULTI_AGENT_GUIDE.md`, `profiles/*`, `examples/*`, legacy porting note, legacy command rule 을 새 용어 체계에 맞춰 정렬
 - Windows PowerShell installer 실생성 검증으로 새 `AGENTS.md` / `STATE.md` 템플릿 출력이 `Orchestration Profile` 스키마를 따르는지 확인
 
 ## v0.3.0 - 2026-03-22
 
 ### Changed
 
-- 저장소 라우트 모델을 `Route A` / `Route B` 2단계로 정리
-- `Route A` 를 main-only, no-subagent route 로 재정의
-- `Route B` 를 delegated route 로 재정의하고 old 대형 작업 의미를 흡수
-- `AGENTS.md`, `README.md`, `MULTI_AGENT_GUIDE.md`, `profiles/*`, `codex_skills/*`, `docs/OUROBOROS_LITE_PORT.md`, `examples/*` 를 새 라우트 모델에 맞게 정렬
+- 저장소 라우트 모델을 legacy two-route model 로 정리
+- main-only 경로를 no-subagent route 로 재정의
+- delegated 경로가 old 대형 작업 의미를 흡수
+- `AGENTS.md`, `README.md`, `MULTI_AGENT_GUIDE.md`, `profiles/*`, legacy workflow skills, legacy porting note, `examples/*` 를 당시 라우트 모델에 맞게 정렬
 
 ## v0.1.13 - 2026-03-22
 
 ### Added
 
-- `codex_skills/ouroboros-interview`, `ouroboros-seed`, `ouroboros-run`, `ouroboros-evaluate` 추가
+- legacy interview/seed/run/evaluate workflow skills 추가
 - append-only `ERROR_LOG.md` 템플릿 추가
 - `WORKSPACE_CONTEXT_TEMPLATE.toml` 에 `error_log_path` 추가
 - `codex_rules/ouroboros-lite.md` 추가
@@ -83,7 +83,7 @@
 ### Changed
 
 - `AGENTS.md` 에 spec-first workflow, error logging, subagent hygiene 규칙 추가
-- installer 가 `codex_skills` 를 전역 설치와 workspace docs 복사 흐름에 포함하도록 확장
+- installer 가 legacy workflow skills 를 전역 설치와 workspace docs 복사 흐름에 포함하도록 확장
 - shell / PowerShell installer 가 workspace-relative `task_board_path` 와 `error_log_path` 만 허용하도록 보강
 - shell installer 의 top-level iteration 을 deterministic 하게 정리하고 GNU `find -maxdepth` 의존 제거
 - stale managed skill 정리를 manifest 기반으로 바꿔 same-prefix user skill 보존
@@ -105,7 +105,7 @@
 
 ### Changed
 
-- 전역 규칙에 `route/reason` 선기록, `Route A/B` 승격 규칙, delegated route 최소 worker/reviewer 요구를 추가
+- 전역 규칙에 `route/reason` 선기록, legacy route 승격 규칙, delegated route 최소 worker/reviewer 요구를 추가
 - 작업공간 오버라이드 설치 시 `WORKSPACE_CONTEXT.toml` 을 우선 읽어 맞춤형 `AGENTS.md` 와 초기 `STATE.md` 를 생성하도록 installer 를 확장
 - `WORKSPACE_CONTEXT_TEMPLATE.toml` 예시 파일과 관련 문서를 추가
 - macOS GitHub Actions 검증에 `WORKSPACE_CONTEXT.toml` 기반 workspace 생성 경로를 추가
@@ -115,8 +115,8 @@
 
 ### Changed
 
-- 전역/저장소 AGENTS 템플릿에 `하드 트리거 + 점수제 + Route A/Route B` 작업 크기 게이트 추가
-- `main` 직접 수정은 `Route A`, 큰 작업은 `Route B delegated planner-only` 로 정리
+- 전역/저장소 AGENTS 템플릿에 legacy route model 기반 작업 크기 게이트 추가
+- `main` 직접 수정과 delegated planner-only 경로를 분리
 - 작업공간 오버라이드 템플릿과 `STATE_TEMPLATE.md` 에 `route` 와 `write_sets` 개념 추가
 - 운영 가이드와 예시를 route 기반 멀티에이전트 모델로 갱신
 

@@ -21,7 +21,7 @@
 
 ## Should Not Do
 
-- Treat score bands as automatic delegation commands
+- Treat score bands as delegation commands
 - Fan out work without a clear contract or budget
 - Leave ownership ambiguous while write work is active
 - Expect reviewers to repair the architecture

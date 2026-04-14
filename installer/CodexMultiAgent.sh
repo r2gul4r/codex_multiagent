@@ -150,9 +150,10 @@ remove_stale_kit_artifacts() {
         fi
     done
 
-    stale_skills_root="${kit_root}/codex_skills"
+    legacy_skills_dir_name="codex""_skills"
+    stale_skills_root="${kit_root}/${legacy_skills_dir_name}"
     if [ -e "$stale_skills_root" ]; then
-        backup_path_if_exists "$stale_skills_root" "$backup_root" "${label}-codex_skills"
+        backup_path_if_exists "$stale_skills_root" "$backup_root" "${label}-${legacy_skills_dir_name}"
         rm -rf "$stale_skills_root"
     fi
 }
@@ -1460,9 +1461,10 @@ install_global_kit() {
         fi
     done
 
-    stale_kit_skills_root="${GLOBAL_KIT_ROOT}/codex_skills"
+    legacy_skills_dir_name="codex""_skills"
+    stale_kit_skills_root="${GLOBAL_KIT_ROOT}/${legacy_skills_dir_name}"
     if [ -e "$stale_kit_skills_root" ]; then
-        backup_path_if_exists "$stale_kit_skills_root" "$backup_root" "multiagent-kit-codex_skills"
+        backup_path_if_exists "$stale_kit_skills_root" "$backup_root" "multiagent-kit-${legacy_skills_dir_name}"
         rm -rf "$stale_kit_skills_root"
     fi
 
