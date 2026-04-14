@@ -10,7 +10,7 @@ Adjust the paths and commands to match the real repository.
 - Let `main` select `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`
 - Pin API, schema, and ownership contracts before workers start
 - Keep `writer_slot`, `contract_freeze`, and `write_sets` as the shared tracking primitives
-- Use delegation only when the current user or workspace instructions authorize it and the efficiency gate passes
+- Use automatic delegation and automatic skill routing unless a user instruction overrides it
 
 ## Roles
 
@@ -35,7 +35,6 @@ Adjust the paths and commands to match the real repository.
 - `main` selects the orchestration profile, not a fixed route
 - Workers write only inside their assigned `write_set`
 - Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`
-- Review/design mode is read-only until `main` pins the patch scope and explicitly enters implementation
 - If both `apps/web` and `apps/api` are touched, request payload contracts must be pinned first
 - If a migration file is involved, do not parallelize unless the selected rules and write sets prove the split is safe
 - Do not edit `generated/` or `dist/` directly
@@ -54,7 +53,6 @@ Adjust the paths and commands to match the real repository.
 - Feature workers edit separate file ranges
 - Reviewers can split final checking by concern if the selected rules and budget allow it
 - `main` keeps the work inside the selected orchestration profile and budget
-- `delegated-parallel` is allowed only with frozen contracts, disjoint write sets, explicit shared asset owner, independent verification, `main` not writing during fan-out, and `agent_budget > 0`
 
 ## Parallel Work That Is Not Safe
 

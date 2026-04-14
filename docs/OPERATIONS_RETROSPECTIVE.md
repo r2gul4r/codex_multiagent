@@ -16,10 +16,12 @@ It is evidence for future rule changes.
 - `task`
 - `date`
 - `score_total`
-- `selected_profile`
+- `predicted_topology` or `selected_profile`
 - `actual_topology`
+- `spawn_count`
+- `rework_or_reclassification`
+- `reviewer_findings`
 - `verification_outcome`
-- `collisions_or_reclassifications`
 - `next_rule_change`
 
 ## Two Useful Artifacts
@@ -47,5 +49,5 @@ Keep both append-only when possible.
 
 ## Examples
 
-- [Task Retrospective Example](/C:/lsh/git/codex_multiagent/examples/TASK_RETROSPECTIVE.example.md)
-- [Rule Evolution Log Example](/C:/lsh/git/codex_multiagent/examples/RULE_EVOLUTION_LOG.example.md)
+- [Task Retrospective Example](../examples/TASK_RETROSPECTIVE.example.md)
+- [Rule Evolution Log Example](../examples/RULE_EVOLUTION_LOG.example.md)

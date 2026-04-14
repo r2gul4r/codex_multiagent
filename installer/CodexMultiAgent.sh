@@ -133,6 +133,30 @@ remove_stale_installer_artifacts() {
         "${installer_path}/src"
 }
 
+remove_stale_kit_artifacts() {
+    kit_root="$1"
+    backup_root="$2"
+    label="$3"
+
+    for rel in \
+        "codex_rules/ouroboros-lite.md" \
+        "docs/OUROBOROS_LITE_PORT.md" \
+        "examples/micro-seed.md"
+    do
+        stale_path="${kit_root}/${rel}"
+        if [ -e "$stale_path" ]; then
+            backup_path_if_exists "$stale_path" "$backup_root" "${label}-${rel//\//-}"
+            rm -f "$stale_path"
+        fi
+    done
+
+    stale_skills_root="${kit_root}/codex_skills"
+    if [ -e "$stale_skills_root" ]; then
+        backup_path_if_exists "$stale_skills_root" "$backup_root" "${label}-codex_skills"
+        rm -rf "$stale_skills_root"
+    fi
+}
+
 get_source_kit_root() {
     if [ -f "${GLOBAL_KIT_ROOT}/AGENTS.md" ]; then
         printf '%s\n' "$GLOBAL_KIT_ROOT"
@@ -308,6 +332,7 @@ generate_default_workspace_agents() {
     printf '# Workspace Override: %s\n\n' "$workspace_name"
     printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
     printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+    printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
     if [ "$template_name" = "minimal" ]; then
         printf '\n## Minimal Repository Rules\n\n'
         printf -- '- Error log path: `ERROR_LOG.md`\n'
@@ -317,7 +342,7 @@ generate_default_workspace_agents() {
         printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
         printf -- '- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`\n'
         printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`\n'
-        printf -- '- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change\n'
+        printf -- '- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change\n'
     else
         printf '\n## Repository Facts To Fill\n\n'
         printf -- '- Primary source of truth paths\n'
@@ -332,7 +357,7 @@ generate_default_workspace_agents() {
         printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
         printf -- '- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`\n'
         printf -- '- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran\n'
-        printf -- '- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change\n'
+        printf -- '- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change\n'
         printf -- '- Add repository-specific verification commands, hard triggers, approval zones, delegation hints, and worker ownership here\n'
         printf -- '- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules\n'
     fi
@@ -365,7 +390,7 @@ generate_default_state() {
     printf '  - `main`: `n/a`\n'
     printf '  - `worker`: `n/a`\n'
     printf '  - `reviewer`: `n/a`\n'
-    printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`\n'
+    printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`\n'
     printf -- '- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`\n'
     printf '\n## Contract Freeze\n\n'
     printf -- '- contract_freeze: `n/a`\n'
@@ -759,6 +784,7 @@ generate_workspace_agents_from_context() {
         fi
         printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
         printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+        printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
 
         combined_facts=(${repository_facts[@]+"${repository_facts[@]}"} "Task board path: \`$task_board_path\`" "Multi-agent log path: \`$multi_agent_log_path\`" "Error log path: \`$error_log_path\`")
         write_markdown_section 'Repository Facts' ${combined_facts[@]+"${combined_facts[@]}"}
@@ -773,11 +799,11 @@ generate_workspace_agents_from_context() {
 
         printf '\n## Repository Overrides\n\n'
         printf -- '- Use score-based orchestration to choose the role mix and task-scoped budget instead of fixed caps\n'
-        printf '  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide how much support is spawned\n'
+        printf '  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide whether support may be spawned\n'
         printf -- '- Keep `%s` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n' "$task_board_path"
         printf -- '- Keep one shared `%s` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root task board into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`\n' "$task_board_path"
         printf -- '- If multiple roles are used, append real participation to `%s` before reporting that they ran\n' "$multi_agent_log_path"
-        printf -- '- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change\n'
+        printf -- '- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change\n'
         if [ "$template_name" = "minimal" ]; then
             printf -- '- Keep changes small\n'
             printf -- '- Let this repository narrow agent-driven routing further only when it truly needs stricter local rules\n'
@@ -824,7 +850,7 @@ generate_workspace_state_from_context() {
         printf '  - `main`: `n/a`\n'
         printf '  - `worker`: `n/a`\n'
         printf '  - `reviewer`: `n/a`\n'
-        printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide how much support is spawned.`\n'
+        printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`\n'
         printf -- '- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`\n'
         printf '\n## Contract Freeze\n\n'
         printf -- '- contract_freeze: `n/a`\n'
@@ -1100,6 +1126,7 @@ Execution requirements:
 - Keep one shared STATE.md by default; switch to a root registry plus per-thread files only when true same-workspace concurrent threads are explicitly chosen.
 - Treat investigation, planning, and implementation as separate stages.
 - If read-only investigation or planning turns into implementation, re-check the score and trigger basis, update STATE.md, and explicitly enter implementation before writing.
+- Keep review/design mode read-only: patch text may be proposed, but file writes and write-capable delegation wait until patch scope is pinned.
 - Before parallelizing larger tasks, freeze the contract and write sets first.
 
 Error logging:
@@ -1116,13 +1143,14 @@ Default behavior:
 - If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.
 - If another live thread already owns an overlapping file, shared asset, or contract surface, stop and serialize the work, move one slice to another worktree, or switch to concurrent registry mode before more writes.
 - Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, implement through the selected profile, and verify against the frozen contract.
-- For read-heavy, parallelizable, or shared-asset work, delegate proactively when the efficiency gate passes; do not wait for the user to say "spawn" or "parallelize".
+- For read-heavy, parallelizable, or shared-asset work, evaluate delegation proactively when the efficiency gate passes and current user or workspace instructions authorize spawning.
 - Close finished agents promptly once their output is consumed.
 - Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.
 - Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, `worker_shared` for shared assets, and `reviewer` for close-out checks.
 - Keep the main thread focused on requirements, decisions, synthesis, orchestration selection, and final answers.
 - Apply user natural-language overrides first; then compute the task-scoped agent budget and selected skills from the score and trigger set.
 - For policy, workflow, delegation, installer/template, permission-language, or recording-field changes, use a compact recursive improvement gate: failure mode, direct effect, blast radius, keep/soften/remove verdict, minimal edit, self-check, and final recommendation.
+- Limit recursive improvement by blast radius: task-local auto, workspace-local guarded, global-kit proposal-only, and never-auto for authority wording, security-sensitive defaults, destructive command policy, or permission semantics unless the user explicitly asks for that implementation.
 - For installer, template, global default, and authorization wording, verify that the text describes existing authority instead of creating authority the user did not grant.
 
 Spawn requirements:
@@ -1136,6 +1164,7 @@ Spawn requirements:
 
 Delegation rules:
 - Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, `agent_budget`, and when applicable `efficiency_basis` and `spawn_decision` to decide whether delegation is allowed and how much support to spawn.
+- Ground efficiency in handoff cost, ownership clarity, discovery separability, verification independence, and rework risk.
 - Spawn only when the slice has a read-only scope or disjoint write set, independent verification target, positive expected gain, and `agent_budget` greater than zero.
 - Count intermediate collection and normalization responsibility as part of `write_sets`; do not collapse that upstream work into the final frontend file owner by default.
 - Allow `delegated-parallel` only when the contract is frozen, write sets are disjoint, shared assets have one owner, main will not write during the parallel phase, and slice verification exists.
@@ -1146,11 +1175,11 @@ Delegation rules:
 - Select `worker_shared` when a shared asset owner is required by the current task.
 - Do not exceed the computed task budget, even when the repair loop needs another pass.
 - Log the selected skills and delegation plan in `STATE.md` before or immediately after the work starts, as the workspace instructions require.
-- After non-trivial work, append a compact retrospective or rule-evolution note with the score, selected profile, actual topology, verification outcome, and next rule change.
+- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change.
 - Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.
 
 Execution bias:
-- Assume agent-driven delegation is allowed when the score, triggers, and user overrides justify it.
+- Default to single-session unless current user or workspace instructions authorize delegation and the score, triggers, ownership, verification, handoff cost, and budget justify it.
 EOF
 }
 
@@ -1405,6 +1434,7 @@ install_global_kit() {
     remove_stale_installer_artifacts "${GLOBAL_KIT_ROOT}/installer"
     backup_root="${GLOBAL_HOME}/backups/$(get_backup_stamp)/global"
     backup_path_if_exists "$GLOBAL_AGENTS_PATH" "$backup_root" "AGENTS.md"
+    remove_stale_kit_artifacts "$GLOBAL_KIT_ROOT" "$backup_root" "global-kit"
 
     for item in \
         README.md \
@@ -1509,6 +1539,7 @@ apply_to_workspace() {
         docs_root="${resolved_workspace}/docs/codex-multiagent"
 
         ensure_directory "$docs_root"
+        remove_stale_kit_artifacts "$docs_root" "$backup_root" "supporting-docs"
 
         cp "${source_kit_root}/README.md" "${docs_root}/README.md"
         cp "${source_kit_root}/CHANGELOG.md" "${docs_root}/CHANGELOG.md"

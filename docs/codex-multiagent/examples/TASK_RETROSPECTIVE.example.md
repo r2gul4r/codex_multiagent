@@ -5,14 +5,10 @@
 - date: `2026-04-13`
 - score_total: 6
 - selected_profile: `single-session`
-- predicted_topology: `single-session`
 - actual_topology: `single-session`
-- spawn_count: 0
-- rework_or_reclassification:
-  - `reclassified from implementation to verification-only when real smoke evidence became the primary goal`
-- reviewer_findings:
-  - `none; main self-review only`
 - verification_outcome: `macOS workflow passed; local Linux smoke remained indirect`
+- collisions_or_reclassifications:
+  - `reclassified from implementation to verification-only when real smoke evidence became the primary goal`
 - what_worked:
   - `Keeping one write lane avoided shell and PowerShell template drift`
 - what_broke:

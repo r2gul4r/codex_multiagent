@@ -21,7 +21,7 @@
 
 ## Should Not Do
 
-- Treat score bands as automatic delegation commands
+- Treat agent budget as task-scoped rather than fixed caps
 - Fan out work without a clear contract or budget
 - Leave ownership ambiguous while write work is active
 - Expect reviewers to repair the architecture
