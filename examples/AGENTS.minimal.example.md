@@ -10,6 +10,8 @@ This is the fast-start version for small repositories or personal projects.
 - Let `main` choose `selected_rules`, `selected_skills`, and `execution_topology`
 - Before closing delegated work, let `reviewer` do one read-only pass when `review_required` is selected
 - Keep a small `STATE.md` with `score_total`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, and `contract_freeze`
+- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`
+- Task-local recursive improvement is bounded repair only inside the current task's pinned write set and verification surface
 
 ## Roles
 

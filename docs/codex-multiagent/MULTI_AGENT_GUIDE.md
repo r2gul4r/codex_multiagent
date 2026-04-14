@@ -106,11 +106,15 @@ Do not spawn just because the score is high. High score starts the efficiency an
 
 Recursive Socratic improvement gate:
 
-- Trigger it for policy, workflow, delegation, installer/template, global default, permission language, or new recording-field changes; also trigger it when the user asks whether a design is too heavy.
+- Treat recursive improvement as two scoped loops: task-local bounded repair for the current workspace task, and global-kit rule evolution for kit-level policy or template changes.
+- Task-local recursive improvement does not create a new objective; it stays inside the current task's pinned write set, tests, docs, and verification surface.
+- Trigger the global-kit rule evolution gate for policy, workflow, delegation, installer/template, global default, permission language, or new recording-field changes; also trigger it when the user asks whether a design is too heavy.
+- Keep global-kit rule evolution proposal-only unless the user explicitly asks for kit-level implementation.
 - Use the smallest useful loop: `4-6` points gets three questions, `7+` gets an efficiency-and-safety pass, and installer/template/global-default text gets the blast-radius pass.
 - Keep the output fixed: failure mode, direct or indirect effect, blast radius, verdict `keep`/`soften`/`remove`, minimal edit, self-check, and final recommendation.
 - For installer, template, global default, or authorization wording, ask: "Does this describe existing authority, or create authority the user did not grant?"
 - Finish with the adversarial pass: did the simplification become too weak, too vague, or likely to revive the original failure mode?
+- This is not a background autonomous optimizer. Do not add polling, daemonized self-editing, cross-workspace learning, or unrelated repository auto-edits.
 
 Blast-radius tiers:
 
@@ -405,7 +409,7 @@ If the structure is broken, formatting comments are noise.
 - Domain worker names
 - Skill-selection overrides for repository-specific workflows
 - Whether concurrent registry mode is enabled and where thread state files live
-- Where task retrospectives and rule-evolution notes should be appended
+- Where task retrospectives should be appended
 
 ## 14. Retrospectives And Rule Evolution
 
@@ -424,8 +428,8 @@ After non-trivial work, especially anything involving reclassification, collisio
 - verification outcome
 - what rule, template, or installer text should change next
 
-Keep rule-evolution notes append-only.
-That gives future AGENTS or installer changes an evidence trail instead of a vague memory.
+Do not introduce a separate standing rule-evolution artifact.
+Reuse task retrospectives as evidence; repeated patterns may support future AGENTS or installer proposals.
 
 ## 15. Recommended Adoption Order
 
@@ -437,7 +441,7 @@ That gives future AGENTS or installer changes an evidence trail instead of a vag
 6. Add `worker_shared` when common types, shared utils, or common components keep causing collisions
 7. When real collisions appear, add repository-specific forbidden patterns
 8. Only after real same-workspace collisions appear, add concurrent registry mode
-9. Once execution patterns repeat, add compact retrospectives and a rule-evolution log
+9. Once execution patterns repeat, add compact retrospectives and use them as evidence for kit-level proposals
 
 ## 16. One-Line Summary
 

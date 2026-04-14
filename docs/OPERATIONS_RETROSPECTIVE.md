@@ -1,7 +1,7 @@
 # Operations Retrospective
 
 The point of a retrospective here is not ceremony.
-It is evidence for future rule changes.
+It is task-level evidence for future rule proposals.
 
 ## When To Write One
 
@@ -24,21 +24,21 @@ It is evidence for future rule changes.
 - `verification_outcome`
 - `next_rule_change`
 
-## Two Useful Artifacts
+## Standing Artifact
 
 - task retrospective
-  - what happened on one concrete task
-- rule evolution log
-  - what global rule or template should change because the same pattern keeps repeating
+  - what happened on one concrete workspace task
+  - whether the evidence suggests a future kit-level rule or template proposal
 
-Keep both append-only when possible.
+Do not introduce a separate standing rule-evolution artifact.
+Reuse task retrospectives as the evidence trail; repeated patterns may inform kit-level proposals.
 
 ## What Good Looks Like
 
 - short
 - concrete
 - tied to one failure or one win
-- ends with a rule or template change worth making
+- ends with a bounded next action or a rule/template proposal worth considering
 
 ## What To Avoid
 
@@ -50,4 +50,3 @@ Keep both append-only when possible.
 ## Examples
 
 - [Task Retrospective Example](../examples/TASK_RETROSPECTIVE.example.md)
-- [Rule Evolution Log Example](../examples/RULE_EVOLUTION_LOG.example.md)

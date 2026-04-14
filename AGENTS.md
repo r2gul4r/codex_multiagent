@@ -76,6 +76,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 - Use `clarify -> freeze -> implement -> verify` for non-tiny hotfixes when the work spans multiple files, needs a frozen contract, or could drift without a written spec.
 - Skip spec-first only for tiny local hotfixes that stay in one file and do not need a frozen contract.
 - Treat clarification as read-only scope discovery, freeze as the contract snapshot, implementation as bounded writes, and verification as contract checking.
+- The orchestration loop is workspace-general: every non-trivial task in an installed workspace follows `plan -> classify -> freeze -> implement -> verify -> retrospective`.
 - Keep the workflow subordinate to the active orchestration profile, security, reviewer, and verification rules.
 - Do not add background orchestration loops or polling behavior to this workflow.
 - If a tiny hotfix starts growing during execution, stop, update `STATE.md`, reclassify the task, and only then continue with more writes.
@@ -171,7 +172,10 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 ### Recursive Improvement Gate
 
-- Use this gate when the task changes policy, workflow, delegation rules, installer/default templates, permission language, or recording fields; also use it when the user asks whether the design is too heavy or efficient enough.
+- Recursive improvement has two scopes: task-local bounded repair for the current workspace task, and global-kit rule evolution for kit-level policy or template changes.
+- Task-local recursive improvement does not create a new objective. It is only bounded repair or closing work inside the current task's pinned write set, tests, docs, and verification surface.
+- Use the global-kit rule evolution gate when the task changes policy, workflow, delegation rules, installer/default templates, permission language, or recording fields; also use it when the user asks whether the design is too heavy or efficient enough.
+- Global-kit rule evolution is proposal-only by default and enters implementation only when the current user explicitly asks for kit-level changes.
 - Scale the depth by task: `score_total 4-6` uses a three-question lightweight check, `score_total >= 7` uses an efficiency-and-safety check, and installer/template/global-default text gets the blast-radius pass.
 - Keep the output patch-oriented, not essay-oriented: original failure mode, direct or indirect effect, blast radius, verdict `keep`/`soften`/`remove`, minimal edit, self-check, and final recommendation.
 - Ask at most six questions, and close each question with a verdict or a minimal patch direction.
@@ -179,13 +183,14 @@ Installer global setup copies this file to the user's Codex home as the default 
 - `never-auto` covers authority wording, security-sensitive defaults, destructive command policy, and permission semantics unless the user explicitly asks for that implementation.
 - For installer, template, global default, authorization, and permission text, explicitly ask whether the wording describes existing authority or creates authority that the user did not grant.
 - End with an adversarial second pass: check whether the proposed simplification became too weak, too vague, or likely to revive the original failure mode.
+- This kit is not a background autonomous optimizer; do not add polling, daemonized self-editing, cross-workspace learning, or unrelated repository auto-edits.
 
 ### Retrospectives And Metrics
 
 - After non-trivial work, especially reclassification, collision avoidance, verification surprises, or delegation calibration changes, append a compact retrospective artifact or workspace-configured note instead of relying on memory
 - Record at least `task`, `score_total`, `predicted_topology` or `predicted_orchestration`, `actual_topology`, `spawn_count`, `rework_or_reclassification`, `reviewer_findings`, `verification_outcome`, and `next_rule_change`
 - Keep the form lightweight; do not turn retrospectives into a mandatory essay template
-- Keep rule-evolution notes append-only so later installer and AGENTS changes can cite concrete failure patterns rather than vibes
+- Reuse task retrospectives as evidence; repeated patterns may inform later kit-level proposals, but do not introduce a separate standing rule-evolution artifact
 
 ### State Integrity
 

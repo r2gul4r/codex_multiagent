@@ -3,6 +3,7 @@
 ```md
 - task: `installer update-flow hardening`
 - date: `2026-04-13`
+- evidence_scope: `one concrete workspace task`
 - score_total: 6
 - selected_profile: `single-session`
 - predicted_topology: `single-session`
@@ -18,5 +19,7 @@
 - what_broke:
   - `The previous task state was still pinned to the older slice until reclassification`
 - next_rule_change:
-  - `Always report the current score basis from STATE.md before entering the next slice`
+  - `Proposal evidence only: always report the current score basis from STATE.md before entering the next slice`
+- note:
+  - `Do not create a separate rule-evolution artifact; reuse task retrospectives when repeated patterns justify kit-level proposals`
 ```

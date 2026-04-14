@@ -716,6 +716,9 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('- Keep changes small')
         $lines.Add('- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here')
         $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`')
+        $lines.Add('- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`')
+        $lines.Add('- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task')
+        $lines.Add('- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation')
         $lines.Add('- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`')
         $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md`')
         $lines.Add('- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change')
@@ -735,6 +738,9 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('')
         $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
         $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`')
+        $lines.Add('- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`')
+        $lines.Add('- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task')
+        $lines.Add('- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation')
         $lines.Add('- Keep one shared `STATE.md` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root file into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`')
         $lines.Add('- If multiple roles are used, append real participation to `MULTI_AGENT_LOG.md` before reporting that they ran')
         $lines.Add('- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change')
@@ -878,6 +884,9 @@ function New-WorkspaceAgentsFromContext {
     $lines.Add('- Use score-based orchestration to choose the role mix and task-scoped budget instead of fixed caps')
     $lines.Add('  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide whether support may be spawned')
     $lines.Add(('- Keep `{0}` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`' -f $taskBoardPath))
+    $lines.Add('- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`')
+    $lines.Add('- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task')
+    $lines.Add('- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation')
     $lines.Add(('- Keep one shared `{0}` by default; if true same-workspace concurrent threads are explicitly enabled, turn the root task board into a registry and move execution state into per-thread files such as `states/STATE.<thread_id>.md`' -f $taskBoardPath))
     $lines.Add(('- If multiple roles are used, append real participation to `{0}` before reporting that they ran' -f $multiAgentLogPath))
     $lines.Add('- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change')
@@ -1145,6 +1154,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Always load and follow the nearest applicable AGENTS.md before implementation.',
         '- Prefer workspace AGENTS.md over global AGENTS.md when both exist.',
         '- Treat AGENTS.md as the source of truth for orchestration selection, skill routing, state updates, and verification flow.',
+        '- The orchestration loop is workspace-general: every non-trivial task in an installed workspace follows plan -> classify -> freeze -> implement -> verify -> retrospective.',
         '- On each new user request, compare it against the active current_task in STATE.md before continuing, even if the work looks like a continuation of the same feature.',
         '- Do not continue implementation from an existing STATE.md unless the request is clearly the same task.',
         '- Keep one shared STATE.md by default; switch to a root registry plus per-thread files only when true same-workspace concurrent threads are explicitly chosen.',
@@ -1174,8 +1184,10 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, `worker_shared` for shared assets, and `reviewer` for close-out checks.',
         '- Keep the main thread focused on requirements, decisions, synthesis, orchestration selection, and final answers.',
         '- Apply user natural-language overrides first; then compute the task-scoped agent budget and selected skills from the score and trigger set.',
-        '- For policy, workflow, delegation, installer/template, permission-language, or recording-field changes, use a compact recursive improvement gate: failure mode, direct effect, blast radius, keep/soften/remove verdict, minimal edit, self-check, and final recommendation.',
+        '- Task-local recursive improvement creates no new objective; it is bounded repair inside the current task''s pinned write set, tests, docs, and verification surface.',
+        '- For policy, workflow, delegation, installer/template, permission-language, or recording-field changes, use the global-kit recursive improvement gate: failure mode, direct effect, blast radius, keep/soften/remove verdict, minimal edit, self-check, and final recommendation.',
         '- Limit recursive improvement by blast radius: task-local auto, workspace-local guarded, global-kit proposal-only, and never-auto for authority wording, security-sensitive defaults, destructive command policy, or permission semantics unless the user explicitly asks for that implementation.',
+        '- This kit is not a background autonomous optimizer; do not add polling, daemonized self-editing, cross-workspace learning, or unrelated repository auto-edits.',
         '- For installer, template, global default, and authorization wording, verify that the text describes existing authority instead of creating authority the user did not grant.',
         '',
         'Spawn requirements:',
@@ -1201,6 +1213,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Do not exceed the computed task budget, even when the repair loop needs another pass.',
         '- Log the selected skills and delegation plan in `STATE.md` before or immediately after the work starts, as the workspace instructions require.',
         '- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change.',
+        '- Reuse task retrospectives as evidence for future kit-level proposals; do not introduce a separate standing rule-evolution artifact.',
         '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.',
         '',
         'Execution bias:',

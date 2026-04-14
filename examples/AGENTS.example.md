@@ -35,6 +35,9 @@ Adjust the paths and commands to match the real repository.
 - `main` selects the orchestration profile, not a fixed route
 - Workers write only inside their assigned `write_set`
 - Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`
+- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`
+- Task-local recursive improvement is bounded repair only inside the current task's pinned write set and verification surface
+- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation
 - Review/design mode is read-only until `main` pins the patch scope and explicitly enters implementation
 - If both `apps/web` and `apps/api` are touched, request payload contracts must be pinned first
 - If a migration file is involved, do not parallelize unless the selected rules and write sets prove the split is safe
