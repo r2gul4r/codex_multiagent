@@ -8,6 +8,17 @@ task_board_path = "STATE.md"
 multi_agent_log_path = "MULTI_AGENT_LOG.md"
 error_log_path = "ERROR_LOG.md"
 
+[persona_override]
+# Optional local persona overrides.
+# Delete this section for full inherit; omit a key for field-level inherit.
+name = ""
+response_language = ""
+speech_style = ""
+tone = ""
+# Boolean keys cannot be empty. Omit this key to inherit, or set true/false to override.
+# allow_mild_profanity = false
+code_comment_language = ""
+
 [repository]
 facts = ["Package manager: pnpm", "Primary source of truth: src/**"]
 

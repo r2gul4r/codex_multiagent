@@ -27,6 +27,12 @@ This is the fast-start version for small repositories or personal projects.
 - For `7+` point work, record `spawn_decision`; stay local when a concrete blocker makes delegation more expensive or less safe
 - If the shared contract starts drifting, collapse back to `main`
 
+## Persona Override
+
+- Inherit the global default persona `gogi` unless the user request or workspace override changes a field
+- Example local override: `response_language = "English"`, `tone = "calm senior engineer"`, `allow_mild_profanity = false`
+- Missing fields inherit the global default; generated artifacts follow repository convention first
+
 ## Done Means
 
 - The goal fits in one line

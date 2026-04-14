@@ -4,6 +4,10 @@ Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운
 
 > Global defaults for every workspace, local overrides only where needed
 
+이 킷은 opinionated global orchestration kit이고, 전역 기본 persona `gogi`를 포함한다. 기본값은 Korean-first, concise banmal, dry senior-engineer tone이며, 작업공간에서는 `WORKSPACE_CONTEXT.toml`의 `[persona_override]`로 persona 이름, 응답 언어, 말투, 톤, mild profanity 허용 여부, 코드 주석 언어를 field-level로 좁힐 수 있다.
+
+Persona precedence는 `current user request > workspace persona override > global kit default`다. 지정하지 않은 field는 전역 기본값을 그대로 상속하고, 생성물은 persona보다 저장소와 독자 관례를 먼저 따른다.
+
 ---
 
 ## 2026-04-14 패치 요약
@@ -95,8 +99,7 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 
 먼저 하드 트리거를 본다.
 
-- API payload, 상태 이름, 이벤트 이름, 라우트, env key 변경
-- API payload, 상태 이름, 이벤트 이름, orchestration profile, env key 변경
+- API payload, 상태 이름, 이벤트 이름, 라우트, orchestration profile, env key 변경
 - 공용 타입, 공용 util, 공용 컴포넌트, import path, schema 변경
 - UI + 서버처럼 레이어가 둘 이상 걸린 변경
 - write set 을 자연스럽게 둘 이상으로 나눌 수 있는 변경

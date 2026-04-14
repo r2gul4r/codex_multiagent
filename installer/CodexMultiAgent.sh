@@ -334,6 +334,7 @@ generate_default_workspace_agents() {
     printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
     printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
     printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
+    printf 'Global default persona is `gogi`; use `[persona_override]` in `WORKSPACE_CONTEXT.toml` to narrow persona fields locally.\n'
     if [ "$template_name" = "minimal" ]; then
         printf '\n## Minimal Repository Rules\n\n'
         printf -- '- Error log path: `ERROR_LOG.md`\n'
@@ -472,6 +473,25 @@ get_derived_error_log_path() {
     error_log_path=$(toml_get_scalar "$context_path" "workspace" "error_log_path")
     [ -n "$error_log_path" ] || error_log_path="ERROR_LOG.md"
     printf '%s\n' "$error_log_path"
+}
+
+get_derived_persona_overrides() {
+    context_path="$1"
+
+    persona_name=$(toml_get_scalar "$context_path" "persona_override" "name")
+    response_language=$(toml_get_scalar "$context_path" "persona_override" "response_language")
+    speech_style=$(toml_get_scalar "$context_path" "persona_override" "speech_style")
+    tone=$(toml_get_scalar "$context_path" "persona_override" "tone")
+    allow_mild_profanity=$(toml_get_scalar "$context_path" "persona_override" "allow_mild_profanity")
+    code_comment_language=$(toml_get_scalar "$context_path" "persona_override" "code_comment_language")
+
+    merge_context_items \
+        "${persona_name:+persona_name: \`$persona_name\`}" \
+        "${response_language:+response_language: \`$response_language\`}" \
+        "${speech_style:+speech_style: \`$speech_style\`}" \
+        "${tone:+tone: \`$tone\`}" \
+        "${allow_mild_profanity:+allow_mild_profanity: \`$allow_mild_profanity\`}" \
+        "${code_comment_language:+code_comment_language: \`$code_comment_language\`}"
 }
 
 resolve_workspace_relative_path() {
@@ -777,6 +797,7 @@ generate_workspace_agents_from_context() {
     load_array_from_command worker_mapping get_derived_worker_mapping "$context_path"
     load_array_from_command reviewer_focus get_derived_reviewer_focus "$context_path"
     load_array_from_command forbidden_patterns get_derived_forbidden_patterns "$context_path"
+    load_array_from_command persona_overrides get_derived_persona_overrides "$context_path"
 
     {
         printf '# Workspace Override: %s\n\n' "$title"
@@ -786,6 +807,14 @@ generate_workspace_agents_from_context() {
         printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
         printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
         printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
+        if [ "${#persona_overrides[@]}" -gt 0 ]; then
+            printf '\n## Local Persona Override\n\n'
+            printf 'These fields narrow the global default persona `gogi`; unspecified persona fields inherit the global default.\n'
+            printf 'Current user requests still take precedence over both workspace overrides and global defaults.\n\n'
+            for item in "${persona_overrides[@]}"; do
+                [ -n "$item" ] && printf -- '- %s\n' "$item"
+            done
+        fi
 
         combined_facts=(${repository_facts[@]+"${repository_facts[@]}"} "Task board path: \`$task_board_path\`" "Multi-agent log path: \`$multi_agent_log_path\`" "Error log path: \`$error_log_path\`")
         write_markdown_section 'Repository Facts' ${combined_facts[@]+"${combined_facts[@]}"}
@@ -1134,6 +1163,7 @@ Error logging:
 - Leave interrupted or paused errors in ERROR_LOG.md as open or deferred until a later append marks them resolved.
 
 Default behavior:
+- The global kit default persona is `gogi`; workspace persona overrides may narrow persona fields, and current user requests still win.
 - Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.
 - After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.
 - When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.

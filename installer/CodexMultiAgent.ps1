@@ -377,6 +377,27 @@ function Get-DerivedErrorLogPath {
     return $errorLogPath
 }
 
+function Get-DerivedPersonaOverrides {
+    param([hashtable]$Context)
+
+    $items = [System.Collections.Generic.List[string]]::new()
+    $personaName = Get-ContextString -Context $Context -Section 'persona_override' -Key 'name'
+    $responseLanguage = Get-ContextString -Context $Context -Section 'persona_override' -Key 'response_language'
+    $speechStyle = Get-ContextString -Context $Context -Section 'persona_override' -Key 'speech_style'
+    $tone = Get-ContextString -Context $Context -Section 'persona_override' -Key 'tone'
+    $allowMildProfanity = Get-ContextString -Context $Context -Section 'persona_override' -Key 'allow_mild_profanity'
+    $codeCommentLanguage = Get-ContextString -Context $Context -Section 'persona_override' -Key 'code_comment_language'
+
+    if ($personaName) { $items.Add(('persona_name: `{0}`' -f $personaName)) }
+    if ($responseLanguage) { $items.Add(('response_language: `{0}`' -f $responseLanguage)) }
+    if ($speechStyle) { $items.Add(('speech_style: `{0}`' -f $speechStyle)) }
+    if ($tone) { $items.Add(('tone: `{0}`' -f $tone)) }
+    if ($allowMildProfanity -ne '') { $items.Add(('allow_mild_profanity: `{0}`' -f $allowMildProfanity.ToLowerInvariant())) }
+    if ($codeCommentLanguage) { $items.Add(('code_comment_language: `{0}`' -f $codeCommentLanguage)) }
+
+    return $items.ToArray()
+}
+
 function Resolve-WorkspaceRelativePath {
     param(
         [string]$WorkspaceRoot,
@@ -685,6 +706,7 @@ function New-DefaultWorkspaceAgents {
     $lines.Add('This file adds repository-specific rules on top of the global multi-agent defaults.')
     $lines.Add('Global multi-agent defaults remain in effect unless this file narrows them.')
     $lines.Add('This workspace override is local; do not treat it as the public toolkit canonical global ruleset.')
+    $lines.Add('Global default persona is `gogi`; use `[persona_override]` in `WORKSPACE_CONTEXT.toml` to narrow persona fields locally.')
     $lines.Add('')
     if ($TemplateName -eq 'minimal') {
         $lines.Add('## Minimal Repository Rules')
@@ -810,6 +832,7 @@ function New-WorkspaceAgentsFromContext {
     $workerMappings = @(Get-DerivedWorkerMappings -Context $Context)
     $reviewerFocus = @(Get-DerivedReviewerFocus -Context $Context)
     $forbiddenPatterns = @(Get-DerivedForbiddenPatterns -Context $Context)
+    $personaOverrides = @(Get-DerivedPersonaOverrides -Context $Context)
 
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add("# Workspace Override: $title")
@@ -821,6 +844,19 @@ function New-WorkspaceAgentsFromContext {
     $lines.Add('This file adds repository-specific rules on top of the global multi-agent defaults.')
     $lines.Add('Global multi-agent defaults remain in effect unless this file narrows them.')
     $lines.Add('This workspace override is local; do not treat it as the public toolkit canonical global ruleset.')
+    if ($personaOverrides.Count -gt 0) {
+        $lines.Add('')
+        $lines.Add('## Local Persona Override')
+        $lines.Add('')
+        $lines.Add('These fields narrow the global default persona `gogi`; unspecified persona fields inherit the global default.')
+        $lines.Add('Current user requests still take precedence over both workspace overrides and global defaults.')
+        $lines.Add('')
+        foreach ($item in $personaOverrides) {
+            if ($item) {
+                $lines.Add("- $item")
+            }
+        }
+    }
 
     Add-MarkdownSection -Lines $lines -Title 'Repository Facts' -Items ($repositoryFacts + @(
         ('Task board path: `{0}`' -f $taskBoardPath),
@@ -1121,6 +1157,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Leave interrupted or paused errors in ERROR_LOG.md as open or deferred until a later append marks them resolved.',
         '',
         'Default behavior:',
+        '- The global kit default persona is `gogi`; workspace persona overrides may narrow persona fields, and current user requests still win.',
         '- Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.',
         '- After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.',
         '- When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.',

@@ -41,6 +41,13 @@ Adjust the paths and commands to match the real repository.
 - Do not edit `generated/` or `dist/` directly
 - Treat explicit natural-language overrides from the user as higher priority than automatic selection
 
+## Local Persona Override Example
+
+- The global kit default persona remains `gogi`
+- Local persona overrides narrow only the conversational surface; unspecified fields inherit the global defaults
+- Example override: `response_language = "English"`, `speech_style = "concise plain English"`, `tone = "calm senior engineer"`, `allow_mild_profanity = false`, `code_comment_language = "repository convention first"`
+- Generated artifacts follow repository and audience conventions before persona defaults
+
 ## Verification Commands
 
 - `pnpm lint`
