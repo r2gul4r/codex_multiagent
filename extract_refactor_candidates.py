@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 
@@ -17,6 +17,8 @@ SCHEMA_VERSION = 1
 DEFAULT_LIMIT = 5
 
 CODE_LANGUAGES = {"python", "shell", "powershell", "makefile", "rules", "toml"}
+SKIP_DIRS = {".git", ".codex", "__pycache__"}
+SKIP_FILENAMES = {"STATE.md", "MULTI_AGENT_LOG.md", "ERROR_LOG.md"}
 
 AREA_LABELS = {
     "installer": "설치기와 작업공간 스캐폴딩",
@@ -102,6 +104,49 @@ def classify_area(path: Path) -> str:
     if len(parts) == 1:
         return "root_tooling"
     return "other"
+
+
+def should_skip_repo_path(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    parts = PurePosixPath(normalized).parts
+    if any(part in SKIP_DIRS for part in parts):
+        return True
+    return bool(parts and parts[-1] in SKIP_FILENAMES)
+
+
+def filter_metrics_payload(metrics_payload: dict[str, Any]) -> dict[str, Any]:
+    files = [
+        item
+        for item in metrics_payload.get("files", [])
+        if not should_skip_repo_path(str(item.get("path", "")))
+    ]
+    file_paths = {item["path"] for item in files}
+
+    duplication = dict(metrics_payload.get("duplication", {}))
+    groups: list[dict[str, Any]] = []
+    for group in duplication.get("groups", []):
+        modules = [
+            module
+            for module in group.get("modules", [])
+            if module.get("path") in file_paths
+        ]
+        if len(modules) < 2:
+            continue
+        next_group = dict(group)
+        next_group["modules"] = modules
+        next_group["occurrence_count"] = len(modules)
+        groups.append(next_group)
+    duplication["groups"] = groups
+    duplication["group_count"] = len(groups)
+
+    summary = dict(metrics_payload.get("summary", {}))
+    summary["file_count"] = len(files)
+
+    filtered = dict(metrics_payload)
+    filtered["files"] = files
+    filtered["duplication"] = duplication
+    filtered["summary"] = summary
+    return filtered
 
 
 def load_metrics(root: Path, metrics_input: str | None) -> dict[str, Any]:
@@ -658,7 +703,7 @@ def render_markdown_report(payload: dict[str, Any]) -> str:
 def main() -> None:
     args = parse_args()
     root = Path(args.root).resolve()
-    metrics_payload = load_metrics(root, args.metrics_input)
+    metrics_payload = filter_metrics_payload(load_metrics(root, args.metrics_input))
     candidates = build_refactor_candidates(root, metrics_payload, max(args.limit, 1))
     payload = build_payload(root, metrics_payload, candidates)
 

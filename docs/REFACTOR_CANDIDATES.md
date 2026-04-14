@@ -4,7 +4,7 @@
 각 항목은 문제 징후, 개선 기대효과, 선정 근거를 함께 남겨 다음 계획 단계의 직접 입력으로 쓴다.
 
 - schema_version: `1`
-- scanned_file_count: `52`
+- scanned_file_count: `48`
 - refactor_candidate_count: `5`
 
 ## Refactor Candidates
@@ -81,8 +81,8 @@
 
 - 결정: `pick` / 등급 `A` / 점수 `45`
 - 문제 징후:
-  - 정규화 중복 블록 50줄이 2회 반복됨
-  - 영향 파일 중 최대 변경 빈도는 commit_count=31
+  - 정규화 중복 블록 46줄이 2회 반복됨
+  - 영향 파일 중 최대 변경 빈도는 commit_count=32
   - 중복이 같은 책임 경계(New-DefaultState, New-WorkspaceStateFromContext) 주변에 몰려 있음
   - 반복 블록 예시: $lines.Add('- phase: `explore`') / $lines.Add('- scope: `n/a`')
 - 개선 기대효과:
@@ -94,8 +94,8 @@
   - 리팩터링 루브릭: quality_impact=3, risk=2, maintainability=3, feature_goal_contribution=3
   - 중복 신호와 변경 빈도 신호가 함께 보여 변경 안정성 개선 효과를 설명하기 쉬움
 - 근거 위치:
-  - `installer/CodexMultiAgent.ps1:704-753`
-  - `installer/CodexMultiAgent.ps1:860-909`
+  - `installer/CodexMultiAgent.ps1:704-749`
+  - `installer/CodexMultiAgent.ps1:856-901`
 - 공통 축 판정: goal_alignment=pass, gap_relevance=high, safety=guarded, reversibility=strong, structural_impact=low, leverage=high
 - 리팩터링 루브릭: quality_impact=3, risk=2, maintainability=3, feature_goal_contribution=3, specific_score=11
 
@@ -103,8 +103,8 @@
 
 - 결정: `pick` / 등급 `A` / 점수 `45`
 - 문제 징후:
-  - 정규화 중복 블록 38줄이 2회 반복됨
-  - 영향 파일 중 최대 변경 빈도는 commit_count=31
+  - 정규화 중복 블록 36줄이 2회 반복됨
+  - 영향 파일 중 최대 변경 빈도는 commit_count=32
   - 중복이 같은 책임 경계(generate_default_state, generate_workspace_state_from_context) 주변에 몰려 있음
   - 반복 블록 예시: printf -- '- phase: `explore`\n' / printf -- '- scope: `n/a`\n'
 - 개선 기대효과:
@@ -116,7 +116,7 @@
   - 리팩터링 루브릭: quality_impact=3, risk=2, maintainability=3, feature_goal_contribution=3
   - 중복 신호와 변경 빈도 신호가 함께 보여 변경 안정성 개선 효과를 설명하기 쉬움
 - 근거 위치:
-  - `installer/CodexMultiAgent.sh:347-384`
-  - `installer/CodexMultiAgent.sh:808-845`
+  - `installer/CodexMultiAgent.sh:347-382`
+  - `installer/CodexMultiAgent.sh:806-841`
 - 공통 축 판정: goal_alignment=pass, gap_relevance=high, safety=guarded, reversibility=strong, structural_impact=low, leverage=high
 - 리팩터링 루브릭: quality_impact=3, risk=2, maintainability=3, feature_goal_contribution=3, specific_score=11

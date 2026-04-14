@@ -18,7 +18,7 @@
 - Added generated reports under `docs/` for goal alignment, area evaluation, repository metrics, feature gaps, test gaps, and refactor candidates.
 - Added `examples/quality_signal_samples.json` as a stable sample input for normalization smoke tests.
 - Added Python generated-file ignores to `.gitignore`.
-- Removed the old workflow skill directories, their command-routing rule, seed example, porting note, and obsolete third-party notice.
+- Removed the old workflow skill directories, their command-routing rule, legacy example, porting note, and obsolete third-party notice.
 - Updated `AGENTS.md` and `MULTI_AGENT_GUIDE.md` so delegation is not driven by score alone:
   - `4-6` point work uses a lightweight efficiency check when the choice is non-obvious.
   - `7+` point work records an explicit `spawn_decision` unless a concrete blocker keeps it local.

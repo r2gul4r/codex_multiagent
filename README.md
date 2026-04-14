@@ -358,7 +358,7 @@ delegated profile 에선 병렬 쓰기를 `writer_slot = parallel` 과 `write_se
 
 이제 기본 운영 규칙에는 다음도 포함된다.
 
-- `interview -> seed -> run -> evaluate` skeleton
+- `clarify -> freeze -> implement -> verify` native STATE.md contract flow
 - 비작은 작업에서 계약 고정 후 구현 진입
 - 끝난 agent 즉시 정리
 - reviewer 는 가능하면 마지막에 spawn
@@ -375,7 +375,7 @@ delegated profile 에선 병렬 쓰기를 `writer_slot = parallel` 과 `write_se
   저장소 루트 검증 엔트리포인트
 - [WORKSPACE_CONTEXT_TEMPLATE.toml](./WORKSPACE_CONTEXT_TEMPLATE.toml)
   작업공간 컨텍스트 파일 예시
-- 루트의 `STATE.md`, `SEED.yaml`, `MULTI_AGENT_LOG.md`, `ERROR_LOG.md` 는 런타임에서 생성되거나 무시되는 파일이다
+- 루트의 `STATE.md`, `MULTI_AGENT_LOG.md`, `ERROR_LOG.md` 는 런타임에서 생성되거나 무시되는 파일이다
 - [docs/WORKSPACE_CONTEXT_GUIDE.md](./docs/WORKSPACE_CONTEXT_GUIDE.md)
   `WORKSPACE_CONTEXT.toml` 기준표와 작성 프롬프트
 - [MULTI_AGENT_GUIDE.md](./MULTI_AGENT_GUIDE.md)

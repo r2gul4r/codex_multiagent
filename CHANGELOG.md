@@ -7,6 +7,7 @@
 - Removed bundled `codex_skills/ouroboros-*` workflow skills.
 - Removed the `codex_rules/ouroboros-lite.md` command-routing rule, `docs/OUROBOROS_LITE_PORT.md`, and `examples/micro-seed.md`.
 - Updated shell and PowerShell installers so they no longer copy bundled workflow skills and clean up the previously installer-managed `codex_skills` kit folder.
+- Removed remaining active seed/interview/evaluate terminology from current docs and installer-generated state templates.
 
 ### Added
 

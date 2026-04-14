@@ -197,7 +197,7 @@ area=proposal_prioritization | expected=candidates ranked by goal-aligned evalua
 
 #### 범위 포함
 
-- `interview -> seed -> run -> evaluate` 같은 spec-first 흐름
+- `clarify -> freeze -> implement -> verify` 같은 spec-first 흐름
 - `STATE.md`, `contract_freeze`, `write_sets`, `execution_topology`를 통한 실행 통제
 - 작은 기능 추가와 리팩터링의 안전한 수행
 
@@ -220,7 +220,7 @@ area=proposal_prioritization | expected=candidates ranked by goal-aligned evalua
 #### 현재 구현에서 확인할 증거
 
 - `STATE.md`에 `contract_freeze`, `write_sets`, `execution_topology`, `writer_slot`이 남는지 본다
-- `interview -> seed -> run -> evaluate` 같은 흐름이 문서화돼 있는지 본다
+- `clarify -> freeze -> implement -> verify` 같은 흐름이 문서화돼 있는지 본다
 - 구조 변경 금지와 예외 승인 규칙이 실행 단계 문서와 충돌 없이 이어지는지 본다
 
 #### 비교 기록 포맷
@@ -344,7 +344,7 @@ area=traceability_reversibility | expected=every change is logged and recoverabl
 
 #### 범위 포함
 
-- `evaluate` 결과를 다음 개선 후보로 연결하는 흐름
+- `verify` 결과를 다음 개선 후보로 연결하는 흐름
 - 해결된 문제와 남은 공백을 다음 사이클 입력으로 전환하는 방식
 - bounded repair loop 같은 반복 개선 메커니즘
 
@@ -366,7 +366,7 @@ area=traceability_reversibility | expected=every change is logged and recoverabl
 
 #### 현재 구현에서 확인할 증거
 
-- `evaluate`나 완료 판단 결과를 다음 후보 선정 문서/상태 기록으로 연결하는 규칙이 있는지 본다
+- `verify`나 완료 판단 결과를 다음 후보 선정 문서/상태 기록으로 연결하는 규칙이 있는지 본다
 - bounded repair loop, next task, remaining gaps 같은 개념이 드러나는지 본다
 - 반복 개선 규칙이 목표 부합 게이트보다 앞서지 않는지 본다
 
