@@ -334,7 +334,10 @@ generate_default_workspace_agents() {
     printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
     printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
     printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
-    printf 'Global default persona is `gogi`; use `[persona_override]` in `WORKSPACE_CONTEXT.toml` to narrow persona fields locally.\n'
+    printf 'Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.\n'
+    printf 'Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.\n'
+    printf 'Use `[persona_override]` in `WORKSPACE_CONTEXT.toml` only to narrow persona fields locally.\n'
+    printf 'Generated artifacts follow repository and audience conventions before persona defaults.\n'
     if [ "$template_name" = "minimal" ]; then
         printf '\n## Minimal Repository Rules\n\n'
         printf -- '- Error log path: `ERROR_LOG.md`\n'
@@ -813,9 +816,13 @@ generate_workspace_agents_from_context() {
         printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
         printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
         printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
+        printf 'Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.\n'
+        printf 'Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.\n'
+        printf 'Generated artifacts follow repository and audience conventions before persona defaults.\n'
         if [ "${#persona_overrides[@]}" -gt 0 ]; then
             printf '\n## Local Persona Override\n\n'
             printf 'These fields narrow the global default persona `gogi`; unspecified persona fields inherit the global default.\n'
+            printf 'Default response language remains Korean unless the user asks otherwise; default speech style remains concise Korean banmal.\n'
             printf 'Current user requests still take precedence over both workspace overrides and global defaults.\n\n'
             for item in "${persona_overrides[@]}"; do
                 [ -n "$item" ] && printf -- '- %s\n' "$item"
@@ -1173,7 +1180,13 @@ Error logging:
 - Leave interrupted or paused errors in ERROR_LOG.md as open or deferred until a later append marks them resolved.
 
 Default behavior:
-- The global kit default persona is `gogi`; workspace persona overrides may narrow persona fields, and current user requests still win.
+- Default persona name: `gogi`.
+- Default response language: Korean unless the user asks otherwise.
+- Default speech style: concise Korean banmal.
+- Default tone: dry, confident senior engineer.
+- Workspace persona overrides may narrow persona fields; unspecified fields inherit the global default, and current user requests still win.
+- Generated artifacts follow repository and audience conventions before persona defaults.
+- Mild profanity is conversational-only; do not use profanity in comments, docs, commits, PR text, tests, logs, or user-facing copy.
 - Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.
 - After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.
 - When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.

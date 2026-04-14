@@ -18,7 +18,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# 경로 기본 값
+# Default paths
 $InstallerRoot = $PSScriptRoot
 $LocalKitRoot = Split-Path -Parent $PSScriptRoot
 $GlobalHome = Join-Path $env:USERPROFILE '.codex'
@@ -113,7 +113,7 @@ function Write-Utf8Lines {
 function Remove-StaleInstallerArtifacts {
     param([string]$InstallerPath)
 
-    # 예전 exe 방식 잔해만 지정 제거
+    # Remove only legacy exe-style leftovers
     $stalePaths = @(
         (Join-Path $InstallerPath 'CodexMultiAgentLauncher.exe'),
         (Join-Path $InstallerPath 'Launch-CodexMultiAgent.cmd'),
@@ -706,7 +706,10 @@ function New-DefaultWorkspaceAgents {
     $lines.Add('This file adds repository-specific rules on top of the global multi-agent defaults.')
     $lines.Add('Global multi-agent defaults remain in effect unless this file narrows them.')
     $lines.Add('This workspace override is local; do not treat it as the public toolkit canonical global ruleset.')
-    $lines.Add('Global default persona is `gogi`; use `[persona_override]` in `WORKSPACE_CONTEXT.toml` to narrow persona fields locally.')
+    $lines.Add('Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.')
+    $lines.Add('Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.')
+    $lines.Add('Use `[persona_override]` in `WORKSPACE_CONTEXT.toml` only to narrow persona fields locally.')
+    $lines.Add('Generated artifacts follow repository and audience conventions before persona defaults.')
     $lines.Add('')
     if ($TemplateName -eq 'minimal') {
         $lines.Add('## Minimal Repository Rules')
@@ -850,11 +853,15 @@ function New-WorkspaceAgentsFromContext {
     $lines.Add('This file adds repository-specific rules on top of the global multi-agent defaults.')
     $lines.Add('Global multi-agent defaults remain in effect unless this file narrows them.')
     $lines.Add('This workspace override is local; do not treat it as the public toolkit canonical global ruleset.')
+    $lines.Add('Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.')
+    $lines.Add('Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.')
+    $lines.Add('Generated artifacts follow repository and audience conventions before persona defaults.')
     if ($personaOverrides.Count -gt 0) {
         $lines.Add('')
         $lines.Add('## Local Persona Override')
         $lines.Add('')
         $lines.Add('These fields narrow the global default persona `gogi`; unspecified persona fields inherit the global default.')
+        $lines.Add('Default response language remains Korean unless the user asks otherwise; default speech style remains concise Korean banmal.')
         $lines.Add('Current user requests still take precedence over both workspace overrides and global defaults.')
         $lines.Add('')
         foreach ($item in $personaOverrides) {
@@ -1167,7 +1174,13 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Leave interrupted or paused errors in ERROR_LOG.md as open or deferred until a later append marks them resolved.',
         '',
         'Default behavior:',
-        '- The global kit default persona is `gogi`; workspace persona overrides may narrow persona fields, and current user requests still win.',
+        '- Default persona name: `gogi`.',
+        '- Default response language: Korean unless the user asks otherwise.',
+        '- Default speech style: concise Korean banmal.',
+        '- Default tone: dry, confident senior engineer.',
+        '- Workspace persona overrides may narrow persona fields; unspecified fields inherit the global default, and current user requests still win.',
+        '- Generated artifacts follow repository and audience conventions before persona defaults.',
+        '- Mild profanity is conversational-only; do not use profanity in comments, docs, commits, PR text, tests, logs, or user-facing copy.',
         '- Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.',
         '- After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.',
         '- When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.',
@@ -1381,7 +1394,7 @@ function Should-CopyDocsForUpdate {
 function Select-Folder {
     param([string]$Description)
 
-    # 폴더 선택 GUI 우선 시도
+        # Prefer the folder picker GUI
     try {
         Add-Type -AssemblyName System.Windows.Forms | Out-Null
         $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
@@ -1394,7 +1407,7 @@ function Select-Folder {
         }
     }
     catch {
-        # 실패하면 콘솔 입력 사용
+        # Fall back to console input
     }
 
     if ($NoPrompt) {

@@ -47,9 +47,12 @@ Adjust the paths and commands to match the real repository.
 ## Local Persona Override Example
 
 - The global kit default persona remains `gogi`
+- Default response language remains Korean unless the user asks otherwise
+- Default speech style remains concise Korean banmal, with a dry, confident senior-engineer tone
 - Local persona overrides narrow only the conversational surface; unspecified fields inherit the global defaults
 - Example override: `response_language = "English"`, `speech_style = "concise plain English"`, `tone = "calm senior engineer"`, `allow_mild_profanity = false`, `code_comment_language = "repository convention first"`
 - Generated artifacts follow repository and audience conventions before persona defaults
+- Policy examples and installer-generated rule text should stay English/ASCII-first unless explicit workspace content requires otherwise
 
 ## Verification Commands
 

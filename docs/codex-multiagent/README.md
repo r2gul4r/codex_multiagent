@@ -1,24 +1,55 @@
-# Codex Multi-Agent Kit ✅
+# Codex Multi-Agent Kit
 
 Codex의 공식 서브에이전트 기능 위에, 팀과 저장소 단위의 운영 규칙을 전역 기본값 + 프로젝트별 오버라이드 구조로 적용하는 킷
 
-> Global defaults for every workspace, local overrides only where needed
+한국어가 기본이다. 아래 `English`를 열면 영어 버전을 볼 수 있다.
 
-이 킷은 opinionated global orchestration kit이고, 전역 기본 persona `gogi`를 포함한다. 기본값은 Korean-first, concise banmal, dry senior-engineer tone이며, 작업공간에서는 `WORKSPACE_CONTEXT.toml`의 `[persona_override]`로 persona 이름, 응답 언어, 말투, 톤, mild profanity 허용 여부, 코드 주석 언어를 field-level로 좁힐 수 있다.
+<details>
+<summary><strong>English</strong></summary>
+
+Codex Multi-Agent Kit adds global defaults and project-local overrides on top of Codex's built-in subagent capabilities.
+
+Canonical execution rules and installer-generated policy text are English/ASCII-first. The default runtime persona remains `gogi`: respond in Korean unless the user asks otherwise, use concise Korean banmal, and keep a dry, confident senior-engineer tone.
+
+The kit installs a global `AGENTS.md`, patches Codex developer instructions, creates project-local `AGENTS.md` and `STATE.md`, tracks `writer_slot`, `contract_freeze`, `write_sets`, and `agent_budget`, and keeps destructive command guard rules in place.
+
+Quick install:
+
+```powershell
+Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode InstallGlobal
+```
+
+Apply to a workspace:
+
+```powershell
+$workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
+```
+
+Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`. Delegation is considered only when score, hard triggers, ownership clarity, independent verification, handoff cost, authorization, and `agent_budget` justify it.
+
+See the current patch notes:
+
+- [2026-04-15 patch notes](./docs/PATCH_NOTES_2026-04-15.md)
+- [2026-04-14 patch notes](./docs/PATCH_NOTES_2026-04-14.md)
+- [2026-04-13 patch notes](./docs/PATCH_NOTES_2026-04-13.md)
+
+</details>
+
+---
+
+Canonical 실행 규칙과 installer 생성 정책 문구는 English/ASCII-first다. 하지만 런타임 기본 persona는 계속 `gogi`다. 기본 응답 언어는 사용자가 달리 요청하지 않는 한 한국어이고, 기본 말투는 짧은 한국어 반말이며, 톤은 건조하고 자신 있는 시니어 엔지니어 톤이다.
 
 Persona precedence는 `current user request > workspace persona override > global kit default`다. 지정하지 않은 field는 전역 기본값을 그대로 상속하고, 생성물은 persona보다 저장소와 독자 관례를 먼저 따른다.
 
 ---
 
-## 2026-04-14 패치 요약
+## 2026-04-15 패치 요약
 
-- 저장소 품질 신호 도구를 추가했다: repository metrics, feature gap, test gap, refactor candidate, tool-output normalization.
-- 루트 `Makefile` 을 검증 엔트리포인트로 추가하고, `normalize_quality_signals.py` 로 실패/경고/커버리지/메트릭 신호를 공통 JSON으로 정규화한다.
-- subagent 호출 기준을 점수 단독이 아니라 hard trigger, write set 분리 가능성, contract freeze, independent verification, handoff cost, `agent_budget` 로 판단하도록 다듬었다.
-- bundled spec-first workflow skills와 legacy command-routing docs/rules를 제거했다. spec-first 동작은 `AGENTS.md`/`STATE.md` native gate로 유지한다.
-- policy, installer, template, permission 문구 변경에는 짧은 재귀개선 게이트를 적용한다: 실패 모드, 직접 효과, blast radius, 판정, 최소 수정, 자기검증, 최종 권고.
-- installer 기본값은 사용자 권한을 새로 창설하지 않고, user/workspace instruction 이 허용한 범위 안에서만 자동 delegation 을 설명한다.
-- 자세한 내용은 [2026-04-14 패치노트](./docs/PATCH_NOTES_2026-04-14.md)를 참고.
+- canonical 실행 규칙과 installer 생성 정책 문구를 English/ASCII-first로 정리했다.
+- `gogi` persona, 기본 한국어 응답, concise Korean banmal, dry confident senior-engineer tone은 유지했다.
+- generated workspace `AGENTS.md`, config developer instructions, examples, workspace context guide/template, mirror docs를 같은 계약으로 맞췄다.
+- README는 한국어 본문을 메인으로 두고, 접히는 `English` 섹션을 추가했다.
+- 자세한 내용은 [2026-04-15 패치노트](./docs/PATCH_NOTES_2026-04-15.md)를 참고.
 
 ---
 
