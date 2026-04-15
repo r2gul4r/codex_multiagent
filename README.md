@@ -119,7 +119,7 @@ $workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubu
 
 기본 생성 모드는 `standard` 이고, 더 짧은 구성이 필요하면 끝에 `-Template minimal` 을 추가하면 된다.
 
-동시 상한 기본값도 함께 들어간다.
+동적 작업 예산 기준도 함께 들어간다.
 
 - 역할별 고정 상한 대신 작업별 `agent_budget` 를 계산한다
 - 예산은 `score_total`, `write_set` 분리 가능성, `execution_topology`, `hard_triggers` 로 산정한다

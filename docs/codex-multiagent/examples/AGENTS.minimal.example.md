@@ -9,9 +9,16 @@ This is the fast-start version for small repositories or personal projects.
 - Check hard triggers before score, then select delegation only when ownership, verification, and handoff cost justify it
 - Let `main` choose `selected_rules`, `selected_skills`, and `execution_topology`
 - Before closing delegated work, let `reviewer` do one read-only pass when `review_required` is selected
-- Keep a small `STATE.md` with `score_total`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, and `contract_freeze`
+- Keep a small `STATE.md` with `score_total`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`
 - Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`
 - Task-local recursive improvement is bounded repair only inside the current task's pinned write set and verification surface
+
+## Execution Profiles
+
+- `single-session`: default local path with one write-capable lane
+- `delegated-serial`: one slice at a time when handoff lowers risk
+- `delegated-parallel`: only after frozen contracts, disjoint write sets, one shared owner, independent verification, main read-only, and `agent_budget > 0`
+- `mixed`: serial contract-freeze first, then safe fan-out only if the parallel gate passes
 
 ## Roles
 
@@ -28,6 +35,7 @@ This is the fast-start version for small repositories or personal projects.
 - For `4-6` point work, record a lightweight spawn/no-spawn basis only when the choice is non-obvious
 - For `7+` point work, record `spawn_decision`; stay local when a concrete blocker makes delegation more expensive or less safe
 - If the shared contract starts drifting, collapse back to `main`
+- Fixed per-role caps are not the model; task-scoped `agent_budget` decides whether support can be spawned
 
 ## Persona Override
 

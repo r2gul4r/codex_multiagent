@@ -333,6 +333,7 @@ generate_default_workspace_agents() {
     printf '# Workspace Override: %s\n\n' "$workspace_name"
     printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
     printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+    printf 'Use this file to narrow the global dynamic policy for local verification, ownership, approval, and reviewer needs; do not restore fixed caps or old single-writer lore.\n'
     printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
     printf 'Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.\n'
     printf 'Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.\n'
@@ -344,7 +345,7 @@ generate_default_workspace_agents() {
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
         printf -- '- Keep changes small\n'
         printf -- '- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here\n'
-        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
+        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`\n'
         printf -- '- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`\n'
         printf -- '- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task\n'
         printf -- '- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation\n'
@@ -362,7 +363,7 @@ generate_default_workspace_agents() {
         printf -- '- Dynamic agent budget guidance and ownership mapping for `worker`, `worker_shared`, `reviewer`, and `explorer` roles\n'
         printf '\n## Repository Overrides\n\n'
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
-        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
+        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`\n'
         printf -- '- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`\n'
         printf -- '- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task\n'
         printf -- '- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation\n'
@@ -390,17 +391,18 @@ generate_default_state() {
     printf -- '- selected_rules: `n/a`\n'
     printf -- '- selected_skills: `n/a`\n'
     printf -- '- execution_topology: `single-session`\n'
-    printf -- '- delegation_plan: `agent-driven, task-scoped, and override-aware`\n'
     printf -- '- agent_budget: `n/a`\n'
-    printf -- '- shared_assets_owner: `n/a`\n'
+    printf -- '- spawn_decision: `n/a - required for score_total >= 7 or non-obvious delegation choices`\n'
+    printf -- '- efficiency_basis: `n/a - record handoff cost, ownership clarity, discovery separability, verification independence, and rework risk when relevant`\n'
     printf -- '- selection_reason: `placeholder - record the score and trigger basis for the chosen orchestration profile`\n'
     printf '\n## Writer Slot\n\n'
-    printf -- '- owner: `main`\n'
+    printf -- '- writer_slot: `main`\n'
     printf -- '- write_set: `n/a`\n'
     printf -- '- write_sets:\n'
     printf '  - `main`: `n/a`\n'
     printf '  - `worker`: `n/a`\n'
     printf '  - `reviewer`: `n/a`\n'
+    printf -- '- shared_assets_owner: `n/a`\n'
     printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`\n'
     printf -- '- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`\n'
     printf '\n## Contract Freeze\n\n'
@@ -815,6 +817,7 @@ generate_workspace_agents_from_context() {
         fi
         printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
         printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+        printf 'Use this file to narrow the global dynamic policy for local verification, ownership, approval, and reviewer needs; do not restore fixed caps or old single-writer lore.\n'
         printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
         printf 'Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.\n'
         printf 'Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.\n'
@@ -843,7 +846,7 @@ generate_workspace_agents_from_context() {
         printf '\n## Repository Overrides\n\n'
         printf -- '- Use score-based orchestration to choose the role mix and task-scoped budget instead of fixed caps\n'
         printf '  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide whether support may be spawned\n'
-        printf -- '- Keep `%s` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n' "$task_board_path"
+        printf -- '- Keep `%s` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`\n' "$task_board_path"
         printf -- '- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`\n'
         printf -- '- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task\n'
         printf -- '- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation\n'
@@ -885,17 +888,18 @@ generate_workspace_state_from_context() {
         printf -- '- selected_rules: `n/a`\n'
         printf -- '- selected_skills: `n/a`\n'
         printf -- '- execution_topology: `single-session`\n'
-        printf -- '- delegation_plan: `agent-driven, task-scoped, and override-aware`\n'
         printf -- '- agent_budget: `n/a`\n'
-        printf -- '- shared_assets_owner: `n/a`\n'
+        printf -- '- spawn_decision: `n/a - required for score_total >= 7 or non-obvious delegation choices`\n'
+        printf -- '- efficiency_basis: `n/a - record handoff cost, ownership clarity, discovery separability, verification independence, and rework risk when relevant`\n'
         printf -- '- selection_reason: `placeholder - record the score and trigger basis for the chosen orchestration profile`\n'
         printf '\n## Writer Slot\n\n'
-        printf -- '- owner: `main`\n'
+        printf -- '- writer_slot: `main`\n'
         printf -- '- write_set: `n/a`\n'
         printf -- '- write_sets:\n'
         printf '  - `main`: `n/a`\n'
         printf '  - `worker`: `n/a`\n'
         printf '  - `reviewer`: `n/a`\n'
+        printf -- '- shared_assets_owner: `n/a`\n'
         printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`\n'
         printf -- '- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`\n'
         printf '\n## Contract Freeze\n\n'
@@ -1230,7 +1234,7 @@ Delegation rules:
 - Select `reviewer` only when the task-scoped rules or budget call for review-required validation.
 - Select `worker_shared` when a shared asset owner is required by the current task.
 - Do not exceed the computed task budget, even when the repair loop needs another pass.
-- Log the selected skills and delegation plan in `STATE.md` before or immediately after the work starts, as the workspace instructions require.
+- Log the selected skills, execution topology, agent budget, and any `spawn_decision` or `efficiency_basis` in `STATE.md` before or immediately after the work starts, as the workspace instructions require.
 - After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change.
 - Reuse task retrospectives as evidence for future kit-level proposals; do not introduce a separate standing rule-evolution artifact.
 - Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.

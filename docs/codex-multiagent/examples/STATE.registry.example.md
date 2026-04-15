@@ -8,6 +8,17 @@
 # Orchestration Profile
 
 - state_mode: `concurrent-registry`
+- registry_note: `Optional mode only; root STATE.md coordinates live thread ownership while thread state files hold execution details.`
+- score_total: `n/a - tracked in thread state files`
+- score_breakdown: `n/a - tracked in thread state files`
+- hard_triggers: `n/a - tracked in thread state files`
+- selected_rules:
+  - `state_integrity_required`
+- selected_skills:
+  - `none`
+- execution_topology: `concurrent-registry`
+- agent_budget: `n/a - tracked per thread`
+- selection_reason: `Same-workspace concurrent threads were explicitly chosen and ownership can stay disjoint.`
 - shared_contracts:
   - `installer rule text must stay aligned across shell and PowerShell generators`
 - active_threads:
@@ -23,6 +34,12 @@
 - writer_slot: `registry-only`
 - owned_files:
   - `STATE.md`
+- write_set: `registry coordination only`
+- write_sets:
+  - `registry`:
+    - `STATE.md`
+  - `thread-1042`: `states/STATE.thread-1042.md owns its execution write set`
+  - `thread-1043`: `states/STATE.thread-1043.md owns its execution write set`
 - shared_assets_owner: `none`
 
 # Contract Freeze

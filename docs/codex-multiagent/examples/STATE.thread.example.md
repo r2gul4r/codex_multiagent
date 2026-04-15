@@ -9,6 +9,12 @@
 
 - thread_id: `thread-1042`
 - score_total: 5
+- score_breakdown:
+  - `meaningful_repo_reading_required`: 1
+  - `2_plus_directories`: 1
+  - `docs_mirror_sync_required`: 1
+  - `state_integrity_required`: 1
+  - `verification_required`: 1
 - hard_triggers:
   - `none`
 - selected_rules:
@@ -17,6 +23,9 @@
 - selected_skills:
   - `none`
 - execution_topology: `single-session`
+- agent_budget: `0`
+- spawn_decision: `do_not_spawn`
+- efficiency_basis: `This thread owns one closed documentation slice; spawning would add handoff cost without independent verification gain.`
 - selection_reason: `This thread owns one closed documentation slice under the root registry.`
 
 # Writer Slot
@@ -25,6 +34,7 @@
 - owned_files:
   - `AGENTS.md`
   - `docs/CONCURRENT_STATE_MODE.md`
+- write_set: `thread-1042 documentation slice`
 - shared_assets_owner: `none`
 
 # Contract Freeze
