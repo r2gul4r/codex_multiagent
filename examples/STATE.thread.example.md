@@ -23,10 +23,29 @@
 - selected_skills:
   - `none`
 - execution_topology: `single-session`
+- orchestration_value: `low`
 - agent_budget: `0`
 - spawn_decision: `do_not_spawn`
 - efficiency_basis: `This thread owns one closed documentation slice; spawning would add handoff cost without independent verification gain.`
 - selection_reason: `This thread owns one closed documentation slice under the root registry.`
+
+# Evaluation Plan
+
+- evaluation_need: `light`
+- project_invariants:
+  - `Root registry owns concurrent mode; this thread must not change installer templates.`
+  - `Docs mirror copies must stay synced.`
+- task_acceptance:
+  - `Canonical docs explain concurrent registry guidance without changing runtime behavior.`
+- non_goals:
+  - `No scheduler, queue, telemetry, or background loop.`
+- hard_checks:
+  - `git diff --check`
+- llm_review_rubric:
+  - `Check wording does not make registry mode the default.`
+- evidence_required:
+  - `diff review`
+  - `mirror comparison`
 
 # Writer Slot
 

@@ -7,11 +7,13 @@ This is the fast-start version for small repositories or personal projects.
 - Default to `single-session`
 - Do not use multiple agents for simple investigation or short edits unless the selected rules justify it
 - Check hard triggers before score, then select delegation only when ownership, verification, and handoff cost justify it
-- Let `main` choose `selected_rules`, `selected_skills`, and `execution_topology`
+- Let `main` choose `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, and `evaluation_need`
 - Before closing delegated work, let `reviewer` do one read-only pass when `review_required` is selected
-- Keep a small `STATE.md` with `score_total`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`
+- Keep a small `STATE.md` with `score_total`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`, `evaluation_need`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`
 - Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`
 - Task-local recursive improvement is bounded repair only inside the current task's pinned write set and verification surface
+- High score and file count do not upgrade evaluator strength or delegation by themselves
+- Hard checks outrank LLM review; use `llm_review_rubric` as a soft second pass only when judgment is needed
 
 ## Execution Profiles
 
@@ -36,6 +38,7 @@ This is the fast-start version for small repositories or personal projects.
 - For `7+` point work, record `spawn_decision`; stay local when a concrete blocker makes delegation more expensive or less safe
 - If the shared contract starts drifting, collapse back to `main`
 - Fixed per-role caps are not the model; task-scoped `agent_budget` decides whether support can be spawned
+- `evaluation_need` and `orchestration_value` are separate gates; keep one local writer when handoff value is low even if evaluation needs a stronger checklist
 
 ## Persona Override
 

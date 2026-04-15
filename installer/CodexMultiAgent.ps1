@@ -694,6 +694,25 @@ function Add-MarkdownSection {
     }
 }
 
+function Add-StateFieldList {
+    param(
+        [System.Collections.Generic.List[string]]$Lines,
+        [string]$Label,
+        [string[]]$Items
+    )
+
+    $normalizedItems = @($Items | Where-Object { $_ })
+    $Lines.Add(("- {0}:" -f $Label))
+    if ($normalizedItems.Count -eq 0) {
+        $Lines.Add('  - `n/a`')
+        return
+    }
+
+    foreach ($item in $normalizedItems) {
+        $Lines.Add(('  - `{0}`' -f $item))
+    }
+}
+
 function New-DefaultWorkspaceAgents {
     param(
         [string]$WorkspaceName,
@@ -719,7 +738,8 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
         $lines.Add('- Keep changes small')
         $lines.Add('- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here')
-        $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`')
+        $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`, `evaluation_need`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`')
+        $lines.Add('- Treat `score_total` as a complexity/risk prior only; decide `evaluation_need` and `orchestration_value` separately')
         $lines.Add('- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`')
         $lines.Add('- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task')
         $lines.Add('- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation')
@@ -741,7 +761,8 @@ function New-DefaultWorkspaceAgents {
         $lines.Add('## Repository Overrides')
         $lines.Add('')
         $lines.Add('- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules')
-        $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`')
+        $lines.Add('- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`, `evaluation_need`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`')
+        $lines.Add('- Treat `score_total` as a complexity/risk prior only; decide `evaluation_need` and `orchestration_value` separately')
         $lines.Add('- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`')
         $lines.Add('- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task')
         $lines.Add('- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation')
@@ -776,10 +797,22 @@ function New-DefaultState {
     $lines.Add('- selected_rules: `n/a`')
     $lines.Add('- selected_skills: `n/a`')
     $lines.Add('- execution_topology: `single-session`')
+    $lines.Add('- orchestration_value: `n/a - low|medium|high; decide separately from evaluation_need`')
     $lines.Add('- agent_budget: `n/a`')
     $lines.Add('- spawn_decision: `n/a - required for score_total >= 7 or non-obvious delegation choices`')
     $lines.Add('- efficiency_basis: `n/a - record handoff cost, ownership clarity, discovery separability, verification independence, and rework risk when relevant`')
     $lines.Add('- selection_reason: `placeholder - record the score and trigger basis for the chosen orchestration profile`')
+    $lines.Add('')
+    $lines.Add('## Evaluation Plan')
+    $lines.Add('')
+    $lines.Add('- evaluation_need: `n/a - none|light|full; high score alone does not decide this`')
+    Add-StateFieldList -Lines $lines -Label 'project_invariants' -Items @('WORKSPACE_CONTEXT-derived constraints go here; do not paste README-scale prose.')
+    Add-StateFieldList -Lines $lines -Label 'task_acceptance' -Items @('Current user request and pinned task plan go here.')
+    Add-StateFieldList -Lines $lines -Label 'non_goals' -Items @('Out-of-scope boundaries go here.')
+    Add-StateFieldList -Lines $lines -Label 'hard_checks' -Items @('Repository commands or manual checks go here; hard checks outrank LLM review.')
+    Add-StateFieldList -Lines $lines -Label 'llm_review_rubric' -Items @('Soft second-pass review hints go here when judgment is needed.')
+    Add-StateFieldList -Lines $lines -Label 'evidence_required' -Items @('Command output, diff review, screenshots, or other close-out evidence go here.')
+    $lines.Add('- note: `Tiny tasks may collapse this section to the relevant checklist line.`')
     $lines.Add('')
     $lines.Add('## Writer Slot')
     $lines.Add('')
@@ -891,9 +924,10 @@ function New-WorkspaceAgentsFromContext {
     $lines.Add('')
     $lines.Add('## Repository Overrides')
     $lines.Add('')
-    $lines.Add('- Use score-based orchestration to choose the role mix and task-scoped budget instead of fixed caps')
-    $lines.Add('  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide whether support may be spawned')
-    $lines.Add(('- Keep `{0}` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`' -f $taskBoardPath))
+    $lines.Add('- Use score-based orchestration as a complexity/risk prior, then choose evaluation depth and delegation value separately')
+    $lines.Add('- High score alone does not upgrade `evaluation_need`, high score alone does not justify delegation, and file count alone upgrades neither axis')
+    $lines.Add('  `agent_budget`, `execution_topology`, `orchestration_value`, `selected_rules`, and `selected_skills` decide whether support may be spawned')
+    $lines.Add(('- Keep `{0}` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`, `evaluation_need`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`' -f $taskBoardPath))
     $lines.Add('- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`')
     $lines.Add('- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task')
     $lines.Add('- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation')
@@ -933,6 +967,12 @@ function New-WorkspaceStateFromContext {
     )
 
     $title = Get-ContextString -Context $Context -Section 'workspace' -Key 'name' -DefaultValue $WorkspaceName
+    $summary = Get-DerivedWorkspaceSummary -Context $Context -WorkspaceName $WorkspaceName
+    $verificationCommands = @(Get-DerivedVerificationCommands -Context $Context)
+    $sharedContracts = @(Get-DerivedSharedContracts -Context $Context)
+    $doNotTouchPaths = @(Get-DerivedDoNotTouchPaths -Context $Context)
+    $reviewerFocus = @(Get-DerivedReviewerFocus -Context $Context)
+    $forbiddenPatterns = @(Get-DerivedForbiddenPatterns -Context $Context)
 
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add('# STATE')
@@ -952,10 +992,22 @@ function New-WorkspaceStateFromContext {
     $lines.Add('- selected_rules: `n/a`')
     $lines.Add('- selected_skills: `n/a`')
     $lines.Add('- execution_topology: `single-session`')
+    $lines.Add('- orchestration_value: `n/a - low|medium|high; decide separately from evaluation_need`')
     $lines.Add('- agent_budget: `n/a`')
     $lines.Add('- spawn_decision: `n/a - required for score_total >= 7 or non-obvious delegation choices`')
     $lines.Add('- efficiency_basis: `n/a - record handoff cost, ownership clarity, discovery separability, verification independence, and rework risk when relevant`')
     $lines.Add('- selection_reason: `placeholder - record the score and trigger basis for the chosen orchestration profile`')
+    $lines.Add('')
+    $lines.Add('## Evaluation Plan')
+    $lines.Add('')
+    $lines.Add('- evaluation_need: `n/a - none|light|full; high score alone does not decide this`')
+    Add-StateFieldList -Lines $lines -Label 'project_invariants' -Items (@($summary) + $sharedContracts + $doNotTouchPaths + $forbiddenPatterns)
+    Add-StateFieldList -Lines $lines -Label 'task_acceptance' -Items @('Current user request and pinned task plan go here.')
+    Add-StateFieldList -Lines $lines -Label 'non_goals' -Items @('Out-of-scope boundaries go here.')
+    Add-StateFieldList -Lines $lines -Label 'hard_checks' -Items $verificationCommands
+    Add-StateFieldList -Lines $lines -Label 'llm_review_rubric' -Items $reviewerFocus
+    Add-StateFieldList -Lines $lines -Label 'evidence_required' -Items @('Record command output, diff review, and any qualitative review evidence needed for close-out.')
+    $lines.Add('- note: `Hard checks outrank LLM review. Tiny tasks may collapse this section to the relevant checklist line.`')
     $lines.Add('')
     $lines.Add('## Writer Slot')
     $lines.Add('')
@@ -1160,6 +1212,7 @@ function Ensure-ConfigSectionKeyValue {
 function Get-ConfigDeveloperInstructionsLines {
     return @(
         'Use score-based orchestration and agent-driven skill routing to decide when to delegate work.',
+        'Treat score_total as a complexity/risk prior only; evaluation_need and orchestration_value are separate gates.',
         '',
         'Execution requirements:',
         '- Always load and follow the nearest applicable AGENTS.md before implementation.',
@@ -1185,7 +1238,10 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Workspace persona overrides may narrow persona fields; unspecified fields inherit the global default, and current user requests still win.',
         '- Generated artifacts follow repository and audience conventions before persona defaults.',
         '- Mild profanity is conversational-only; do not use profanity in comments, docs, commits, PR text, tests, logs, or user-facing copy.',
-        '- Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.',
+        '- Use `score_total` as a complexity/risk prior, not a blind switch for evaluator strength or delegation.',
+        '- Track `evaluation_need` as `none`, `light`, or `full`; choose it from acceptance ambiguity, contract sensitivity, regression blast radius, weak executable checks, UX/behavior/wording subtlety, and reviewer-style judgment needs.',
+        '- Track `orchestration_value` as `low`, `medium`, or `high`; choose it from disjoint write sets, independent verification targets, ownership clarity, contract freeze, main read-only feasibility during parallel work, and handoff/wait cost versus expected gain.',
+        '- High score alone does not upgrade `evaluation_need`, high score alone does not justify delegation, and file count alone upgrades neither axis.',
         '- After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.',
         '- When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.',
         '- For `score_total 4-6`, use a lightweight spawn/no-spawn basis when the choice is non-obvious; for `score_total >= 7`, record an explicit `spawn_decision` unless a concrete blocker makes single-session cheaper and safer.',
@@ -1194,7 +1250,9 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Do not treat a task as single-session from final output file count alone; re-evaluate when upstream collection, normalization, or read-heavy investigation can be owned separately.',
         '- If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.',
         '- If another live thread already owns an overlapping file, shared asset, or contract surface, stop and serialize the work, move one slice to another worktree, or switch to concurrent registry mode before more writes.',
-        '- Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, implement through the selected profile, and verify against the frozen contract.',
+        '- Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, record the compact evaluation plan, implement through the selected profile, and verify against the frozen contract.',
+        '- Project baseline spec comes from WORKSPACE_CONTEXT-derived constraints; task overlay spec comes from the current user request and pinned task plan in STATE.md.',
+        '- Hard checks outrank LLM review; use `llm_review_rubric` as a soft second pass, never as the source of truth.',
         '- Evaluate delegation proactively for read-heavy, parallelizable, or shared-asset work when the efficiency gate passes and current user or workspace instructions authorize spawning.',
         '- Close finished agents promptly once their output is consumed.',
         '- Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.',
@@ -1228,8 +1286,8 @@ function Get-ConfigDeveloperInstructionsLines {
         '- Select `reviewer` only when the task-scoped rules or budget call for review-required validation.',
         '- Select `worker_shared` when a shared asset owner is required by the current task.',
         '- Do not exceed the computed task budget, even when the repair loop needs another pass.',
-        '- Log the selected skills, execution topology, agent budget, and any `spawn_decision` or `efficiency_basis` in `STATE.md` before or immediately after the work starts, as the workspace instructions require.',
-        '- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change.',
+        '- Log the selected skills, execution topology, orchestration value, agent budget, evaluation need, and any `spawn_decision` or `efficiency_basis` in `STATE.md` before or immediately after the work starts, as the workspace instructions require.',
+        '- After non-trivial work, append a compact retrospective with evaluation fit, orchestration fit, predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next gate adjustment.',
         '- Reuse task retrospectives as evidence for future kit-level proposals; do not introduce a separate standing rule-evolution artifact.',
         '- Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.',
         '',

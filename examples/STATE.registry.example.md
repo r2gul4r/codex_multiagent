@@ -17,8 +17,27 @@
 - selected_skills:
   - `none`
 - execution_topology: `concurrent-registry`
+- orchestration_value: `medium`
 - agent_budget: `n/a - tracked per thread`
 - selection_reason: `Same-workspace concurrent threads were explicitly chosen and ownership can stay disjoint.`
+
+# Evaluation Plan
+
+- evaluation_need: `light`
+- project_invariants:
+  - `Root registry tracks ownership only; per-thread files own task execution detail.`
+  - `Concurrent mode stays optional.`
+- task_acceptance:
+  - `No two active threads own overlapping write sets.`
+- non_goals:
+  - `No background scheduler or queue.`
+- hard_checks:
+  - `manual registry ownership review`
+- llm_review_rubric:
+  - `Check that registry notes do not look like a new runtime.`
+- evidence_required:
+  - `active_threads and workspace_locks are current`
+
 - shared_contracts:
   - `installer rule text must stay aligned across shell and PowerShell generators`
 - active_threads:

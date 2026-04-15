@@ -125,13 +125,16 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 - Before editing any file other than `STATE.md` or `MULTI_AGENT_LOG.md`, `main` must record the selected orchestration profile and the concrete `reason` in `STATE.md`
 - `reason` must name the hard trigger that fired or the concrete scorecard basis for the selected profile
-- Track the active profile with the repository terms that matter: `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`; add `efficiency_basis` and `spawn_decision` when delegation efficiency is being evaluated.
+- Track the active profile with the repository terms that matter: `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, and `agent_budget`; add `efficiency_basis` and `spawn_decision` when delegation efficiency is being evaluated.
+- For non-trivial tasks, keep a compact evaluation overlay in `STATE.md`: `evaluation_need`, `project_invariants`, `task_acceptance`, `non_goals`, `hard_checks`, `llm_review_rubric`, and `evidence_required`. Tiny tasks may collapse this to the relevant checklist line.
 - If the profile or reason is missing, stop and classify the task before writing
 - If the profile changes during execution, update `STATE.md` first and only then continue
 
 ### Orchestration Profiles
 
 - Default to `single-session`; score bands are candidate gates, not blind switches.
+- Separate three decisions: `score_total` is a complexity/risk prior, `evaluation_need` is the close-out evidence depth, and `orchestration_value` is whether delegation is worth the handoff.
+- High score alone does not upgrade `evaluation_need`, high score alone does not justify delegation, and file count alone upgrades neither axis.
 - `0-3` usually stays `single-session` when no independent upstream slice exists.
 - For `score_total 4-6`, keep the check lightweight and record a one-line spawn/no-spawn basis only when the delegation choice is non-obvious or the task changes policy, workflow, installer, templates, or recording fields.
 - For `score_total >= 7`, record an explicit `spawn_decision` unless a concrete blocker makes `single-session` cheaper and safer.
@@ -153,6 +156,16 @@ Installer global setup copies this file to the user's Codex home as the default 
 - Verification must match the selected profile: local command for `single-session`, slice plus integration checks for `delegated-serial`, worker plus contract plus ownership checks for `delegated-parallel`, and serial-then-parallel checks for `mixed`
 - Review is mandatory when the selected rules include `review_required`
 - User natural-language overrides take priority over default automatic selection across skills, delegation, execution topology, and budget
+
+### Evaluation Gates
+
+- `evaluation_need` values are `none`, `light`, or `full`; choose them from acceptance ambiguity, contract sensitivity, regression blast radius, weakness of executable checks, UX/behavior/wording subtlety, and the need for reviewer-style qualitative judgment.
+- `orchestration_value` values are `low`, `medium`, or `high`; choose them from disjoint write sets, independent verification targets, ownership clarity, contract freeze, main read-only feasibility during parallel work, and handoff/wait cost versus expected gain.
+- `0-3` with clear acceptance and strong hard checks usually needs no formal evaluator or only a tiny checklist.
+- `4-6` creates a compact evaluation plan only when acceptance, contracts, or reviewer judgment are non-obvious.
+- `7+` requires an evaluation plan, but orchestration is still decided separately.
+- Strong hard checks outrank LLM review; `llm_review_rubric` is a soft second pass, never the source of truth.
+- Project baseline spec comes from `WORKSPACE_CONTEXT`-derived constraints; task overlay spec comes from the current user request and pinned task plan in `STATE.md`.
 
 ### Skill Routing
 
@@ -191,7 +204,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 ### Retrospectives And Metrics
 
 - After non-trivial work, especially reclassification, collision avoidance, verification surprises, or delegation calibration changes, append a compact retrospective artifact or workspace-configured note instead of relying on memory
-- Record at least `task`, `score_total`, `predicted_topology` or `predicted_orchestration`, `actual_topology`, `spawn_count`, `rework_or_reclassification`, `reviewer_findings`, `verification_outcome`, and `next_rule_change`
+- Record at least `task`, `score_total`, `evaluation_fit`, `orchestration_fit`, `predicted_topology` or `predicted_orchestration`, `actual_topology`, `spawn_count`, `rework_or_reclassification`, `reviewer_findings`, `verification_outcome`, and `next_gate_adjustment`
 - Keep the form lightweight; do not turn retrospectives into a mandatory essay template
 - Reuse task retrospectives as evidence; repeated patterns may inform later kit-level proposals, but do not introduce a separate standing rule-evolution artifact
 

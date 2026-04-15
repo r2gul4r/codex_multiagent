@@ -7,7 +7,8 @@ Adjust the paths and commands to match the real repository.
 ## Operating Goal
 
 - Use a score-based orchestration profile instead of a fixed route split
-- Let `main` select `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`
+- Let `main` select `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `evaluation_need`, and `agent_budget`
+- Treat `score_total` as a complexity/risk prior only; it does not choose evaluator strength or delegation by itself
 - Pin API, schema, and ownership contracts before workers start
 - Keep `writer_slot`, `contract_freeze`, and `write_sets` as the shared tracking primitives
 - Use delegation only when the current user or workspace instructions authorize it and the efficiency gate passes
@@ -38,7 +39,8 @@ Adjust the paths and commands to match the real repository.
 - `delegated-parallel` is allowed only after the full parallel gate passes
 - `mixed` is for tasks that need a serial contract-freeze phase before safe fan-out
 - Workers write only inside their assigned `write_set`
-- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`
+- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`, `evaluation_need`, `writer_slot`, `contract_freeze`, and `write_sets`
+- Keep hard checks ahead of LLM review; use `llm_review_rubric` only as a soft second pass
 - Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`
 - Task-local recursive improvement is bounded repair only inside the current task's pinned write set and verification surface
 - Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation
@@ -74,6 +76,8 @@ Adjust the paths and commands to match the real repository.
 - `delegated-parallel` is allowed only with frozen contracts, disjoint write sets, explicit shared asset owner, independent verification, `main` not writing during fan-out, and `agent_budget > 0`
 - `4-6` point work records a lightweight spawn/no-spawn basis only when the delegation choice is non-obvious
 - `7+` point work records an explicit `spawn_decision`; concrete blockers can still keep the task `single-session`
+- High evaluation need and high orchestration value are separate; a task can have one without the other
+- File count alone does not upgrade `evaluation_need` or `orchestration_value`
 
 ## Parallel Work That Is Not Safe
 

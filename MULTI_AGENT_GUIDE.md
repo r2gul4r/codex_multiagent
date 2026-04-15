@@ -73,10 +73,14 @@ Profile selection:
 
 Efficiency gate:
 
+- Keep three gates separate:
+  - `score_total` is a complexity/risk prior.
+  - `evaluation_need` is the close-out evidence depth: `none`, `light`, or `full`.
+  - `orchestration_value` is the delegation value: `low`, `medium`, or `high`.
 - `0-3` points usually stays local unless there is a clean reviewer or explorer sidecar with almost no handoff cost.
 - `4-6` points use a lightweight spawn/no-spawn basis when the choice is non-obvious. Spawn only when a role can return useful work while `main` continues non-overlapping work, or when serial delegation lowers risk enough to justify the handoff.
 - `7+` points must record an explicit `spawn_decision` unless a concrete blocker keeps the work local. A blocker can be one blocking discovery result, one tightly coupled edit surface, unclear ownership, weak verification independence, or handoff cost higher than expected gain.
-- `10+` points should strongly consider `delegated-parallel` or `mixed`, usually with reviewer coverage.
+- `10+` points still split evaluation and orchestration: require a concrete evaluation plan, then choose `single-session`, `delegated-serial`, `delegated-parallel`, or `mixed` from ownership clarity and handoff value.
 
 Do not write "efficiency" as vague optimism. Ground the decision in:
 
@@ -190,7 +194,22 @@ Record:
 
 No implementation writes continue until `main` updates `STATE.md`, refreshes `execution_topology`, and records whether the task stays local, moves serial, moves parallel, or becomes mixed.
 
-## 3.2 Verification Gates
+## 3.2 Evaluation And Verification Gates
+
+Use `evaluation_need` separately from `execution_topology`:
+
+- `none`: clear acceptance, strong hard checks, and no meaningful reviewer judgment.
+- `light`: compact checklist or one reviewer-style pass for non-obvious wording, UX, contract, or regression risk.
+- `full`: explicit evaluation plan for ambiguous acceptance, sensitive contracts, weak executable checks, broad regression blast radius, or subtle behavior/wording judgment.
+
+Score bands guide the first pass but do not decide evaluator strength:
+
+- `0-3` with clear acceptance and strong hard checks defaults to no formal evaluator or a tiny checklist.
+- `4-6` creates a compact evaluation plan only when acceptance, contracts, or reviewer judgment are non-obvious.
+- `7+` requires an evaluation plan, but orchestration remains a separate decision.
+- High score alone does not upgrade `evaluation_need`, high score alone does not justify delegation, and file count alone upgrades neither `evaluation_need` nor `orchestration_value`.
+
+Hard checks outrank LLM review. Treat `llm_review_rubric` as a soft second pass, not the source of truth.
 
 Use the selected profile to set the minimum verification gate before close-out:
 
@@ -313,7 +332,15 @@ Use `STATE.md` to track:
 - `selected_rules`
 - `selected_skills`
 - `execution_topology`
+- `orchestration_value`
 - `agent_budget`
+- `evaluation_need`
+- `project_invariants`
+- `task_acceptance`
+- `non_goals`
+- `hard_checks`
+- `llm_review_rubric`
+- `evidence_required`
 - `reviewer_target` when a reviewer is assigned
 
 That gives `main` enough structure to sequence work without pretending this repo is a full scheduler.
@@ -420,13 +447,15 @@ After non-trivial work, especially anything involving reclassification, collisio
 
 - task name
 - `score_total`
+- `evaluation_fit`: `under`, `fit`, or `over`
+- `orchestration_fit`: `under`, `fit`, or `over`
 - predicted topology or selected profile
 - actual topology used
 - `spawn_count`
 - rework or reclassification
 - reviewer findings
 - verification outcome
-- what rule, template, or installer text should change next
+- `next_gate_adjustment`: optional one-liner for future evaluation/orchestration calibration
 
 Do not introduce a separate standing rule-evolution artifact.
 Reuse task retrospectives as evidence; repeated patterns may support future AGENTS or installer proposals.

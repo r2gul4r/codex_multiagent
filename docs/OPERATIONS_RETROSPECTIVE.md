@@ -16,13 +16,15 @@ It is task-level evidence for future rule proposals.
 - `task`
 - `date`
 - `score_total`
+- `evaluation_fit`: `under`, `fit`, or `over`
+- `orchestration_fit`: `under`, `fit`, or `over`
 - `predicted_topology` or `selected_profile`
 - `actual_topology`
 - `spawn_count`
 - `rework_or_reclassification`
 - `reviewer_findings`
 - `verification_outcome`
-- `next_rule_change`
+- `next_gate_adjustment`
 
 ## Standing Artifact
 
