@@ -226,6 +226,8 @@ def classify_area(path: Path) -> str:
         return "rules_and_skills"
     if head == "examples":
         return "examples_and_snapshots"
+    if head == "scripts":
+        return "root_tooling"
     if len(parts) == 1:
         return "root_tooling"
     return "other"

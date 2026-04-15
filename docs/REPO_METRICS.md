@@ -8,7 +8,7 @@
 
 ## 수집기
 
-- 엔트리포인트: `collect_repo_metrics.py`
+- 엔트리포인트: `scripts/collect_repo_metrics.py`
 - 기본 동작: 저장소 루트를 재귀 스캔해서 UTF-8 텍스트 파일별 메트릭을 JSON으로 출력
 - 제외 디렉터리: `.git`, `.codex`, `__pycache__`, `.pytest_cache`
 - 선택 스캔: `--paths` 로 특정 파일이나 디렉터리만 제한 가능
@@ -16,8 +16,8 @@
 예시:
 
 ```bash
-python3 collect_repo_metrics.py --pretty
-python3 collect_repo_metrics.py --paths normalize_quality_signals.py collect_repo_metrics.py --pretty
+python3 scripts/collect_repo_metrics.py --pretty
+python3 scripts/collect_repo_metrics.py --paths scripts/normalize_quality_signals.py scripts/collect_repo_metrics.py --pretty
 ```
 
 ## 출력 기준
@@ -97,13 +97,13 @@ Git 변경 빈도도 같은 맥락이다.
 ## 품질 신호 정규화
 
 수집한 메트릭은 그대로 보면 단위가 제각각이라 우선순위 비교가 거칠어진다.
-그래서 이 저장소는 `normalize_quality_signals.py` 로 `collect_repo_metrics.py` 결과를 다시 읽어서 파일별 품질 신호를 만든다.
+그래서 이 저장소는 `scripts/normalize_quality_signals.py` 로 `scripts/collect_repo_metrics.py` 결과를 다시 읽어서 파일별 품질 신호를 만든다.
 
 예시:
 
 ```bash
-python3 collect_repo_metrics.py --paths normalize_quality_signals.py collect_repo_metrics.py --pretty > /tmp/repo-metrics.json
-python3 normalize_quality_signals.py --input /tmp/repo-metrics.json --pretty
+python3 scripts/collect_repo_metrics.py --paths scripts/normalize_quality_signals.py scripts/collect_repo_metrics.py --pretty > /tmp/repo-metrics.json
+python3 scripts/normalize_quality_signals.py --input /tmp/repo-metrics.json --pretty
 ```
 
 출력은 `analysis_kind=repo_metrics` 형태로 나가고, 파일별로 아래 필드를 담는다.

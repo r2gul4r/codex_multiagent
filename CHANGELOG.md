@@ -8,13 +8,16 @@
 - Removed the legacy command-routing rule, porting note, and micro-seed example.
 - Updated shell and PowerShell installers so they no longer copy bundled workflow skills and clean up the previously installer-managed workflow-skill kit folder.
 - Removed remaining active seed/interview/evaluate terminology from current docs and installer-generated state templates.
+- Removed committed `docs/codex-multiagent/` mirror copies from the repository surface; installers still create workspace-local supporting docs when requested.
+- Removed obsolete `agentplan.txt`.
+- Removed obsolete `examples/RULE_EVOLUTION_LOG.example.md`; task retrospectives remain the evidence trail for future rule proposals.
 
 ### Added
 
 - `docs/CONCURRENT_STATE_MODE.md` 를 추가해 기본 single `STATE.md` 유지 원칙, concurrent-registry 전환 조건, root registry 필드, thread state 파일 구조를 문서화
 - `docs/OPERATIONS_RETROSPECTIVE.md` 를 추가해 task retrospective 와 rule evolution log 를 어떤 기준으로 남길지 운영 규칙을 정리
 - `examples/STATE.registry.example.md`, `examples/STATE.thread.example.md` 로 동시 작업용 root/thread 상태 파일 예시를 추가
-- `examples/TASK_RETROSPECTIVE.example.md`, `examples/RULE_EVOLUTION_LOG.example.md` 로 사후 회고와 규칙 진화 로그 예시를 추가
+- `examples/TASK_RETROSPECTIVE.example.md` 로 사후 회고 예시를 추가
 
 - 각 핵심 기능 영역의 기대 동작을 `pass|partial|fail` 로 판정할 수 있도록 `docs/AREA_EVALUATION_METRICS.md` 에 공통 평가 축, 측정 항목, 최소 합격선, 기록 예시를 추가
 - 프로젝트 목표 기준으로 저장소를 비교할 수 있도록 `docs/GOAL_COMPARISON_AREAS.md`에 핵심 기능 영역, 포함/제외 범위, 비교 질문, 최소 합격선을 추가
@@ -25,11 +28,12 @@
 - 작은 기능 후보를 `value`, `implementation_cost`, `goal_alignment`, `ripple_effect` 기준으로 점수화하고 우선순위화하는 세부 루브릭을 `docs/GOAL_ALIGNMENT_FRAMEWORK.md`에 추가
 - 리팩터링 후보를 `quality_impact`, `risk`, `maintainability`, `feature_goal_contribution` 기준으로 점수화하고 우선순위화하는 세부 루브릭을 `docs/GOAL_ALIGNMENT_FRAMEWORK.md`에 추가
 - 기능 후보와 리팩터링 후보를 같은 후보 카드, `common_score`, `specific_score`, `priority_score`, `priority_grade` 규칙으로 비교·정렬하는 공통 점수화 체계를 `docs/GOAL_ALIGNMENT_FRAMEWORK.md`에 추가
-- 도구 실행 결과에서 실패·경고·커버리지 신호를 공통 JSON 필드로 정규화하는 `normalize_quality_signals.py` 와 샘플 입력 `examples/quality_signal_samples.json` 추가
+- 도구 실행 결과에서 실패·경고·커버리지 신호를 공통 JSON 필드로 정규화하는 `scripts/normalize_quality_signals.py` 와 샘플 입력 `examples/quality_signal_samples.json` 추가
 - 정규화된 분석 결과를 지정한 `--history` 경로에 append-only JSON 이력으로 누적 저장하고 `latest|summary|all` 로 조회하는 기능 추가
 
 ### Changed
 
+- 루트에 있던 품질/리포트 Python 도구들을 `scripts/` 폴더로 이동하고 Makefile 및 문서의 실행 경로를 갱신
 - PowerShell installer가 UTF-8 no BOM `WORKSPACE_CONTEXT.toml` 의 한글을 깨뜨리지 않도록 명시적 UTF-8 읽기/쓰기로 고정
 - 설치 시 함께 복사되는 `docs/WORKSPACE_CONTEXT_GUIDE.md` 의 깨진 한글 문서를 정상 한국어 가이드로 교체
 - `AGENTS.md` 와 `MULTI_AGENT_GUIDE.md` 에 same-workspace 동시 작업 충돌을 위한 optional concurrent registry mode, overlap 충돌 시 중단 규칙, retrospective/metrics 기록 규칙을 추가
