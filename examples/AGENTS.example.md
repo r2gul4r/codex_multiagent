@@ -11,7 +11,8 @@ Adjust the paths and commands to match the real repository.
 - Treat `score_total` as a complexity/risk prior only; it does not choose evaluator strength or delegation by itself
 - Pin API, schema, and ownership contracts before workers start
 - Keep `writer_slot`, `contract_freeze`, and `write_sets` as the shared tracking primitives
-- Use delegation only when the current user or workspace instructions authorize it and the efficiency gate passes
+- Treat kit usage as task-scoped standing authorization for subagent delegation, but spawn only when the efficiency gate passes
+- If a higher-priority host or runtime policy blocks a useful spawn, ask for explicit task-scoped approval before spawning
 
 ## Roles
 

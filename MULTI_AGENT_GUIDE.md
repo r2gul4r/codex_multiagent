@@ -98,7 +98,7 @@ Record `efficiency_basis` in `STATE.md` before spawning. Use a one-line basis on
 - `blocking_dependencies`: anything that prevents immediate fan-out
 - `spawn_decision`: `spawn`, `defer_until_contract_freeze`, or `do_not_spawn`
 
-Spawn without asking again only when the current user request or workspace instructions already grant standing authorization and all of these are true:
+Using the kit grants task-scoped standing authorization for subagent delegation only, but the call is still an AI decision. Spawn without asking only when no higher-priority policy blocks the call and all of these are true:
 
 - the slice has a read-only scope or a disjoint write set
 - the output can be verified independently
@@ -106,7 +106,9 @@ Spawn without asking again only when the current user request or workspace instr
 - `main` will not write the same files during a parallel phase
 - the expected gain is larger than handoff and wait cost
 
-Do not spawn just because the score is high. High score starts the efficiency analysis; safe ownership and useful parallel work decide the actual call.
+When a higher-priority system, host, runtime, or tool policy blocks a useful spawn, stay in `single-session` until the user grants explicit task-scoped approval. Ask only when delegation would materially unblock the task or lower risk, and name the proposed role, slice, expected gain, ownership scope, and verification target.
+
+Do not spawn just because the score is high, and do not ask for approval on every task. High score starts the efficiency analysis; safe ownership, useful parallel work, host policy, and task value decide the actual call.
 
 Recursive Socratic improvement gate:
 

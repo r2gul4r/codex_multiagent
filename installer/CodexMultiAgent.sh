@@ -1242,7 +1242,8 @@ Default behavior:
 - Track `orchestration_value` as `low`, `medium`, or `high`; choose it from disjoint write sets, independent verification targets, ownership clarity, contract freeze, main read-only feasibility during parallel work, and handoff/wait cost versus expected gain.
 - High score alone does not upgrade `evaluation_need`, high score alone does not justify delegation, and file count alone upgrades neither axis.
 - After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.
-- When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.
+- Using this kit grants task-scoped standing authorization for subagent delegation only, but actual spawning still requires the efficiency gate, budget, contract, ownership, and verification checks.
+- Higher-priority system, host, runtime, or tool policies override kit-level standing authorization; when they block a useful spawn, ask the user for explicit task-scoped approval instead of bypassing the rule.
 - For `score_total 4-6`, use a lightweight spawn/no-spawn basis when the choice is non-obvious; for `score_total >= 7`, record an explicit `spawn_decision` unless a concrete blocker makes single-session cheaper and safer.
 - Treat `contract_instability`, `high_investigation_uncertainty`, `data_fidelity_risk`, `external_source_dependency`, `implementation_depends_on_discovery_result`, and `ambiguous_acceptance_criteria` as hard triggers, not hidden score boosts.
 - Use explorer-first discovery when correctness depends on real data, external sources, coordinates, schema inference, broad codebase scouting, or other facts not yet known.
@@ -1252,7 +1253,7 @@ Default behavior:
 - Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, record the compact evaluation plan, implement through the selected profile, and verify against the frozen contract.
 - Project baseline spec comes from WORKSPACE_CONTEXT-derived constraints; task overlay spec comes from the current user request and pinned task plan in STATE.md.
 - Hard checks outrank LLM review; use `llm_review_rubric` as a soft second pass, never as the source of truth.
-- For read-heavy, parallelizable, or shared-asset work, evaluate delegation proactively when the efficiency gate passes and current user or workspace instructions authorize spawning.
+- For read-heavy, parallelizable, or shared-asset work, evaluate delegation proactively when the efficiency gate passes; if a higher-priority policy blocks a useful spawn, ask for task-scoped approval.
 - Close finished agents promptly once their output is consumed.
 - Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.
 - Prefer `explorer` for read-only investigation, `worker` for bounded implementation after scope is clear, `worker_shared` for shared assets, and `reviewer` for close-out checks.
@@ -1291,7 +1292,7 @@ Delegation rules:
 - Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.
 
 Execution bias:
-- Default to single-session unless current user or workspace instructions authorize delegation and the score, triggers, ownership, verification, handoff cost, and budget justify it.
+- Default to single-session unless (kit-level authorization is usable or task-scoped approval resolves a higher-priority block) and the score, triggers, ownership, verification, handoff cost, and budget justify delegation.
 EOF
 }
 

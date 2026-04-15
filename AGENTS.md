@@ -88,8 +88,11 @@ Installer global setup copies this file to the user's Codex home as the default 
 
 ### Subagent Hygiene
 
-- Standing authorization to spawn subagents must come from the current user request or workspace instructions; global or installer defaults must describe how to use existing authorization, not create it.
-- When standing authorization exists, `main` may spawn subagents only after recording the efficiency basis, budget, contract, and disjoint ownership needed for that profile.
+- Using this kit grants task-scoped standing authorization for `main` to spawn subagents for the current task; this authorization covers subagent orchestration only and does not grant destructive commands, credential access, public deployment, paid external calls, cross-workspace actions, or changes outside the pinned task contract.
+- Standing authorization does not make spawning mandatory or automatic; `main` may spawn subagents only after recording the efficiency basis, budget, contract, and disjoint ownership needed for that profile.
+- Higher-priority system, host, runtime, or tool policies override kit-level standing authorization; when they block a useful spawn, ask the user for explicit task-scoped approval instead of bypassing the rule.
+- Do not ask for subagent approval on every task; ask only when a higher-priority policy blocks a spawn that would materially unblock the task, accelerate read-heavy work, split independent slices, or reduce reviewer risk.
+- The approval request should name the proposed role, slice, expected gain, owned files or read-only scope, and verification target.
 - `efficiency_basis` must name concrete structural evidence: handoff cost, ownership clarity, discovery separability, verification independence, and rework risk.
 - Prefer spawning only when there are `2+` independently verifiable slices, broad read-only discovery can run beside local work, or a reviewer can check a risky change while `main` continues non-overlapping integration.
 - Do not spawn when the next step is blocked on a single discovery result, the edit is tiny and single-file, write ownership overlaps, verification cannot be scoped per slice, or handoff/waiting cost is likely higher than doing it locally.
