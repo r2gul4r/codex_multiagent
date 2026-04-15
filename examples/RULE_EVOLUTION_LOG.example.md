@@ -1,4 +1,8 @@
-# Rule Evolution Log Example
+# Deprecated Rule Evolution Log Example
+
+This is a historical reference only, not a canonical standing artifact.
+Do not create a separate rule-evolution log for current work.
+Use `TASK_RETROSPECTIVE.example.md` as the standing task-level evidence artifact; repeated patterns may support future kit-level proposals.
 
 ```md
 - date: `2026-04-13`
@@ -13,5 +17,5 @@
   - `installer-generated instructions`
 - follow_up:
   - `document root registry fields and thread state examples`
-- status: `adopted`
+- status: `deprecated_reference`
 ```

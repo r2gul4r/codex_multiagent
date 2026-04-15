@@ -1275,7 +1275,7 @@ function Get-ConfigDeveloperInstructionsLines {
         '- If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.',
         '',
         'Delegation rules:',
-        '- Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, `agent_budget`, and when applicable `efficiency_basis` and `spawn_decision` to decide whether delegation is allowed and how much support to spawn.',
+        '- Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, `orchestration_value`, `agent_budget`, and when applicable `efficiency_basis` and `spawn_decision` to decide whether delegation is allowed and how much support to spawn.',
         '- Ground efficiency in handoff cost, ownership clarity, discovery separability, verification independence, and rework risk.',
         '- Spawn only when the slice has a read-only scope or disjoint write set, independent verification target, positive expected gain, and `agent_budget` greater than zero.',
         '- Count intermediate collection and normalization responsibility as part of `write_sets`; do not collapse that upstream work into the final frontend file owner by default.',

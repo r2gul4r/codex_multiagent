@@ -181,7 +181,7 @@ Installer global setup copies this file to the user's Codex home as the default 
 ### Dynamic Budgeting
 
 - Fixed role caps are replaced with per-task `agent_budget` instead of hardcoded per-role strings
-- `agent_budget` should be derived from `score_total`, write-set separability, `execution_topology`, `hard_triggers`, and `efficiency_basis`
+- `agent_budget` should be derived from `score_total`, write-set separability, `execution_topology`, `orchestration_value`, `hard_triggers`, and `efficiency_basis`
 - Budget `0` means no spawn; budget `1` is for one explorer, worker, or reviewer; budget `2+` is allowed only when each slice has a disjoint write set or read-only scope plus its own verification target
 - `bounded_repair_loop` means follow-up fixes reuse the remaining budget instead of spawning agents without limit
 - Budget growth should be justified in `STATE.md` when a task needs more help than the initial estimate

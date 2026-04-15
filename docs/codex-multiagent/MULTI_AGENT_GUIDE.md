@@ -34,7 +34,7 @@ Hard triggers first:
 - A clearly necessary reviewer pass
 
 If any hard trigger exists, reclassify before implementation writes.
-Hard triggers are gates, not hidden score boosts and not delegation orders; record the trigger by name, then decide topology from contract stability, write-set separability, verification independence, handoff cost, and `agent_budget`.
+Hard triggers are gates, not hidden score boosts and not delegation orders; record the trigger by name, then decide topology from contract stability, write-set separability, verification independence, `orchestration_value`, handoff cost, and `agent_budget`.
 
 Do not score only from the final edited file count.
 One rendered HTML or frontend file can still hide separate upstream responsibilities such as data collection, coordinate extraction, normalization, or schema confirmation.
@@ -130,7 +130,7 @@ Blast-radius tiers:
 Before any write begins:
 
 - record the exact `orchestration_profile` and concrete `reason` in `STATE.md`
-- record `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`; record `efficiency_basis` and `spawn_decision` when delegation efficiency is being evaluated
+- record `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, and `agent_budget`; record `efficiency_basis` and `spawn_decision` when delegation efficiency is being evaluated
 - report to the user which score or trigger basis was read from `STATE.md` and how that changes the startup plan, such as staying local, starting serial delegation, or opening parallel worker lanes
 - do not use legacy route labels or hedge labels such as `single-agent fallback`
 - on `single-session`, keep one write-capable lane and no subagent calls
@@ -306,7 +306,7 @@ Pinned contracts
 - APIs, schemas, routes, events, or env keys that must not drift
 
 Selection
-- `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`
+- `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`
 
 Verification
 - Commands
