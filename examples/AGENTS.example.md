@@ -7,7 +7,8 @@ Adjust the paths and commands to match the real repository.
 ## Operating Goal
 
 - Use a score-based orchestration profile instead of a fixed route split
-- Let `main` select `selected_rules`, `selected_skills`, `execution_topology`, and `agent_budget`
+- Let `main` select `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `evaluation_need`, and `agent_budget`
+- Treat `score_total` as a complexity/risk prior only; it does not choose evaluator strength or delegation by itself
 - Pin API, schema, and ownership contracts before workers start
 - Keep `writer_slot`, `contract_freeze`, and `write_sets` as the shared tracking primitives
 - Use delegation only when the current user or workspace instructions authorize it and the efficiency gate passes
@@ -33,8 +34,13 @@ Adjust the paths and commands to match the real repository.
 
 - `explorer` and `reviewer` are read-only
 - `main` selects the orchestration profile, not a fixed route
+- `single-session` is the default profile for one local write lane
+- `delegated-serial` is for dependent slices where handoff lowers risk
+- `delegated-parallel` is allowed only after the full parallel gate passes
+- `mixed` is for tasks that need a serial contract-freeze phase before safe fan-out
 - Workers write only inside their assigned `write_set`
-- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`
+- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`, `evaluation_need`, `writer_slot`, `contract_freeze`, and `write_sets`
+- Keep hard checks ahead of LLM review; use `llm_review_rubric` only as a soft second pass
 - Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`
 - Task-local recursive improvement is bounded repair only inside the current task's pinned write set and verification surface
 - Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation
@@ -62,12 +68,16 @@ Adjust the paths and commands to match the real repository.
 
 ## Parallel Work That Is Safe
 
-- Up to three `explorer` agents can narrow scope in read-only mode when the selected rules allow exploration
-- One `worker_shared` owns shared types and common utilities
+- Read-only `explorer` slices can narrow scope when the selected rules and task-scoped `agent_budget` allow exploration
+- A designated `worker_shared` owns shared types and common utilities when shared assets are in scope
 - Feature workers edit separate file ranges
 - Reviewers can split final checking by concern if the selected rules and budget allow it
 - `main` keeps the work inside the selected orchestration profile and budget
 - `delegated-parallel` is allowed only with frozen contracts, disjoint write sets, explicit shared asset owner, independent verification, `main` not writing during fan-out, and `agent_budget > 0`
+- `4-6` point work records a lightweight spawn/no-spawn basis only when the delegation choice is non-obvious
+- `7+` point work records an explicit `spawn_decision`; concrete blockers can still keep the task `single-session`
+- High evaluation need and high orchestration value are separate; a task can have one without the other
+- File count alone does not upgrade `evaluation_need` or `orchestration_value`
 
 ## Parallel Work That Is Not Safe
 

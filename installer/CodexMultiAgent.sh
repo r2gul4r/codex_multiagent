@@ -311,6 +311,21 @@ write_markdown_section() {
     done
 }
 
+write_state_field_list() {
+    label="$1"
+    shift
+
+    printf -- '- %s:\n' "$label"
+    if [ "$#" -eq 0 ]; then
+        printf '  - `n/a`\n'
+        return
+    fi
+
+    for item in "$@"; do
+        [ -n "$item" ] && printf '  - `%s`\n' "$item"
+    done
+}
+
 join_lines() {
     delimiter="$1"
     first=1
@@ -333,6 +348,7 @@ generate_default_workspace_agents() {
     printf '# Workspace Override: %s\n\n' "$workspace_name"
     printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
     printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+    printf 'Use this file to narrow the global dynamic policy for local verification, ownership, approval, and reviewer needs; do not restore fixed caps or old single-writer lore.\n'
     printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
     printf 'Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.\n'
     printf 'Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.\n'
@@ -344,7 +360,8 @@ generate_default_workspace_agents() {
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
         printf -- '- Keep changes small\n'
         printf -- '- Add repository-specific verification commands, source-of-truth paths, and do-not-touch paths here\n'
-        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
+        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`, `evaluation_need`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`\n'
+        printf -- '- Treat `score_total` as a complexity/risk prior only; decide `evaluation_need` and `orchestration_value` separately\n'
         printf -- '- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`\n'
         printf -- '- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task\n'
         printf -- '- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation\n'
@@ -362,7 +379,8 @@ generate_default_workspace_agents() {
         printf -- '- Dynamic agent budget guidance and ownership mapping for `worker`, `worker_shared`, `reviewer`, and `explorer` roles\n'
         printf '\n## Repository Overrides\n\n'
         printf -- '- Fill `WORKSPACE_CONTEXT.toml` first if you want project-aware generation instead of generic fallback rules\n'
-        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n'
+        printf -- '- Keep `STATE.md` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`, `evaluation_need`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`\n'
+        printf -- '- Treat `score_total` as a complexity/risk prior only; decide `evaluation_need` and `orchestration_value` separately\n'
         printf -- '- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`\n'
         printf -- '- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task\n'
         printf -- '- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation\n'
@@ -390,17 +408,28 @@ generate_default_state() {
     printf -- '- selected_rules: `n/a`\n'
     printf -- '- selected_skills: `n/a`\n'
     printf -- '- execution_topology: `single-session`\n'
-    printf -- '- delegation_plan: `agent-driven, task-scoped, and override-aware`\n'
+    printf -- '- orchestration_value: `n/a - low|medium|high; decide separately from evaluation_need`\n'
     printf -- '- agent_budget: `n/a`\n'
-    printf -- '- shared_assets_owner: `n/a`\n'
+    printf -- '- spawn_decision: `n/a - required for score_total >= 7 or non-obvious delegation choices`\n'
+    printf -- '- efficiency_basis: `n/a - record handoff cost, ownership clarity, discovery separability, verification independence, and rework risk when relevant`\n'
     printf -- '- selection_reason: `placeholder - record the score and trigger basis for the chosen orchestration profile`\n'
+    printf '\n## Evaluation Plan\n\n'
+    printf -- '- evaluation_need: `n/a - none|light|full; high score alone does not decide this`\n'
+    write_state_field_list 'project_invariants' 'WORKSPACE_CONTEXT-derived constraints go here; do not paste README-scale prose.'
+    write_state_field_list 'task_acceptance' 'Current user request and pinned task plan go here.'
+    write_state_field_list 'non_goals' 'Out-of-scope boundaries go here.'
+    write_state_field_list 'hard_checks' 'Repository commands or manual checks go here; hard checks outrank LLM review.'
+    write_state_field_list 'llm_review_rubric' 'Soft second-pass review hints go here when judgment is needed.'
+    write_state_field_list 'evidence_required' 'Command output, diff review, screenshots, or other close-out evidence go here.'
+    printf -- '- note: `Tiny tasks may collapse this section to the relevant checklist line.`\n'
     printf '\n## Writer Slot\n\n'
-    printf -- '- owner: `main`\n'
+    printf -- '- writer_slot: `main`\n'
     printf -- '- write_set: `n/a`\n'
     printf -- '- write_sets:\n'
     printf '  - `main`: `n/a`\n'
     printf '  - `worker`: `n/a`\n'
     printf '  - `reviewer`: `n/a`\n'
+    printf -- '- shared_assets_owner: `n/a`\n'
     printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`\n'
     printf -- '- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`\n'
     printf '\n## Contract Freeze\n\n'
@@ -815,6 +844,7 @@ generate_workspace_agents_from_context() {
         fi
         printf 'This file adds repository-specific rules on top of the global multi-agent defaults.\n'
         printf 'Global multi-agent defaults remain in effect unless this file narrows them.\n'
+        printf 'Use this file to narrow the global dynamic policy for local verification, ownership, approval, and reviewer needs; do not restore fixed caps or old single-writer lore.\n'
         printf 'This workspace override is local; do not treat it as the public toolkit canonical global ruleset.\n'
         printf 'Default persona name is `gogi`; default response language is Korean unless the user asks otherwise.\n'
         printf 'Default speech style is concise Korean banmal, with a dry, confident senior-engineer tone.\n'
@@ -841,9 +871,10 @@ generate_workspace_agents_from_context() {
         write_markdown_section 'Worker Mapping' ${worker_mapping[@]+"${worker_mapping[@]}"}
 
         printf '\n## Repository Overrides\n\n'
-        printf -- '- Use score-based orchestration to choose the role mix and task-scoped budget instead of fixed caps\n'
-        printf '  `agent_budget`, `execution_topology`, `selected_rules`, and `selected_skills` decide whether support may be spawned\n'
-        printf -- '- Keep `%s` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `delegation_plan`, `agent_budget`, `writer_slot`, `contract_freeze`, and `write_sets`\n' "$task_board_path"
+        printf -- '- Use score-based orchestration as a complexity/risk prior, then choose evaluation depth and delegation value separately\n'
+        printf -- '- High score alone does not upgrade `evaluation_need`, high score alone does not justify delegation, and file count alone upgrades neither axis\n'
+        printf '  `agent_budget`, `execution_topology`, `orchestration_value`, `selected_rules`, and `selected_skills` decide whether support may be spawned\n'
+        printf -- '- Keep `%s` updated with `score_total`, `score_breakdown`, `hard_triggers`, `selected_rules`, `selected_skills`, `execution_topology`, `orchestration_value`, `agent_budget`, `evaluation_need`, `writer_slot`, `contract_freeze`, `write_sets`, and `selection_reason`\n' "$task_board_path"
         printf -- '- Every non-trivial workspace task follows `plan -> classify -> freeze -> implement -> verify -> retrospective`\n'
         printf -- '- Task-local recursive improvement is bounded repair only inside the pinned write set and verification surface for the current task\n'
         printf -- '- Global-kit rule evolution stays proposal-only unless the user explicitly asks for kit-level implementation\n'
@@ -870,6 +901,12 @@ generate_workspace_state_from_context() {
 
     title=$(toml_get_scalar "$context_path" "workspace" "name")
     [ -n "$title" ] || title="$workspace_name"
+    summary=$(get_derived_workspace_summary "$context_path" "$workspace_name")
+    load_array_from_command verification_commands get_derived_verification_commands "$context_path"
+    load_array_from_command shared_contracts get_derived_shared_contracts "$context_path"
+    load_array_from_command do_not_touch_paths get_derived_do_not_touch_paths "$context_path"
+    load_array_from_command reviewer_focus get_derived_reviewer_focus "$context_path"
+    load_array_from_command forbidden_patterns get_derived_forbidden_patterns "$context_path"
 
     {
         printf '# STATE\n\n'
@@ -885,17 +922,28 @@ generate_workspace_state_from_context() {
         printf -- '- selected_rules: `n/a`\n'
         printf -- '- selected_skills: `n/a`\n'
         printf -- '- execution_topology: `single-session`\n'
-        printf -- '- delegation_plan: `agent-driven, task-scoped, and override-aware`\n'
+        printf -- '- orchestration_value: `n/a - low|medium|high; decide separately from evaluation_need`\n'
         printf -- '- agent_budget: `n/a`\n'
-        printf -- '- shared_assets_owner: `n/a`\n'
+        printf -- '- spawn_decision: `n/a - required for score_total >= 7 or non-obvious delegation choices`\n'
+        printf -- '- efficiency_basis: `n/a - record handoff cost, ownership clarity, discovery separability, verification independence, and rework risk when relevant`\n'
         printf -- '- selection_reason: `placeholder - record the score and trigger basis for the chosen orchestration profile`\n'
+        printf '\n## Evaluation Plan\n\n'
+        printf -- '- evaluation_need: `n/a - none|light|full; high score alone does not decide this`\n'
+        write_state_field_list 'project_invariants' "$summary" ${shared_contracts[@]+"${shared_contracts[@]}"} ${do_not_touch_paths[@]+"${do_not_touch_paths[@]}"} ${forbidden_patterns[@]+"${forbidden_patterns[@]}"}
+        write_state_field_list 'task_acceptance' 'Current user request and pinned task plan go here.'
+        write_state_field_list 'non_goals' 'Out-of-scope boundaries go here.'
+        write_state_field_list 'hard_checks' ${verification_commands[@]+"${verification_commands[@]}"}
+        write_state_field_list 'llm_review_rubric' ${reviewer_focus[@]+"${reviewer_focus[@]}"}
+        write_state_field_list 'evidence_required' 'Record command output, diff review, and any qualitative review evidence needed for close-out.'
+        printf -- '- note: `Hard checks outrank LLM review. Tiny tasks may collapse this section to the relevant checklist line.`\n'
         printf '\n## Writer Slot\n\n'
-        printf -- '- owner: `main`\n'
+        printf -- '- writer_slot: `main`\n'
         printf -- '- write_set: `n/a`\n'
         printf -- '- write_sets:\n'
         printf '  - `main`: `n/a`\n'
         printf '  - `worker`: `n/a`\n'
         printf '  - `reviewer`: `n/a`\n'
+        printf -- '- shared_assets_owner: `n/a`\n'
         printf -- '- note: `writer_slot`, `contract_freeze`, and `write_sets` stay in use while agent-driven delegation, skill routing, and dynamic budgets decide whether support may be spawned.`\n'
         printf -- '- concurrent_note: `Keep one shared task board by default. If same-workspace concurrent threads are intentionally enabled, root STATE.md becomes the registry and per-thread execution state moves into states/STATE.<thread_id>.md.`\n'
         printf '\n## Contract Freeze\n\n'
@@ -1162,6 +1210,7 @@ ensure_config_section_key_value() {
 get_config_developer_instructions() {
     cat <<'EOF'
 Use score-based orchestration and agent-driven skill routing to decide when to delegate work.
+Treat score_total as a complexity/risk prior only; evaluation_need and orchestration_value are separate gates.
 
 Execution requirements:
 - Always load and follow the nearest applicable AGENTS.md before implementation.
@@ -1187,7 +1236,10 @@ Default behavior:
 - Workspace persona overrides may narrow persona fields; unspecified fields inherit the global default, and current user requests still win.
 - Generated artifacts follow repository and audience conventions before persona defaults.
 - Mild profanity is conversational-only; do not use profanity in comments, docs, commits, PR text, tests, logs, or user-facing copy.
-- Use score-based orchestration to decide whether to stay single-session or delegate work to subagents.
+- Use `score_total` as a complexity/risk prior, not a blind switch for evaluator strength or delegation.
+- Track `evaluation_need` as `none`, `light`, or `full`; choose it from acceptance ambiguity, contract sensitivity, regression blast radius, weak executable checks, UX/behavior/wording subtlety, and reviewer-style judgment needs.
+- Track `orchestration_value` as `low`, `medium`, or `high`; choose it from disjoint write sets, independent verification targets, ownership clarity, contract freeze, main read-only feasibility during parallel work, and handoff/wait cost versus expected gain.
+- High score alone does not upgrade `evaluation_need`, high score alone does not justify delegation, and file count alone upgrades neither axis.
 - After reading `STATE.md`, report the active `score_total`, the decisive trigger or score basis, and how that classification changes the startup approach before substantial work begins.
 - When user or workspace instructions grant standing authorization, subagents may be spawned within those bounds; otherwise ask or remain in single-session mode.
 - For `score_total 4-6`, use a lightweight spawn/no-spawn basis when the choice is non-obvious; for `score_total >= 7`, record an explicit `spawn_decision` unless a concrete blocker makes single-session cheaper and safer.
@@ -1196,7 +1248,9 @@ Default behavior:
 - Do not treat a task as single-session from final output file count alone; re-evaluate when upstream collection, normalization, or read-heavy investigation can be owned separately.
 - If the user changes the contract from sample or demo output to real data integration, recalculate `execution_topology` before continuing writes.
 - If another live thread already owns an overlapping file, shared asset, or contract surface, stop and serialize the work, move one slice to another worktree, or switch to concurrent registry mode before more writes.
-- Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, implement through the selected profile, and verify against the frozen contract.
+- Use native spec-first gates instead of bundled workflow skills: clarify ambiguous scope read-only, freeze contracts in STATE.md, record the compact evaluation plan, implement through the selected profile, and verify against the frozen contract.
+- Project baseline spec comes from WORKSPACE_CONTEXT-derived constraints; task overlay spec comes from the current user request and pinned task plan in STATE.md.
+- Hard checks outrank LLM review; use `llm_review_rubric` as a soft second pass, never as the source of truth.
 - For read-heavy, parallelizable, or shared-asset work, evaluate delegation proactively when the efficiency gate passes and current user or workspace instructions authorize spawning.
 - Close finished agents promptly once their output is consumed.
 - Prefer spawning reviewers late unless earlier review is explicitly needed by the score and trigger set.
@@ -1219,7 +1273,7 @@ Spawn requirements:
 - If a planned spawn does not match these requirements, correct the parameters before calling spawn_agent.
 
 Delegation rules:
-- Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, `agent_budget`, and when applicable `efficiency_basis` and `spawn_decision` to decide whether delegation is allowed and how much support to spawn.
+- Use `score_total`, `hard_triggers`, `selected_rules`, `execution_topology`, `orchestration_value`, `agent_budget`, and when applicable `efficiency_basis` and `spawn_decision` to decide whether delegation is allowed and how much support to spawn.
 - Ground efficiency in handoff cost, ownership clarity, discovery separability, verification independence, and rework risk.
 - Spawn only when the slice has a read-only scope or disjoint write set, independent verification target, positive expected gain, and `agent_budget` greater than zero.
 - Count intermediate collection and normalization responsibility as part of `write_sets`; do not collapse that upstream work into the final frontend file owner by default.
@@ -1230,8 +1284,8 @@ Delegation rules:
 - Select `reviewer` only when the task-scoped rules or budget call for review-required validation.
 - Select `worker_shared` when a shared asset owner is required by the current task.
 - Do not exceed the computed task budget, even when the repair loop needs another pass.
-- Log the selected skills and delegation plan in `STATE.md` before or immediately after the work starts, as the workspace instructions require.
-- After non-trivial work, append a compact retrospective with predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next rule change.
+- Log the selected skills, execution topology, orchestration value, agent budget, evaluation need, and any `spawn_decision` or `efficiency_basis` in `STATE.md` before or immediately after the work starts, as the workspace instructions require.
+- After non-trivial work, append a compact retrospective with evaluation fit, orchestration fit, predicted topology, actual topology, spawn count, rework or reclassification, reviewer findings, verification outcome, and next gate adjustment.
 - Reuse task retrospectives as evidence for future kit-level proposals; do not introduce a separate standing rule-evolution artifact.
 - Do not open browsers or inspect external domains unless AGENTS.md permits it or the user explicitly asks for it.
 
