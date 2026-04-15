@@ -4,7 +4,7 @@
 각 항목은 문제 징후, 개선 기대효과, 선정 근거를 함께 남겨 다음 계획 단계의 직접 입력으로 쓴다.
 
 - schema_version: `1`
-- scanned_file_count: `49`
+- scanned_file_count: `50`
 - refactor_candidate_count: `5`
 
 ## Refactor Candidates
@@ -104,7 +104,7 @@
 - 결정: `pick` / 등급 `A` / 점수 `45`
 - 문제 징후:
   - 정규화 중복 블록 23줄이 2회 반복됨
-  - 영향 파일 중 최대 변경 빈도는 commit_count=41
+  - 영향 파일 중 최대 변경 빈도는 commit_count=42
   - 중복이 같은 책임 경계(generate_default_state, generate_workspace_state_from_context) 주변에 몰려 있음
   - 반복 블록 예시: printf '\n## Writer Slot\n\n' / printf -- '- writer_slot: `main`\n'
 - 개선 기대효과:

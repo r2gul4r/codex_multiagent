@@ -4,7 +4,7 @@
 모든 항목은 현재 저장소 목표인 자가 탐지 -> 제안 -> 구현 -> 검증 루프에 직접 연결되는 것만 남긴다.
 
 - schema_version: `1`
-- scanned_file_count: `46`
+- scanned_file_count: `47`
 - source_file_count: `9`
 - test_file_count: `0`
 - finding_count: `6`
