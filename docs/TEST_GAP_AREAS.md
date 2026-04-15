@@ -4,7 +4,7 @@
 모든 항목은 현재 저장소 목표인 자가 탐지 -> 제안 -> 구현 -> 검증 루프에 직접 연결되는 것만 남긴다.
 
 - schema_version: `1`
-- scanned_file_count: `45`
+- scanned_file_count: `46`
 - source_file_count: `9`
 - test_file_count: `0`
 - finding_count: `6`
@@ -19,8 +19,8 @@
 - 근거 판단: 설치기는 전역/작업공간 상태 생성의 핵심인데, 관련 테스트 파일이나 호출형 검증이 저장소에 없다.
 - 시나리오: 설치기 상태 생성이나 config patch 로직이 깨져도 현재 기본 검증은 Bash help 출력만 보므로 실사용 회귀를 막지 못한다.
 - 근거:
-  - `installer/CodexMultiAgent.ps1:35` :: 정의 60개, 연관 테스트 파일 0개
-  - `installer/CodexMultiAgent.sh:25` :: 정의 67개, 연관 테스트 파일 0개
+  - `installer/CodexMultiAgent.ps1:35` :: 정의 61개, 연관 테스트 파일 0개
+  - `installer/CodexMultiAgent.sh:25` :: 정의 68개, 연관 테스트 파일 0개
 
 ### 핵심 Python 분석기 테스트 부재
 
@@ -66,8 +66,8 @@
 - 시나리오: 작업공간 오버라이드 생성, `STATE.md`/`AGENTS.md` 렌더링, PowerShell 경로 수정이 깨져도 현재 기본 검증은 Bash help 출력만 통과하면 녹색으로 끝난다.
 - 근거:
   - `Makefile:59` :: 설치기 검증이 Bash `--help` 호출 한 줄로 끝남
-  - `installer/CodexMultiAgent.sh:25` :: 실제 설치/상태 생성 함수 67개
-  - `installer/CodexMultiAgent.ps1:35` :: 실제 설치/상태 생성 함수 60개
+  - `installer/CodexMultiAgent.sh:25` :: 실제 설치/상태 생성 함수 68개
+  - `installer/CodexMultiAgent.ps1:35` :: 실제 설치/상태 생성 함수 61개
   - `installer/Bootstrap.sh:1` :: 별도 bootstrap 진입점 존재하지만 기본 test 경로에서 실행되지 않음
   - `installer/Bootstrap.ps1:1` :: 별도 PowerShell bootstrap 진입점 존재하지만 기본 test 경로에서 실행되지 않음
 

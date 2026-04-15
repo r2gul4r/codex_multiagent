@@ -9,7 +9,7 @@ INCLUDE_DOCS=0
 FORCE=0
 NO_PROMPT=0
 
-INSTALLER_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+INSTALLER_ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 LOCAL_KIT_ROOT=$(dirname "$INSTALLER_ROOT")
 GLOBAL_HOME="${CODEX_HOME:-${HOME}/.codex}"
 GLOBAL_KIT_ROOT="${GLOBAL_HOME}/multiagent-kit"
@@ -564,7 +564,7 @@ resolve_workspace_relative_path() {
             ;;
     esac
 
-    root=$(CDPATH= cd -- "$workspace_root" && pwd)
+    root=$(CDPATH='' cd -- "$workspace_root" && pwd)
 
     IFS=/ read -r -a path_parts <<< "$relative_path"
     resolved_parts=()
@@ -1037,7 +1037,8 @@ remove_installer_managed_skills() {
         case "$managed_skill_name" in
             */*|*\\*|.|..) continue ;;
         esac
-        rm -rf "${GLOBAL_SKILLS_ROOT}/${managed_skill_name}"
+        [ -n "$GLOBAL_SKILLS_ROOT" ] || die 'GLOBAL_SKILLS_ROOT is empty; refusing managed skill removal'
+        rm -rf "${GLOBAL_SKILLS_ROOT:?}/${managed_skill_name}"
     done < "$GLOBAL_MANAGED_SKILLS_MANIFEST"
 
     rm -f "$GLOBAL_MANAGED_SKILLS_MANIFEST"
@@ -1606,7 +1607,7 @@ apply_to_workspace() {
     copy_docs="$3"
 
     ensure_directory "$workspace_path"
-    resolved_workspace=$(CDPATH= cd -- "$workspace_path" && pwd)
+    resolved_workspace=$(CDPATH='' cd -- "$workspace_path" && pwd)
     source_kit_root=$(get_source_kit_root)
     context_path=$(get_workspace_context_path "$resolved_workspace")
     agents_target="${resolved_workspace}/AGENTS.md"
@@ -1680,7 +1681,7 @@ update_workspace() {
         printf 'Workspace does not exist for update: %s\n' "$workspace_path" >&2
         exit 1
     fi
-    resolved_workspace=$(CDPATH= cd -- "$workspace_path" && pwd)
+    resolved_workspace=$(CDPATH='' cd -- "$workspace_path" && pwd)
 
     detected_template=$(detect_workspace_template "$resolved_workspace")
     effective_template="$TEMPLATE"

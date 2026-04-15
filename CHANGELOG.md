@@ -135,6 +135,7 @@
 ### Changed
 
 - macOS 설치 경로를 README 중심으로 정리하고 GitHub Actions `macos-latest` 기준 전역 설치, workspace 오버라이드, bootstrap 경로 실검증 완료
+
 ## v0.1.2 - 2026-03-19
 
 ### Added
