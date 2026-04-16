@@ -19,16 +19,13 @@ Quick Start 쨌 Install Modes 쨌 Workflow 쨌 File Map 쨌 Verification
 Install global defaults.
 
 ```powershell
-Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression
-Install-CodexMultiAgent -Mode InstallGlobal
+Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode InstallGlobal
 ```
 
 Apply project-local rules to a workspace.
 
 ```powershell
-$workspace = 'C:\path\to\your\workspace'
-Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression
-Install-CodexMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
+$workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
 ```
 
 ### macOS / Linux / WSL

@@ -23,16 +23,13 @@ Codex Multi-Agent Kit은 Codex의 기본 subagent 기능 위에 전역 규칙,
 전역 기본 규칙을 설치한다.
 
 ```powershell
-Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression
-Install-CodexMultiAgent -Mode InstallGlobal
+Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode InstallGlobal
 ```
 
 특정 작업공간에 프로젝트 규칙을 적용한다.
 
 ```powershell
-$workspace = 'C:\path\to\your\workspace'
-Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression
-Install-CodexMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
+$workspace = 'C:\path\to\your\workspace'; Invoke-RestMethod 'https://raw.githubusercontent.com/r2gul4r/codex_multiagent/main/installer/Bootstrap.ps1' | Invoke-Expression; Install-CodexMultiAgent -Mode ApplyWorkspace -TargetWorkspace $workspace -IncludeDocs
 ```
 
 ### macOS / Linux / WSL
